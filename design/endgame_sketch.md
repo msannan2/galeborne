@@ -42,10 +42,10 @@ Each tavern board offers 3 contracts, and they refresh every moon. Every contrac
 - The duel cap (Jeff's call) pairs with bounties: late-game difficulty should come from named pirates, not from a hit zone that keeps growing.
 - Researcher's point about event variety: each contract type brings its own voyage events, like an escort ambush or a customs sweep.
 
-## Open questions for Jeff
-1. Should Renown also come from selling goods, or only from contracts, fights and bounties? I'd say contracts, fights and bounties only, to stop grinding.
-2. Should the named rival be in v0.7, or wait until Free Play?
-3. Should the deadline count in moons (game time) or in voyages? Moons feels more alive.
+## Jeff's calls (17:17 PKT)
+1. **Renown:** none from selling goods. It comes only from contracts, fights and bounties, plus a small bonus for the first sale of a new good at each port.
+2. **Named rival:** in v0.7, as a light version. One rival appears at the rank-2 promotion, steals a contract now and then, and can be beaten in a bounty duel.
+3. **Deadlines:** counted in moons. The moons left show on the contract card and on the sea map.
 
-## Suggested first slice (one week)
+## First slice (approved, after the duel window)
 Renown plus the first 3 ranks, plus delivery and rush contracts at the 3 existing ports. That's enough to test whether players chase the next rank.
