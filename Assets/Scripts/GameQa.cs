@@ -50,7 +50,7 @@ public partial class Game {
       int port0 = port; var story0 = tavernStory; var news0 = news.ToList();
       foreach (var pn in new[] { "Gwadar", "Debal", "Muscat" }) {
         port = PortIdx(pn); tavernStory = "The tavern keeper slides you a letter sealed with the Qarin mark: \"To the captain who carries this seal: the Sultan's customs in Muscat look away for those who bear the Qarin mark. Bring powder, and ask for the man in the blue doorway. - Q.\"";
-        news.Insert(0, "Rumor (Week 2 · Moon 1 · Year 1): Muscat's customs seize gunpowder on sight, but the garrison still pays a fortune for it under the table. Farida in Debal's Back Alley sells it cheap. Sell it in Muscat's Back Alley."); /* research_gp1: once, not 5x */
+        news.Insert(0, "Rumor (Week 2 · Moon 1 · Year 1): Muscat's customs seize gunpowder on sight, but the garrison still pays a fortune for it under the table. Farida in Debal's Back Alley sells it cheap. Sell it in Muscat's Back Alley."); /* research_gp1: once, not 5x */ foreach (var fill in new[] { "Rumor (Week 2 · Moon 1 · Year 1): Sailors from Debal say the dates harvest failed. Someone will get rich.", "Rumor (Week 3 · Moon 1 · Year 1): Don't take copper to Muscat. Half the coast had the same idea.", "Rumor (Week 3 · Moon 1 · Year 1): Black sails seen off Gwadar. Rich holds make tempting targets.", "Rumor (Week 4 · Moon 1 · Year 1): The stars warn of a storm on the road to Debal. Sail slow, or sail brave." }) news.Insert(0, fill); /* research_gp1: 4 different fillers keep the long-list scroll check meaningful without duplicates */
         tab = 8; Refresh(); yield return null; yield return null; yield return Shot("egfix_tavern_" + pn);
         var msgR = Named("Msg"); var qb = Find("Ask about work"); var cb = Find(EndgameData.BoardTitle);
         if (msgR != null && qb != null && cb != null) { var mr = SR2(msgR); var qr = SR2(qb.GetComponent<RectTransform>()); var cr = SR2(cb.GetComponent<RectTransform>()); L($"rect {pn} ticker {mr} ask {qr} board {cr}");
@@ -113,7 +113,7 @@ public partial class Game {
       Chk(JournalUnlocked && Goals3().Item1 == GpSellGoal, $"gunpowder goal shown after Journal unlock (Now: {Goals3().Item1})");
       tab = 4; chartDest = -1; chartCentered = false; Refresh(); yield return null; yield return null; yield return Shot("gp_map_flag");
       var flags = FindObjectsByType<RectTransform>(FindObjectsSortMode.None).Where(r => r.name.StartsWith("egflag ")).Select(r => r.name.Substring(7)).ToList();
-      Chk(flags.Contains("Muscat") && !flags.Contains("Gwadar") && !flags.Contains("Debal"), $"sea map flag on Muscat only while gunpowder is held (flags: {string.Join(",", flags)})");
+      var gpOnly = flags.Where(f => EgMapFlag(PortIdx(f)) == null).ToList(); Chk(flags.Contains("Muscat") && gpOnly.All(f => f == "Muscat"), $"sea map flag on Muscat while gunpowder is held; other flags are contracts only (flags: {string.Join(",", flags)})");
       tab = -1; port = Muscat; Refresh(); yield return null; Sell(Gp); Sell(Gp);
       Chk(openingGpSold && Goals3().Item1 != GpSellGoal && msg == GpSoldLine, $"gunpowder goal clears on the Muscat sale (Now: {Goals3().Item1}; msg: {msg})");
       Chk(GpMapFlag(Muscat) == null, "Muscat gunpowder flag gone after the sale");
