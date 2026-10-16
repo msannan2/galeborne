@@ -543,7 +543,8 @@ public partial class Game : MonoBehaviour {
   public const string GreyLabelHex = "#3A2618", GreyPlateHex = "#D9C08A", GreyOutlineHex = "#3A2618"; public const float GreyPlateAlpha = 0.85f, GreyLabelAlpha = 0.75f; /* Chief Art Designer r4: parchment plate 85% with a 1 px teak outline, teak label 75% on top, no grey overlay */
   public const float OptionLabelPad = 14f; /* gamedev_final_strings: card option labels shrink to fit inside the plate with padding */
   void FitOptionLabel(Button b) { var lt = b.transform.Find("L") as RectTransform; var tx = lt ? lt.GetComponent<Text>() : null; if (!tx) return; lt.offsetMin = new Vector2(OptionLabelPad, 4); lt.offsetMax = new Vector2(-OptionLabelPad, -4);
-    tx.horizontalOverflow = HorizontalWrapMode.Wrap; tx.verticalOverflow = VerticalWrapMode.Truncate; tx.resizeTextForBestFit = true; tx.resizeTextMaxSize = tx.fontSize; tx.resizeTextMinSize = Mathf.Max(12, tx.fontSize / 2); }
+    tx.horizontalOverflow = HorizontalWrapMode.Overflow; tx.resizeTextForBestFit = false; float avail = ((RectTransform)b.transform).rect.width - 2 * OptionLabelPad; /* one line, shrunk until it fits (best fit would wrap it into two tiny lines) */
+    while (tx.preferredWidth > avail && tx.fontSize > 14) tx.fontSize--; }
   void GreyOption(Button b) { var im = b.GetComponent<Image>(); if (im) { im.sprite = Panel(UITheme.C(GreyPlateHex), UITheme.C(GreyOutlineHex)); im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = Mathf.Max(1, T.borderPx) / 2f; /* outline = 2 canvas units = 1 px at 540 wide */ im.color = new Color(1, 1, 1, GreyPlateAlpha); }
     b.transition = Selectable.Transition.None; /* no disabled colour-tint overlay */
     var lt = b.transform.Find("L"); if (lt) { lt.SetAsLastSibling(); var tx = lt.GetComponent<Text>(); if (tx) { var lc = UITheme.C(GreyLabelHex); lc.a = GreyLabelAlpha; tx.color = lc; tx.raycastTarget = false; } } b.gameObject.name = "Btn " + (lt ? lt.GetComponent<Text>()?.text : "") ; }
