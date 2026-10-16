@@ -49,7 +49,7 @@
    "unlock": "Full board: 3 contracts, rush jobs open.",
    "heading": "Known on the quay",
    "button": "Onward",
-   "promo": "The harbour knows your name now. Trader.",
+   "promo": "The harbour knows your name. You are a Trader now.",
    "rival": "So the harbour talks about you now. Enjoy it while it lasts."
   },
   {
@@ -59,7 +59,7 @@
    "unlock": "Second cargo deck at the Shipwright. Tier 2 contracts.",
    "heading": "The guilds take note",
    "button": "To sea",
-   "promo": "Your word is good in every port. Merchant."
+   "promo": "Your word is good in every port. You are a Merchant now."
   }
  ],
  "strings": {

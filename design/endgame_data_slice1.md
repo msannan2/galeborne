@@ -6,8 +6,8 @@ Sources: endgame_sketch.md (1a0477a, 4d0b0d1), contract_card_and_rival.md (0082a
 | Rank | Renown | Unlocks | Card heading | Button | Promotion line |
 |---|---|---|---|---|---|
 | Deckhand | 0 | One starter contract on each board. | - | - | - |
-| Trader | 100 | Full board: 3 contracts, rush jobs open. | Known on the quay | Onward | The harbour knows your name now. Trader. |
-| Merchant | 300 | Second cargo deck at the Shipwright. Tier 2 contracts. | The guilds take note | To sea | Your word is good in every port. Merchant. |
+| Trader | 100 | Full board: 3 contracts, rush jobs open. | Known on the quay | Onward | The harbour knows your name. You are a Trader now. |
+| Merchant | 300 | Second cargo deck at the Shipwright. Tier 2 contracts. | The guilds take note | To sea | Your word is good in every port. You are a Merchant now. |
 
 Rashid on the Trader card: "So the harbour talks about you now. Enjoy it while it lasts."
 
