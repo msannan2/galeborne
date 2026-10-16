@@ -417,6 +417,7 @@ public partial class Game {
     { 5, ("banker", "Master Idris, banker", 3) },
     { 6, ("moneyLender", "Rafiq the lender", 1) }, { 7, ("shipwright", "Old Bashir, shipwright", 4) },
     { 8, ("innkeeper", "Innkeeper of the Salt & Lantern", 0) } /* own lines; face: Art/Portraits/innkeeper when painted, else mirrored + tinted row 0 (see KeeperHeader) */, { 9, ("banker", "Governor's chamberlain", 3) } };
+  static int MerchantRow(string p) => p == "Debal" ? 5 : p == "Muscat" ? 6 : 0; /* art_merchant_portraits: Gwadar & others = Jalal (row 0) */
   static readonly string[] Moods = { "neutral", "delighted", "offended", "suspicious" };
   KeeperLine Line(string key, string trig) { if (book == null) { var ta = Resources.Load<TextAsset>("keeper_lines"); book = ta ? JsonUtility.FromJson<KeeperBook>(ta.text) : new KeeperBook(); }
     var arr = (KeeperLine[])typeof(KeeperBook).GetField(key).GetValue(book); if (arr == null || arr.Length == 0) return new KeeperLine { mood = "neutral", text = "" };
@@ -431,7 +432,7 @@ public partial class Game {
     var r = Px(content, "Keeper", 16, 172, 1048, KeeperH); Box(r, T.ledgerBg, T.frame);
     var fr = Px(r, "face", 14, 14, KeeperH - 28, KeeperH - 28); Box(fr, T.ink, T.gold);
     /* v0.6h4: ally Farida until turned in; rival portrait from FaridaState == 2 */
-    var tex = k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}");
+    var tex = k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{(tab == 0 ? MerchantRow(S.ports[port].name) : k.row)}_{mood}");
     /* designer: optional own portraits, Assets/Resources/Art/Portraits/<file>.png (Builder.cs:115 import rule); until painted, the borrowed face is mirrored + tinted */
     string own = k.key == "innkeeper" ? "innkeeper" : k.key == "priest" ? "priest" : k.key == "harbourmaster" ? "harbourmaster" : null;
     var ownTex = own != null ? Resources.Load<Texture2D>("Art/Portraits/" + own) : null; if (ownTex) tex = ownTex;
