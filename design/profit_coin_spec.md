@@ -8,7 +8,7 @@
 
 ## Text
 - Profit: `+N profit`, `#E0B85A`, 2 px outline `#3A2618`.
-- Loss: `−N`, `#A8584A` at 85% alpha, no outline. No coins, no sound.
+- Loss: `−N`, `#A8584A` at 85% alpha, with a 2 px `#3A2618` outline (same as profit). No coins, no sound.
 
 ## Coin fly (profit only)
 - 5–8 coins, 24–32 px on screen.
