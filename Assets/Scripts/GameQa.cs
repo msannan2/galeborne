@@ -191,7 +191,7 @@ yield return Shot("polish_blk_greyed_button"); }
       string got = string.Join(" ", want.Keys.Select(k => $"{k}:{VeVariants(k).Count}/{VeFamily(k)}")); Chk(want.All(kv => VeVariants(kv.Key).Count == kv.Value) && VeVariants("storm").All(v => VeS(v, "title", null) != null), "gamedev_voyage_events: variants load from Resources/Design/voyage_events.json: " + got);
       // no-repeat: 400 draws mixing decision and encounter picks, carrying lastFamily like real voyages do
       lastFamily = ""; string prev = ""; int rep = 0; var seen = new System.Collections.Generic.HashSet<string>(); var wq = new[] { S.weights.wreck, S.weights.merchant, S.weights.squall, S.weights.rumor };
-      for (int k = 0; k < 400; k++) { string id; if (k % 3 == 0) { var fk = VeFreeKinds(0); id = DecisionIds[fk[Rnd.Range(0, fk.Count)]]; } else id = EncIds[VePickEncounter(wq)]; string f = VeFamily(id); if (f == prev) rep++; seen.Add(f); prev = f; VeShown(id); }
+      for (int k = 0; k < 400; k++) { string id; if (k % 3 == 0) { var fk = VeFreeKinds(0); id = DecisionIds[fk[UnityEngine.Random.Range(0, fk.Count)]]; } else id = EncIds[VePickEncounter(wq)]; string f = VeFamily(id); if (f == prev) rep++; seen.Add(f); prev = f; VeShown(id); }
       Chk(rep == 0 && seen.Count >= 5, $"gamedev_voyage_events: 400 draws, {rep} back-to-back repeats within a family, families seen: {string.Join(",", seen)}");
       // lastFamily survives a save/load
       lastFamily = "weather"; Save(); lastFamily = ""; Load(); bool saved = lastFamily == "weather"; Chk(saved && !VeFreeKinds(0).Contains(1), $"gamedev_voyage_events: lastFamily saved ('{lastFamily}') so a voyage after a squall can't open with a storm");
@@ -200,8 +200,8 @@ yield return Shot("polish_blk_greyed_button"); }
       int g = G("copper"); bool allOk = true; var bad = new System.Collections.Generic.List<string>();
       for (int vi = 0; vi < 3; vi++) { veForceVariant = vi;
         // merchant buy: coins down, cargo up
-        System.Array.Clear(hold, 0, hold.Length); coins = 5000; lastFamily = ""; veForce = "merchant"; StartCoroutine(Encounter(false, false)); yield return null; yield return null; string ct = CardText(); var bb = dialog ? dialog.GetComponentsInChildren<Button>().FirstOrDefault(xb => xb.GetComponentInChildren<Text>().text.StartsWith("Buy")) : null;
-        int hu = HoldUsed; if (bb) bb.onClick.Invoke(); yield return null; yield return null; if (!(bb && coins < 5000 && HoldUsed > hu && !ct.Contains("{") && lastFamily == "merchant")) { allOk = false; bad.Add($"merchant v{vi}: {ct}"); } if (vi == 1) { }
+        System.Array.Clear(hold, 0, hold.Length); coins = 5000; lastFamily = ""; veForce = "merchant"; StartCoroutine(Encounter(false, false)); yield return null; yield return null; string ct = CardText(); var mbb = dialog ? dialog.GetComponentsInChildren<Button>().FirstOrDefault(xb => xb.GetComponentInChildren<Text>().text.StartsWith("Buy")) : null;
+        int hu = HoldUsed; if (mbb) mbb.onClick.Invoke(); yield return null; yield return null; if (!(mbb && coins < 5000 && HoldUsed > hu && !ct.Contains("{") && lastFamily == "merchant")) { allOk = false; bad.Add($"merchant v{vi}: {ct}"); } if (vi == 1) { }
         // squall with cargo: goods lost match the card
         System.Array.Clear(hold, 0, hold.Length); hold[g] = 5; lastFamily = ""; veForce = "squall"; StartCoroutine(Encounter(false, false)); yield return null; yield return null; ct = CardText(); int lostN = 5 - hold[g];
         if (vi == 0) yield return Shot("ve_squall"); EgTestCloseCard(); yield return null; yield return null; if (!(dialog == null && !ct.Contains("{") && (lostN == 0 ? !ct.Contains("wash") : ct.Contains(GoodCount(g, lostN))))) { allOk = false; bad.Add($"squall v{vi}: lost {lostN}: {ct}"); }
