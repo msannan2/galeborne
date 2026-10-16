@@ -11,6 +11,15 @@ using UnityEngine.UI;
    writes <savedir>/qa/qa_results.txt + screenshots, then runs the endgame self-test (GB EGTEST lines) and quits (exit 0 = all pass). */
 public partial class Game {
   /// gamedev_salvage_full: drawn-pixel check of a greyed option (plate, no outline, label ink, contrast vs an active button) from a real screen capture
+  // gamedev_voyage_events2 qa helper: run a forced event (or the Hail path), tap option `opt` like a real tap, capture both cards
+  public string qvCard = "", qvOut = "", qvDir = ""; public bool qvTapOk;
+  IEnumerator QaVe(string force, int opt, string shot = null) { qvCard = qvOut = ""; qvTapOk = false; dialog = null; veForce = force;
+    if (force == "horizon") { voyageKindsUsed = 0; StartCoroutine(VoyageDecision()); } else StartCoroutine(Encounter(false, false));
+    yield return null; yield return null; string Txt() => dialog ? string.Join(" | ", dialog.GetComponentsInChildren<Text>().Select(t => t.text)) : ""; qvCard = Txt();
+    if (shot != null) { yield return null; yield return ShotCo(System.IO.Path.Combine(qvDir, shot + ".png")); } yield return new WaitForSecondsRealtime(0.7f);
+    var bs = dialog ? dialog.GetComponentsInChildren<Button>() : new Button[0]; if (opt < bs.Length) { qvTapOk = bs[opt].interactable; UnityEngine.EventSystems.ExecuteEvents.Execute(bs[opt].gameObject, new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current), UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler); }
+    for (int k = 0; k < 4; k++) yield return null; if (dialog != null && Txt() != qvCard) qvOut = Txt();
+    for (int k = 0; k < 12 && dialog != null; k++) { EgTestCloseCard(); yield return new WaitForSecondsRealtime(0.1f); } veForce = ""; dialog = null; }
   IEnumerator QaGreyDrawn(Button ub, Button act, System.Action<bool, string> rep) {
     yield return new WaitForEndOfFrame(); var cap = ScreenCapture.CaptureScreenshotAsTexture(); var cv = ub.GetComponentInParent<Canvas>().rootCanvas; Camera ucam = cv.renderMode == RenderMode.ScreenSpaceOverlay ? null : cv.worldCamera;
     Color P(float x, float y) => cap.GetPixel(Mathf.Clamp(Mathf.RoundToInt(x), 0, cap.width - 1), Mathf.Clamp(Mathf.RoundToInt(y), 0, cap.height - 1));
@@ -216,6 +225,50 @@ yield return Shot("polish_blk_greyed_button"); }
         if (!(hbOk && hold[g] == 5 && !ct.Contains("{") && lastFamily == "horizon")) { allOk = false; bad.Add($"horizon v{vi}: btn {hbOk} hold {hold[g]} fam {lastFamily} msg {msg}"); } dialog = null; PasserHide("qa"); }
       Chk(allOk && qaExceptions == exc0, $"gamedev_voyage_events: every variant of merchant/squall/rumour/storm/horizon applies its outcome, fills its placeholders, sets the family, no exceptions ({qaExceptions - exc0}) " + string.Join(" ;; ", bad));
       veForceVariant = -1; veForce = ""; lastFamily = lf0; coins = c0; System.Array.Copy(h0, hold, hold.Length); price = p0; voyageKindsUsed = 0; dialog = null; Refresh(); yield return null; }
+    // ---- gamedev_voyage_events2: 5 new events + Hail payoffs, weights, Muscat-only customs, monsoon doubling, shared weather family ----
+    { tab = -1; dialog = null; Refresh(); yield return null; var h0 = (int[])hold.Clone(); int c0 = coins, w0 = week, port0 = port, dest0 = dest; string lf0 = lastFamily; float[,] p0 = (float[,])price.Clone(); float hn0 = hullNow; qvDir = dir; VeHookExceptions(); int exc0 = qaExceptions;
+      int db = Debal, gw = GwadarIdx, mu = Muscat; float m = 1f; bool Near(float a, float b) => Mathf.Abs(a - b) < 1e-3f;
+      int wk = week; week = 0; var wDM = EncWeights(db, mu); var wDG = EncWeights(db, gw); var wGM = EncWeights(gw, mu); bool mon0 = Monsoon; week = 6 * S.weeksPerMoon; var wMon = EncWeights(db, mu); bool mon7 = Monsoon; int moonN = MoonOfYear; week = wk;
+      Chk(Near(S.weights.pirate, 35) && Near(wDM[0], 20) && Near(wDM[1], 20) && Near(wDM[2], 15) && Near(wDM[3], 10) && Near(wDM[4], 6) && Near(wDM[5], 6) && Near(wDM[6], 6) && Near(wDM[7], 4) && Near(wDM[8], 6) && !mon0,
+        $"gamedev_voyage_events2: weights Debal-Muscat: pirate {S.weights.pirate} wreck {wDM[0]} merchant {wDM[1]} squall {wDM[2]} rumor {wDM[3]} | pearl {wDM[4]} leaky {wDM[5]} customs {wDM[6]} lighthouse {wDM[8]} squallLine {wDM[7]}");
+      Chk(wDG[6] == 0 && wDG[8] == 0 && wGM[6] > 0 && wGM[8] > 0 && wDG[4] > 0, $"gamedev_voyage_events2: customs only on Muscat legs (Debal-Gwadar {wDG[6]}, Gwadar-Muscat {wGM[6]:0.00}); lighthouse only via Ras al Hadd legs");
+      Chk(mon7 && Near(wMon[7], 10), $"gamedev_voyage_events2: monsoon (moon {moonN}) raises squallLine 4 -> {wMon[7]} (x2.5)");
+      int cust = 0, wthr = 0; for (int k = 0; k < 400; k++) { lastFamily = ""; if (EncIds[VePickEncounter(wDG)] == "customsLaunch") cust++; lastFamily = "weather"; var id = EncIds[VePickEncounter(wDM)]; if (id == "squall" || id == "squallLine") wthr++; }
+      Chk(cust == 0 && wthr == 0 && VeFamily("squallLine") == "weather", $"gamedev_voyage_events2: 400 Debal-Gwadar draws gave {cust} customs; after a weather card, {wthr} squall/squallLine draws (shared 'weather' family)");
+      var bad = new System.Collections.Generic.List<string>(); void Ok(bool c, string what) { if (!c) bad.Add(what + $" [{qvCard} => {qvOut}]"); }
+      int pg = G("pearls"), dg = G("dates"), sg = G("salt"), cu = G("copper"); port = db; dest = mu; veForceVariant = 0;
+      System.Array.Clear(hold, 0, hold.Length); coins = 500; int wB = week; yield return QaVe("pearlDiver", 0, "ve2_pearl"); Ok(hold[pg] == 1 && week == wB + 1 && qvOut.Contains("pearl"), "pearl haul (room)");
+      hold[cu] = S.holdSize - 1; coins = 500; yield return QaVe("pearlDiver", 0); Ok(hold[pg] == 1 && coins == 560, "pearl haul (full -> +60)");
+      System.Array.Clear(hold, 0, hold.Length); coins = 500; float pd = price[db, pg]; yield return QaVe("pearlDiver", 1); Ok(coins == 490 && price[db, pg] > pd && qvOut.Contains("Debal"), "pearl float");
+      coins = 5; yield return QaVe("pearlDiver", 1); Ok(!qvTapOk && coins == 5, "pearl float greyed when broke"); coins = 500; yield return QaVe("pearlDiver", 2); Ok(coins == 500 && qvOut.Contains("next boat"), "pearl sail on");
+      System.Array.Clear(hold, 0, hold.Length); coins = 5000; int unit = Mathf.Max(1, Mathf.RoundToInt(price[gw, dg] * 0.5f)); yield return QaVe("leakyDhow", 0, "ve2_leaky"); Ok(hold[dg] == 5 && coins == 5000 - 5 * unit && qvCard.Contains($"({5 * unit})"), $"leaky buy 5 at {unit}");
+      System.Array.Clear(hold, 0, hold.Length); hold[cu] = S.holdSize; yield return QaVe("leakyDhow", 0, "ve2_leaky_full"); Ok(!qvTapOk && qvCard.Contains("Hold full") && hold[dg] == 0, "leaky greyed 'Hold full'");
+      System.Array.Clear(hold, 0, hold.Length); wB = week; float ps = price[db, sg]; yield return QaVe("leakyDhow", 1); Ok(week == wB + 1 && price[db, sg] > ps && qvOut.Contains("salt"), "leaky crew");
+      var ban0 = new System.Collections.Generic.List<Ban>(bans); int bg = G("pepper"); System.Array.Clear(hold, 0, hold.Length); bans.RemoveAll(bn => bn.port == mu);
+      hold[cu] = 3; coins = 1000; yield return QaVe("customsLaunch", 0, "ve2_customs_clear"); Ok(qvCard.Contains("Customs waved you through.") && coins == 1000 && hold[cu] == 3, "customs no banned goods: waved through");
+      bans.Add(new Ban { good = bg, port = mu, start = week - 1, end = week + 50 }); hold[bg] = 4; wB = week; yield return QaVe("customsLaunch", 0, "ve2_customs"); Ok(hold[bg] == 0 && hold[cu] == 3 && week == wB + 1, "customs heave to: banned seized, legal kept");
+      bans[bans.Count - 1].end = week + 50; hold[bg] = 4; coins = 1000; yield return QaVe("customsLaunch", 1); Ok(coins == 950 && hold[bg] == 4 && qvOut.Contains("50"), "customs fee 5%");
+      coins = 100; yield return QaVe("customsLaunch", 1); Ok(coins == 80, "customs fee min 20"); coins = 9000; yield return QaVe("customsLaunch", 1); Ok(coins == 8850, "customs fee max 150");
+      coins = 1000; veRoll = 0.1f; yield return QaVe("customsLaunch", 2); Ok(coins == 1000 && qvOut.Contains("outrun"), "customs run escapes");
+      hullNow = -1; float hc = HullCur; veRoll = 0.9f; yield return QaVe("customsLaunch", 2); Ok(coins == 900 && Near(HullCur, hc - 10) && qvOut.Contains("100"), "customs run caught: hull -10, fee x2"); veRoll = -1; bans.Clear(); bans.AddRange(ban0);
+      System.Array.Clear(hold, 0, hold.Length); hold[cu] = 5; wB = week; yield return QaVe("squallLine", 0, "ve2_squalline"); Ok(week == wB + 1 && hold[cu] == 5, "squallLine around: +1 week");
+      veRoll = 0.1f; yield return QaVe("squallLine", 1); int lostS = 5 - hold[cu]; Ok(lostS >= 1 && lostS <= 2 && qvOut.Contains(GoodCount(cu, lostS)), "squallLine cut: lose 1-2");
+      hold[cu] = 5; veRoll = 0.9f; yield return QaVe("squallLine", 1); Ok(hold[cu] == 5 && qvOut.Contains("Soaked"), "squallLine cut: safe"); veRoll = -1;
+      hullNow = -1; hc = HullCur; yield return QaVe("squallLine", 2); Ok(Near(HullCur, hc - 5), "squallLine heave to: hull -5"); hullNow = hn0;
+      System.Array.Clear(hold, 0, hold.Length); coins = 500; yield return QaVe("lighthouse", 0, "ve2_lighthouse"); Ok(coins == 485 && qvOut.Contains("short of"), "lighthouse news 15");
+      yield return QaVe("lighthouse", 1); Ok(!qvTapOk && qvCard.Contains("Nothing to spare"), "lighthouse supplies greyed with nothing losable");
+      hold[cu] = 3; hold[sg] = 3; int cheapG = price[port, sg] <= price[port, cu] ? sg : cu; ambushHalveNext = false; yield return QaVe("lighthouse", 1); Ok(hold[cheapG] == 2 && ambushHalveNext && Near(VeTakeAmbushHalve(), 0.5f) && !ambushHalveNext, "lighthouse supplies: cheapest good -1, next voyage ambush halved");
+      System.Array.Clear(hold, 0, hold.Length); coins = 5000; port = gw; dest = mu; veForceHail = "trade"; var gwCheap = S.ports[gw].cheap.Select(G).Where(xg => xg >= 0 && !S.goods[xg].contraband).OrderBy(xg => price[gw, xg]).First(); int hu = Mathf.Max(1, Mathf.RoundToInt(price[gw, gwCheap]));
+      yield return QaVe("horizon", 0, "ve2_hail_trade_card"); string hc1 = qvOut; Ok(lastHail == "trade" && hc1.Contains($"{hu}"), $"hail trade offers cheapest Gwadar good {S.goods[gwCheap].name} at {hu}");
+      veForceHail = "warning"; hailWarned = false; port = db; dest = mu; yield return QaVe("horizon", 0); Ok(hailWarned && qvOut.Contains("Muscat") && HailWarnPort(db, mu) == mu, "hail warning names the risky destination Muscat, halves ambush");
+      Ok(HailWarnPort(db, gw) == -1 && HailWarnPort(gw, mu) == db, $"hail warning port: safe leg -> next risky port from the destination ({HailWarnPort(gw, mu)}), none -> -1");
+      hailWarned = false; port = db; dest = gw; yield return QaVe("horizon", 0); Ok(!hailWarned && lastHail == "rumour", "hail warning with no ambush risk falls back to rumour");
+      Ok(HailTradePort(gw, mu) == gw, "hail trade uses the port just left when the destination's cheap list differs");
+      veForceHail = "rumour"; yield return QaVe("horizon", 0); Ok(lastHail == "rumour" && qvOut.Length > 0 && !qvOut.Contains("{"), "hail rumour");
+      veForceHail = ""; var cnt = new System.Collections.Generic.Dictionary<string, int> { { "rumour", 0 }, { "trade", 0 }, { "warning", 0 } }; for (int k = 0; k < 1000; k++) { float r = UnityEngine.Random.value * 100; cnt[r < HailWRumour ? "rumour" : r < HailWRumour + HailWTrade ? "trade" : "warning"]++; }
+      Chk(bad.Count == 0 && qaExceptions == exc0, $"gamedev_voyage_events2: every outcome of pearlDiver/leakyDhow/customsLaunch/squallLine/lighthouse/Hail applies as written, no exceptions ({qaExceptions - exc0}) " + string.Join(" ;; ", bad));
+      Chk(HailWRumour == 50 && HailWTrade == 30 && HailWWarning == 20, $"gamedev_voyage_events2: Hail weights 50/30/20 (1000 rolls: {cnt["rumour"]}/{cnt["trade"]}/{cnt["warning"]})");
+      veForceVariant = -1; veForce = ""; veForceHail = ""; hailWarned = false; ambushHalveNext = false; lastFamily = lf0; coins = c0; week = w0; port = port0; dest = dest0; hullNow = hn0; System.Array.Copy(h0, hold, hold.Length); price = p0; dialog = null; Refresh(); yield return null; }
     // ---- gamedev_continue: blockade seizure on docking is never silent; HUD Next shows the urgent contract ----
     { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; blockStart[mu] = -1000; blockKnown[mu] = true; safeUntilSail = sails + 100; Refresh(); yield return null;
       StartCoroutine(Voyage(mu)); bool card = false; float tq = Time.realtimeSinceStartup;
