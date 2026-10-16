@@ -226,9 +226,9 @@ public partial class Game {
       case 1: return ("Set sail for Debal on the chart table (safe coastal route)", m, l);
       case 2: return ("Sell your dates and salt in Debal's market", m, l);
       case 3: return ("Hear the harbour talk at Debal's tavern", m, l);
-      case 4: return rumorHeard >= 2 && hold[Gp] == 0 ? ("No gunpowder? Copper is short in Muscat: buy copper in Gwadar", "Sell it in Muscat", l) : ("Buy gunpowder from Farida in Debal's back alley", "Sell it in Muscat once the ban is live", l);
-      case 5: return ("Set sail for Muscat on the chart table", fallbackFired || hold[Gp] == 0 ? "Sell copper in Muscat's market" : "Sell the gunpowder in Muscat's back alley", l);
-      case 6: return fallbackFired ? ("Sell your copper in Muscat's market (shortage, x2)", "Then: warehouse, bank and lender open up", l) : ("Sell the gunpowder in Muscat's back alley", "Then: warehouse, bank and lender open up", l);
+      case 4: return rumorHeard >= 2 && hold[Gp] == 0 ? ("No gunpowder? Copper is short in Muscat: buy copper in Gwadar", "Sell it in Muscat", l) : ("Buy gunpowder from Farida in Debal's Back Alley", "Sell it in Muscat once the ban is live", l);
+      case 5: return ("Set sail for Muscat on the chart table", fallbackFired || hold[Gp] == 0 ? "Sell copper in Muscat's market" : "Sell the gunpowder in Muscat's Back Alley", l);
+      case 6: return fallbackFired ? ("Sell your copper in Muscat's market (shortage, x2)", "Then: warehouse, bank and lender open up", l) : ("Sell the gunpowder in Muscat's Back Alley", "Then: warehouse, bank and lender open up", l);
       case 7: return ("Ask at the tavern about the Qarin seal", "Save up for a bigger ship", l);
     } return ("", "", l); }
   /// advances the opening from the real game state; called after every Refresh
@@ -250,7 +250,7 @@ public partial class Game {
   const string Rumor2 = "They say Muscat's garrison is starved for powder. A crate that costs a sack of dates here fetches a chest of silver there, if customs doesn't catch you.";
   string TavernStory() {
     if (!InOpening) return null; var rs = ((List<object>)DZ.content["rumors"]).Select(Design.D).First(x => (string)x["type"] == "ban");
-    string ban = "Muscat's customs seize gunpowder on sight, but the garrison still pays a fortune for it under the table. Farida in the back alley has some, at Gwadar's price."; /* v0.6f4 wording; rs kept for the data check */ _ = rs;
+    string ban = "Muscat's customs seize gunpowder on sight, but the garrison still pays a fortune for it under the table. Farida in Debal's Back Alley sells it cheap. Sell it in Muscat's Back Alley."; /* v0.6f4 wording; rs kept for the data check */ _ = rs;
     if (storyStep == 3 || (storyStep == 2 && port == Debal)) { /* the rumor can't be missed: hearing it before selling everything still moves the opening on */ storyStep = 4; rumorHeard = 1; gpBanStart = week + 1; EnsureDesignBans(); news.Insert(0, $"Rumor ({DateStr}): {ban}"); return OpenFlag("secondRumorOnFirstTavernVisit") ? ban + " " + Rumor2 : ban; }
     if (storyStep == 4 && hold[Gp] == 0 && rumorHeard < 2) { rumorHeard++; return Rumor2; }
     if (storyStep == 7) { storyStep = StDone; qarinLetter = true; return (boardedStoryPirate ? "A letter from the fog pirate's strongbox, sealed with the Qarin mark: " : "The tavern keeper slides you a letter sealed with the Qarin mark: ") + "\"To the captain who carries this seal: the Sultan's customs in Muscat look away for those who bear the Qarin mark. Bring powder, and ask for the man in the blue doorway. – Q.\""; }
@@ -358,7 +358,7 @@ public partial class Game {
       var mc = Px(m, "keep", 26, 22, 40, 48).gameObject.AddComponent<Image>(); mc.sprite = Tri(); mc.color = UITheme.C(known ? "#E6C27A" : "#C8BBA0"); mc.raycastTarget = false;
       var nb = Px(map, "plaque " + kv.Key, Mathf.Clamp(p.x - 140, 8, mapW - 288), p.y + 50, 280, 64); Box(nb, known ? "#C9A050" : "#B0A080", "#4A2A10"); var nin = Stretch(nb, "in", 5, 5, 5, 5); Box(nin, known ? "#E2BE6E" : "#CDBF9E", "#8A6224");
       Txt(R(nin, "t", 0, 0, 1, 1), kv.Key + (pi == port ? " (here)" : known ? "" : " · uncharted"), T.fontSizeSmall - 2, "#1A120A", TextAnchor.MiddleCenter, true);
-      { var fl = known ? EgMapFlag(pi) : null; if (fl != null) { var fb = Px(map, "egflag " + kv.Key, p.x - 120, p.y - 104, 240, 52); Box(fb, "#2A1E14", "#C9A050"); Txt(R(fb, "t", 0, 0, 1, 1), fl, T.fontSizeSmall - 4, "#E6C27A", TextAnchor.MiddleCenter, true); } } /* gamedev_end1: brass flag with moons left */
+      { var fl = known ? (EgMapFlag(pi) ?? GpMapFlag(pi)) : null; /* research_gp1 */ if (fl != null) { var fb = Px(map, "egflag " + kv.Key, p.x - 120, p.y - 104, 240, 52); Box(fb, "#2A1E14", "#C9A050"); Txt(R(fb, "t", 0, 0, 1, 1), fl, T.fontSizeSmall - 4, "#E6C27A", TextAnchor.MiddleCenter, true); } } /* gamedev_end1: brass flag with moons left */
       if (known && pi != port) { int k = pi; foreach (var go in new[] { m.gameObject, nb.gameObject }) { var bt = go.AddComponent<Button>(); bt.onClick.AddListener(() => { chartDest = k; Refresh(); }); } } }
     /* v0.6i: you-are-here ship marker (~64px at 1080), rotated toward destination or NE */
     { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 104; /* k4: bigger you-are-here marker */
