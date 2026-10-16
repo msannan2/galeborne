@@ -7,7 +7,7 @@ using UnityEngine.UI;
    and core.FireDist(H,P) (= the distance CanFire compares). Ring radius = FireRange * K world units, so the player's ship
    crosses the ring exactly when the range part of the FIRE check flips. Flat on the sea under every hull, normal alpha blend. */
 public partial class Game {
-  public static float RingOutAlpha = RingAlphaArg(0.6f); /* spec: brass at 60% out of range; -gbringalpha overrides for the daytime-sea readability check */
+  public static float RingOutAlpha = RingAlphaArg(0.8f); /* spec 60%; raised to 80% per Game Designer: at 60% the dashes went faint on the lighter daytime water near Hasan (ring_shots a0.6 vs a0.8). -gbringalpha overrides */
   static float RingAlphaArg(float d) { var a = System.Environment.GetCommandLineArgs(); int i = System.Array.IndexOf(a, "-gbringalpha"); return i >= 0 && i + 1 < a.Length && float.TryParse(a[i + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float v) ? Mathf.Clamp01(v) : d; }
   static readonly Color RingBrass = new Color(0xC8 / 255f, 0xA0 / 255f, 0x60 / 255f), RingPale = new Color(0xE6 / 255f, 0xCF / 255f, 0xA0 / 255f);
   const float RingSpritePx = 512f, RingStrokePx = 250f; /* outer edge of the stroke sits 250 px from the centre of the 512 px sprite */
