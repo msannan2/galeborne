@@ -35,6 +35,7 @@ Pirate encounters: chance 0.333 per sail after 2 free sails, win chance ~0.55, s
 - First-sale bonus is capped at 39 lifetime, so exploring helps but can't carry a rank (<14% of Merchant).
 
 ## Coin scale
+Reward caps (Game Designer): delivery 900, rush 1,200 coins. Over-cap templates use smaller quantities, never clamped rewards.
 Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of cargo mid value for delivery, 100% for rush). Rush = half time, about double the premium. Deposit 15% (delivery) / 20% (rush), rounded to 10. Start coins 1,000, hold 20, max 2 active contracts, so qty stays 3-12.
 
 ## Card strings
@@ -61,51 +62,51 @@ Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of carg
 ### Delivery (2 moons)
 | Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
 |---|---|---|---|---|---|---|---|
-| Salt for Debal's pickling yards | *Salt's salt. Get it there dry.* | 12 salt | Debal | 940 | +20 | 140 | Rain at sea can spoil an open hold. |
+| Salt for Debal's pickling yards | *Salt's salt. Get it there dry.* | 11 salt | Debal | 870 | +20 | 130 | Rain at sea can spoil an open hold. |
 | Dates for the Debal bazaar | *My cousin waits. Don't make him wait long.* | 12 dates | Debal | 840 | +20 | 130 | Pirates watch the open water past the coast. |
-| Copper for Muscat's smiths | *Heavy load. Honest pay. That's all.* | 8 copper | Muscat | 1,260 | +20 | 190 | Customs in Muscat search some ships. |
-| Pearls for a Debal jeweller | *Divers bled for these. Mind them.* | 4 pearls | Debal | 2,620 | +20 | 390 | Pearls draw pirates like gulls to bait. |
+| Copper for Muscat's smiths | *Heavy load. Honest pay. That's all.* | 5 copper | Muscat | 790 | +20 | 120 | Customs in Muscat search some ships. |
+| Pearls for a Debal jeweller | *Divers bled for these. Mind them.* | 1 pearls | Debal | 660 | +20 | 100 | Pearls draw pirates like gulls to bait. |
 
 ### Rush (1 moon)
 | Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
 |---|---|---|---|---|---|---|---|
 | Salt before the Debal feast | *Feast's soon. Sail now, not tomorrow.* | 10 salt | Debal | 1,010 | +30 | 200 | A storm could eat the days you have. |
-| Copper, fast, for Muscat | *Forge is cold. They pay double, quick.* | 6 copper | Muscat | 1,220 | +30 | 240 | Head winds can cost a week. |
+| Copper, fast, for Muscat | *Forge is cold. They pay double, quick.* | 5 copper | Muscat | 1,010 | +30 | 200 | Head winds can cost a week. |
 | Dates for a Debal wedding | *No dates, no wedding. Hurry, friend.* | 10 dates | Debal | 900 | +30 | 180 | One bad storm and the wedding is over. |
-| Pearls for a Debal buyer | *He sails home soon. Catch him.* | 3 pearls | Debal | 2,530 | +30 | 510 | Pirates and storms both slow a rush run. |
+| Pearls for a Debal buyer | *He sails home soon. Catch him.* | 1 pearls | Debal | 840 | +30 | 170 | Pirates and storms both slow a rush run. |
 
 ## Debal — Fast-talking spice and cloth brokers
 
 ### Delivery (2 moons)
 | Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
 |---|---|---|---|---|---|---|---|
-| Pepper for Gwadar's kitchens | *Finest pepper, finest price, go go!* | 8 pepper | Gwadar | 1,610 | +20 | 240 | Pirates like a hold that smells of spice. |
-| Cotton for Muscat's weavers | *Bolts of cloud, my friend. Muscat loves it.* | 12 cotton | Muscat | 1,260 | +20 | 190 | Customs in Muscat search some ships. |
-| Indigo for a Gwadar dyer | *Blue like the sea, worth more than the sea!* | 6 indigo | Gwadar | 1,470 | +20 | 220 | Rain can stain a careless cargo. |
-| Tea for the Muscat court | *Court tea! Court pay! You'll thank me.* | 8 tea | Muscat | 1,470 | +20 | 220 | Open water past the coast draws pirates. |
+| Pepper for Gwadar's kitchens | *Finest pepper, finest price, go go!* | 4 pepper | Gwadar | 800 | +20 | 120 | Pirates like a hold that smells of spice. |
+| Cotton for Muscat's weavers | *Bolts of cloud, my friend. Muscat loves it.* | 8 cotton | Muscat | 840 | +20 | 130 | Customs in Muscat search some ships. |
+| Indigo for a Gwadar dyer | *Blue like the sea, worth more than the sea!* | 3 indigo | Gwadar | 740 | +20 | 110 | Rain can stain a careless cargo. |
+| Tea for the Muscat court | *Court tea! Court pay! You'll thank me.* | 4 tea | Muscat | 740 | +20 | 110 | Open water past the coast draws pirates. |
 
 ### Rush (1 moon)
 | Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
 |---|---|---|---|---|---|---|---|
-| Pepper before the price drops | *Quick, quick! The price won't wait.* | 6 pepper | Gwadar | 1,550 | +30 | 310 | A storm could cost you the margin. |
-| Cotton for a rush order | *Muscat wants it yesterday. Can you?* | 10 cotton | Muscat | 1,350 | +30 | 270 | Head winds can cost a week. |
-| Tea for a waiting caravan | *Caravan leaves at dawn. Be there!* | 6 tea | Muscat | 1,420 | +30 | 280 | Storms and searches both eat time. |
-| Indigo for a festival | *Festival blue! Late is worthless!* | 5 indigo | Gwadar | 1,580 | +30 | 320 | One storm and the festival is gone. |
+| Pepper before the price drops | *Quick, quick! The price won't wait.* | 4 pepper | Gwadar | 1,040 | +30 | 210 | A storm could cost you the margin. |
+| Cotton for a rush order | *Muscat wants it yesterday. Can you?* | 8 cotton | Muscat | 1,080 | +30 | 220 | Head winds can cost a week. |
+| Tea for a waiting caravan | *Caravan leaves at dawn. Be there!* | 5 tea | Muscat | 1,180 | +30 | 240 | Storms and searches both eat time. |
+| Indigo for a festival | *Festival blue! Late is worthless!* | 3 indigo | Gwadar | 940 | +30 | 190 | One storm and the festival is gone. |
 
 ## Muscat — Guarded and formal
 
 ### Delivery (2 moons)
 | Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
 |---|---|---|---|---|---|---|---|
-| Incense for Debal's temples | *The temples expect this. Do not fail them.* | 5 incense | Debal | 1,920 | +20 | 290 | Pirates know what incense is worth. |
-| Coffee for Gwadar's traders | *A gift of good faith. Treat it so.* | 8 coffee | Gwadar | 1,400 | +20 | 210 | The coastal run is calm, but storms come. |
-| Pearls for a Debal house | *Discretion, captain. Speak of this to no one.* | 4 pearls | Debal | 2,620 | +20 | 390 | Pearls draw pirates on open water. |
+| Incense for Debal's temples | *The temples expect this. Do not fail them.* | 2 incense | Debal | 770 | +20 | 120 | Pirates know what incense is worth. |
+| Coffee for Gwadar's traders | *A gift of good faith. Treat it so.* | 5 coffee | Gwadar | 880 | +20 | 130 | The coastal run is calm, but storms come. |
+| Pearls for a Debal house | *Discretion, captain. Speak of this to no one.* | 1 pearls | Debal | 660 | +20 | 100 | Pearls draw pirates on open water. |
 | Dates for Debal's poor | *The Sultan's charity. Carry it well.* | 12 dates | Debal | 840 | +20 | 130 | Rain at sea can spoil an open hold. |
 
 ### Rush (1 moon)
 | Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
 |---|---|---|---|---|---|---|---|
-| Incense for a funeral | *There is no second day for this. Go.* | 4 incense | Debal | 1,980 | +30 | 400 | A storm would make you late for the dead. |
-| Coffee for a guest of state | *The guest arrives soon. So must you.* | 6 coffee | Gwadar | 1,350 | +30 | 270 | Head winds can cost a week. |
-| Pearls for a betrothal | *The family is waiting. Do not keep them.* | 3 pearls | Debal | 2,530 | +30 | 510 | Pirates and storms both slow a rush run. |
+| Incense for a funeral | *There is no second day for this. Go.* | 2 incense | Debal | 990 | +30 | 200 | A storm would make you late for the dead. |
+| Coffee for a guest of state | *The guest arrives soon. So must you.* | 5 coffee | Gwadar | 1,120 | +30 | 220 | Head winds can cost a week. |
+| Pearls for a betrothal | *The family is waiting. Do not keep them.* | 1 pearls | Debal | 840 | +30 | 170 | Pirates and storms both slow a rush run. |
 | Dates before the fast ends | *When the fast ends, they eat. Be there.* | 10 dates | Debal | 900 | +30 | 180 | One storm could cost the whole run. |
