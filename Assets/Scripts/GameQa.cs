@@ -64,7 +64,8 @@ public partial class Game {
       var jtxt = dialog ? dialog.GetComponentsInChildren<Text>().Select(t => t.text).ToList() : new List<string>();
       Chk(jtxt.Any(t => t.StartsWith($"Active {eg.active.Count}/2")) && eg.active.Count == 2, $"journal count reads 'Active {eg.active.Count}/2' (cap 2)");
       Chk(!(eg.active.Count > 0 && jtxt.Any(t => t.StartsWith("No active jobs"))), "journal: no 'No active jobs' while contracts are listed");
-      var jr = Named("JournalRank"); var jc = Find("Close"); Chk(jr != null && jc != null && SR2(jr).xMax < SR2(jc.GetComponent<RectTransform>()).xMin, "journal header rank/Renown line ends left of Close");
+      var jr = Named("JournalRank"); var jc = Find("Close"); Chk(jr != null && jc != null && SR2(jr).xMin + jr.GetComponent<Text>().preferredWidth * jr.lossyScale.x < SR2(jc.GetComponent<RectTransform>()).xMin, "journal header rank/Renown line ends left of Close");
+      { var jtt = Named("JournalTitle"); var jtx = jtt ? jtt.GetComponent<Text>() : null; Chk(jtx != null && jr != null && SR2(jtt).xMin + jtx.preferredWidth * jtt.lossyScale.x < SR2(jr).xMin, "journal header: rank line starts after the word Journal"); }
       yield return Back(); yield return null; yield return null;
       StartCoroutine(PortraitCard("Yusuf, harbour master of Debal", "YUSUF: \"They're buying every warehouse from Gwadar to Muscat. Nobody knows why.\"\n\nNew story goal: " + A1s("goalLong", "Find out what House Qarin is hoarding."), ArtSlot("Art/Portraits/yusuf"), ("I'll find out", null)));
       for (int k = 0; k < 4; k++) yield return null; yield return Shot("egfix_yusuf");
