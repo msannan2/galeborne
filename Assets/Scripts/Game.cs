@@ -422,7 +422,7 @@ public partial class Game : MonoBehaviour {
     if (InOpening && jackpotStartCoins < 0 && g == G("gunpowder")) { jackpotStartCoins = coins + got * Mathf.CeilToInt(allyCut ? full * (1f - A1("faridaAllyPapersDiscount", 0.2f)) : full); news.Insert(0, "Yusuf: \"Muscat's purse is deep, Captain. Just don't let customs see what's in yours.\""); }
     if (!papersGiven && g == G("gunpowder") && firstRun) { papersGiven = true; keeperTrig = "papers"; msg = $"Farida slips you forged papers with the {S.goods[g].name.ToLower()}: Muscat customs will wave you through.";  /* research_gp3: papers make CustomsWaved true (risk 0), so say so at buy */ }
     else msg = allyCut ? $"Bought {GoodCount(g, got)} in the alley (−20%)." : $"Bought {GoodCount(g, got)} in the alley."; Refresh(); }
-  void DoSellAlley(int g, RectTransform row) { int v = SellPrice(g); if (!Sell(g)) return; msg = $"A quiet buyer pays {v} for {GoodCount(g, 1)}."; var at = priceTexts[g].rectTransform.position; Refresh(); SaleFx(at); }
+  void DoSellAlley(int g, RectTransform row) { int v = SellPrice(g); if (!Sell(g)) return; if (port == Muscat && g == Gp) keeperTrig = "sold"; /* research_gp4: Salim thanks you */ msg = $"A quiet buyer pays {v} for {GoodCount(g, 1)}."; var at = priceTexts[g].rectTransform.position; Refresh(); SaleFx(at); }
 
   void Ware(RectTransform led) {
     var w = wh[port]; int slots = w.tier == 2 ? S.warehouse.buySlots : w.tier == 1 ? S.warehouse.leaseSlots : 0; float used = w.items.Sum(b => b.qty);
