@@ -499,6 +499,17 @@ yield return Shot("polish_blk_greyed_button"); }
       tab = -1; Refresh(); price[port, pg] = 20; yield return QTrade(1, false); CloseSheet(); price[port, pg] = 90; lastToast = null; int fc = fame; yield return QTrade(1, true); yield return new WaitForSeconds(0.2f); CloseSheet();
       Chk(kept && !old.firstProfitDone && lastProfitN > 0 && lastToast == null && fame == fc, $"research_profit: first-profit flag survives save/reload (load {ld}); no toast after reload; old saves read false");
       yield return new WaitForSeconds(1f);
+      { /* Jeff: the +96 vs +46 report — a REAL 1-unit cotton sale bought at 28, sold at 74 must read exactly '+46 profit'; then a 3-unit case */
+        int cg = G("cotton"); int pgS = pg; pg = cg; for (int i = 0; i < hold.Length; i++) { hold[i] = 0; AvgCost[i] = 0; }
+        price[port, cg] = 28; yield return QTrade(1, false); CloseSheet(); float a1 = AvgCost[cg];
+        price[port, cg] = 74.2f / S.sellSpread; int sp = SellPrice(cg); yield return QTrade(1, true, "profit_5_cotton_before_sell_1"); yield return null; var ct = lastProfitText; string ctx = ct ? ct.text : null;
+        yield return new WaitForSeconds(0.15f); yield return Shot("profit_6_cotton_sold_1_plus46"); CloseSheet(); yield return new WaitForSeconds(1.8f);
+        Chk(Mathf.Abs(a1 - 28) < 0.01f && sp == 74 && ctx == "+46 profit" && lastProfitN == 46 && hold[cg] == 0, $"research_profit: real 1-unit cotton sale, bought at {a1:0.##}, sold at {sp}: popup '{ctx}' (want '+46 profit')");
+        for (int k = 0; k < 3; k++) { price[port, cg] = 28; yield return QTrade(1, false); CloseSheet(); }
+        price[port, cg] = 74.2f / S.sellSpread; int r3 = RevenueOf(cg, 3); int w3 = r3 - 84; yield return QTrade(3, true, "profit_7_cotton_before_sell_3"); yield return null; var c3 = lastProfitText; string c3x = c3 ? c3.text : null;
+        yield return new WaitForSeconds(0.15f); yield return Shot("profit_8_cotton_sold_3"); CloseSheet(); yield return new WaitForSeconds(1.8f);
+        Chk(c3x == $"+{w3:N0} profit" && lastProfitN == w3 && hold[cg] == 0, $"research_profit: 3 cotton bought at 28 each, sold together for {r3}: popup '{c3x}' (want '+{w3} profit' = {r3} − 3×28)");
+        pg = pgS; }
       // loss: buy dear, sell cheap
       price[port, pg] = 80; yield return QTrade(2, false); CloseSheet(); float la = AvgCost[pg]; price[port, pg] = 30; int lrev = RevenueOf(pg, 2); int wantL = Mathf.RoundToInt(lrev - 2 * la); int clinkL = clinkCount, cl = coins, fl = fame;
       yield return QTrade(2, true); yield return null; var lt = lastProfitText; var lo = lt ? lt.GetComponents<Outline>() : new Outline[0]; float lA = lt ? lt.color.a : 0, lR = lt ? lt.color.r : 0; bool lOk = lt && lt.name == "LossText"; string lTxt = lt ? lt.text : null; int lfly = FindObjectsByType<Image>(FindObjectsSortMode.None).Count(i => i.name == "profit_coin_fly");
