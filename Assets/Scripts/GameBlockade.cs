@@ -32,6 +32,12 @@ public partial class Game {
     var r = Px(map, "blockade " + S.ports[pi].name, c.x + 46 - s * 0.6f, c.y - 46 - s * 0.4f, s, s); var spr = Resources.Load<Sprite>("Art/UI/blockade_icon");
     if (spr) { var im = r.gameObject.AddComponent<Image>(); im.sprite = spr; im.preserveAspect = true; } else { var im = r.gameObject.AddComponent<Image>(); im.color = UITheme.C("#C9A050"); }
     int k = pi; r.gameObject.AddComponent<Button>().onClick.AddListener(() => { if (dialog == null) StartCoroutine(AskD(BlkPlaque(k), blockHeard[k] ?? BlkRoutePreview(k), ("Close", null))); }); }
+  public bool blkFramed;
+  /// blockade_polish: frame the arrival landmark behind the card exactly like Customs does (Game.Voyage atCustoms branch)
+  void BlkHarbourFrame(int p, bool on) {
+    if (on) { if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(p); if (backdrop) backdrop.color = Color.clear; if (dimmer) dimmer.gameObject.SetActive(false); if (town3D) town3D.gameObject.SetActive(false); Clear(content); TopBar(); if (pirateShip) pirateShip.gameObject.SetActive(false);
+      string cn = S.ports[p].name; arrivalTarget = (seaMarks.TryGetValue(cn, out var clm) && clm ? clm.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * CustomsLookUp; customsFrame = true; blkFramed = true; Debug.Log("GB BLOCKADE harbour backdrop " + cn); }
+    else { customsFrame = false; blkFramed = false; ShowSeaLandmark(-1); if (sea3D) sea3D.gameObject.SetActive(false); } }
   /// arrival card: pay them off (~30% of the seized goods' value) or let them take it
   public IEnumerator BlockadeCard() { int p = port, g = blockGood[p]; if (g < 0 || hold[g] <= 0) { blockPending = -1; yield break; }
     int q = hold[g], fee = BlkFee(p); bool can = coins >= fee; string pn = S.ports[p].name;
@@ -39,8 +45,11 @@ public partial class Game {
     string pay = BlkStr("arrivalCard.options.pay", "Pay them off ({fee} coins)").Replace("{fee}", fee.ToString());
     if (!can) { pay = AskOff + pay + "\n" + BlkStr("arrivalCard.payDisabled", "Not enough coins"); }
     Debug.Log($"GB CARD show {title} fee={fee} coins={coins} {(can ? "" : "(pay greyed)")}");
+    BlkHarbourFrame(p, true); /* blockade_polish: the arrival port's harbour behind the card, same framing as Customs (never the plain brown backdrop) */
+    try {
     yield return Ask(title, body,
       (pay, () => { coins -= fee; msg = $"You pay the soldiers {fee} coins. Your {GoodCount(g, q)} stays aboard."; Debug.Log($"GB DOCK blockade bribe paid {fee} kept {q}x{S.goods[g].id} at {pn}"); }),
       (BlkStr("arrivalCard.options.surrender", "Let them take it"), () => { hold[g] = 0; msg = $"Soldiers on the quay seize your {GoodCount(g, q)}. {pn} is under a blockade on {S.goods[g].name}."; Debug.Log($"GB DOCK blockade seized {q}x{S.goods[g].id} at {pn}"); }));
+    } finally { BlkHarbourFrame(p, false); }
     blockPending = -1; }
 }

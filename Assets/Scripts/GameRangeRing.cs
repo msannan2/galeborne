@@ -67,17 +67,41 @@ public partial class Game {
 
   /* gamedev_arc: two faint brass wedges off Hasan's port and starboard beams = the true firing arc (CombatCore.InArc: |bearing - 90| <= arcDeg),
      radius = the loaded shot's range. Same RangeRing shader, brass tint and opacity as the dashed range ring. */
+  /* art_arc_restyle (Chief Art Designer): brass edge lines with a dark teak outline, flat brass fill, no gradient; the wedge the pirate is in
+     is boosted only when range AND arc are valid (no green tint). Widths are screen px at 1080 wide and scale with Screen.width. */
+  public const string ArcEdgeHex = "#C9A35A", ArcOutlineHex = "#3A2618";
+  public const float ArcFillAlpha = 0.14f, ArcActiveEdgeAlpha = 1.0f, ArcActiveFillAlpha = 0.22f;
+  public const float ArcEdgePx1080 = 4f, ArcOutlinePx1080 = 2f, ArcOutlineAlpha = 0.6f; public static float ArcEdgeAlpha => RingOutAlpha; /* Chief Art Designer: 2 px edges + 1 px outline at 540 wide; edge alpha = the ring opacity (0.8) */
+  public const int ArcTexN = 512;
   public Transform arcWedges; Material arcWedgeMat; public Texture2D arcWedgeTex; public const float ArcTexFill = 0.94f; float arcWedgeDeg = -1;
+  public float arcEdgeTexels = 4f, arcOutlineTexels = 1.5f; public int arcActiveSide = -1; /* -1 none, 0 starboard (+x, bearing 90), 1 port (bearing 270) */
+  string arcKey = "";
   public Texture2D ArcWedgeTex(float arcDeg) {
-    if (arcWedgeTex && arcWedgeDeg == arcDeg) return arcWedgeTex; int n = 256; var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "ArcWedges" }; var px = new Color32[n * n];
-    for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) { float u = (x + 0.5f) / n * 2 - 1, v = (y + 0.5f) / n * 2 - 1, r = Mathf.Sqrt(u * u + v * v) / ArcTexFill; /* clear margin so the clamped edge never smears */
-      float b = Mathf.Abs(Mathf.Atan2(u, v) * Mathf.Rad2Deg); float off = Mathf.Abs(b - 90) - arcDeg; float a = 0;
-      if (r <= 1 && off <= 0 && r > 0.06f) { float edgeM = -off * Mathf.Deg2Rad * r * n * 0.5f; /* px from the straight edge */ float rimM = (1 - r) * n * 0.5f;
-        a = 0.16f + 0.14f * r; if (edgeM < 2.5f || rimM < 2.5f) a = 0.85f; }
-      px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255)); }
-    t.SetPixels32(px); t.Apply(); arcWedgeTex = t; arcWedgeDeg = arcDeg; return t; }
-  public float ArcWedgeAlphaAt(float relDeg, float frac) { var t = arcWedgeTex; if (!t) return -1; float u = Mathf.Sin(relDeg * Mathf.Deg2Rad) * frac * ArcTexFill, v = Mathf.Cos(relDeg * Mathf.Deg2Rad) * frac * ArcTexFill; return t.GetPixelBilinear((u + 1) / 2, (v + 1) / 2).a; }
+    string key = $"{arcDeg}|{arcEdgeTexels}|{arcOutlineTexels}|{arcActiveSide}"; if (arcWedgeTex && key == arcKey) return arcWedgeTex; arcKey = key; arcWedgeDeg = arcDeg;
+    int n = ArcTexN; var t = arcWedgeTex ? arcWedgeTex : new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "ArcWedges" }; var px = new Color32[n * n];
+    Color32 Mk(Color c, float a) => new Color32((byte)(c.r * 255), (byte)(c.g * 255), (byte)(c.b * 255), (byte)Mathf.Round(Mathf.Clamp01(a) * 255));
+    Color br = UITheme.C(ArcEdgeHex), tk = UITheme.C(ArcOutlineHex); float E = arcEdgeTexels, O = arcOutlineTexels, half = n * 0.5f;
+    for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) { float u = (x + 0.5f) / n * 2 - 1, v = (y + 0.5f) / n * 2 - 1, r = Mathf.Sqrt(u * u + v * v) / ArcTexFill;
+      float b = Mathf.Abs(Mathf.Atan2(u, v) * Mathf.Rad2Deg); float off = Mathf.Abs(b - 90) - arcDeg; bool act = arcActiveSide == (u >= 0 ? 0 : 1);
+      float rT = r * ArcTexFill * half; float edgeD = -off * Mathf.Deg2Rad * rT; /* texels inside the straight edge (<0 outside) */ float rimD = (ArcTexFill - r * ArcTexFill) * half; /* texels inside the rim */
+      float d = Mathf.Min(edgeD, rimD); Color32 c = new Color32(0, 0, 0, 0);
+      if (r > 0.06f) { if (d >= 0) c = d < E ? Mk(br, act ? ArcActiveEdgeAlpha : ArcEdgeAlpha) : d < E + O ? Mk(tk, ArcOutlineAlpha) : Mk(br, act ? ArcActiveFillAlpha : ArcFillAlpha);
+        else if (d > -O && r <= 1f + O / (ArcTexFill * half) + 0.001f && off <= O / Mathf.Max(1f, rT) * Mathf.Rad2Deg) c = Mk(tk, ArcOutlineAlpha); }
+      px[y * n + x] = c; }
+    t.SetPixels32(px); t.Apply(); arcWedgeTex = t; return t; }
+  public float ArcWedgeAlphaAt(float relDeg, float frac) { var t = arcWedgeTex; if (!t) return -1; return ArcWedgeColorAt(relDeg, frac).a; }
+  public Color ArcWedgeColorAt(float relDeg, float frac) { var t = arcWedgeTex; float u = Mathf.Sin(relDeg * Mathf.Deg2Rad) * frac * ArcTexFill, v = Mathf.Cos(relDeg * Mathf.Deg2Rad) * frac * ArcTexFill;
+    int x = Mathf.Clamp(Mathf.FloorToInt((u + 1) / 2 * t.width), 0, t.width - 1), y = Mathf.Clamp(Mathf.FloorToInt((v + 1) / 2 * t.height), 0, t.height - 1); return t.GetPixel(x, y); }
+  /// rim edge-line texel on a side (0 starboard, 1 port): the middle of the brass line just inside the rim
+  public Color ArcEdgeSample(int side) => ArcWedgeColorAt(side == 0 ? 90 : 270, 1f - (arcEdgeTexels * 0.5f) / (ArcTexFill * ArcTexN * 0.5f));
+  public Color ArcFillSample(int side) => ArcWedgeColorAt(side == 0 ? 90 : 270, 0.5f);
+  public float arcWedgeScreenPx;
   void UpdateArcWedges() { if (!arcWedges) return; var H = core.H; float side = 2f * core.FireRange(H) * K / ArcTexFill; Vector3 c = W(H); c.y = 0;
     arcWedges.position = c; arcWedges.rotation = Quaternion.Euler(0, H.heading, 0); arcWedges.localScale = new Vector3(side, 1, side);
-    var col = RingBrass; col.a = RingOutAlpha; arcWedgeMat.SetColor("_Color", col); arcWedgeMat.SetFloat("_Speed", waterMat.GetFloat("_Speed")); arcWedgeMat.SetVector("_Offset", waterMat.GetVector("_Offset")); if (waterMat.HasProperty("_Amp")) arcWedgeMat.SetFloat("_Amp", waterMat.GetFloat("_Amp")); }
+    var P = core.P; int act = -1; if (core.InFireRange(H, P) && core.InArc(H, P)) { Vector3 lp = Quaternion.Inverse(arcWedges.rotation) * (W(P) - c); act = lp.x >= 0 ? 0 : 1; }
+    float edge = arcEdgeTexels, ol = arcOutlineTexels;
+    if (cam) { Vector3 a = cam.WorldToScreenPoint(c), bb = cam.WorldToScreenPoint(c + cam.transform.right * side * 0.5f); float sp = 2f * Vector2.Distance(a, bb); if (a.z > 0 && sp > 1f) { arcWedgeScreenPx = sp;
+        float tpp = ArcTexN / sp, sc = Screen.width / 1080f; edge = Mathf.Clamp(Mathf.Round(ArcEdgePx1080 * sc * tpp * 2f) / 2f, 1f, 48f); ol = Mathf.Clamp(Mathf.Round(ArcOutlinePx1080 * sc * tpp * 2f) / 2f, 0.5f, 24f); } }
+    arcEdgeTexels = edge; arcOutlineTexels = ol; arcActiveSide = act; arcWedgeMat.mainTexture = ArcWedgeTex(core.C.arcDeg);
+    arcWedgeMat.SetColor("_Color", Color.white); arcWedgeMat.SetFloat("_Speed", waterMat.GetFloat("_Speed")); arcWedgeMat.SetVector("_Offset", waterMat.GetVector("_Offset")); if (waterMat.HasProperty("_Amp")) arcWedgeMat.SetFloat("_Amp", waterMat.GetFloat("_Amp")); }
 }
