@@ -474,7 +474,7 @@ yield return Shot("polish_blk_greyed_button"); }
       Chk(avgOk, $"research_profit: mixed-price cargo tracks the weighted avg buy price ({spentA}+{spentB} coins for 3 → avg {AvgCost[pg]:0.00}, want {wantAvg:0.00})");
       // profitable sale of 2
       price[port, pg] = 90; int rev = RevenueOf(pg, 2); int wantN = Mathf.RoundToInt(rev - 2 * wantAvg); int cS = coins; int clink0 = clinkCount; lastProfitText = null; lastToast = null;
-      gaspEndT = gaspStartT = toastShownT = -99; yield return QTrade(2, true, "profit_1_before_sell_2"); yield return null; var pt = lastProfitText; var ol = pt ? pt.GetComponents<Outline>() : new Outline[0];
+      gaspEndT = gaspStartT = toastShownT = -99; yield return QTrade(2, true, "profit_1_before_sell_2"); yield return null; var pt = lastProfitText; var ol = pt ? pt.GetComponents<Outline>() : new Outline[0]; bool ptOk = pt && pt.name == "ProfitText"; string ptx = pt ? pt.text : null; Color pcol = pt ? pt.color : Color.clear; var olc = ol.Select(o => (o.effectColor, o.effectDistance)).ToArray();
       int flying = FindObjectsByType<Image>(FindObjectsSortMode.None).Count(i => i.name == "profit_coin_fly" && i.sprite && i.sprite.name == "profit_coin"); float sz = FindObjectsByType<Image>(FindObjectsSortMode.None).Where(i => i.name == "profit_coin_fly").Select(i => i.rectTransform.sizeDelta.x).DefaultIfEmpty(0).Max();
       bool ticking = coinShown >= 0 && coinShown < coins;
       yield return new WaitForSeconds(0.25f); yield return Shot("profit_2_sale_gasp"); bool toastEarly = lastToast != null;
@@ -483,8 +483,8 @@ yield return Shot("polish_blk_greyed_button"); }
       Chk(gaspStartT > 0 && gaspEndT > gaspStartT && !toastEarly && toastShownT >= gaspEndT && lastToast, $"research_profit: 'The merchant gasps!' first ({gaspStartT:0.00}-{gaspEndT:0.00}), then the toast at {toastShownT:0.00}: no overlap");
       Chk(lastToast && tc[1].y <= hc[0].y + 1 && Mathf.Abs((tc[2].x - tc[1].x) / Screen.width - 0.9f) < 0.02f && lastToast.resizeTextForBestFit && lastToast.cachedTextGenerator.lineCount == 1, $"research_profit: toast strip sits under the HUD bar, {(tc[2].x - tc[1].x) / Screen.width * 100:0}% wide, one line ({lastToast?.cachedTextGenerator.lineCount})");
 
-      Chk(pt && pt.name == "ProfitText" && pt.text == $"+{wantN:N0} profit" && lastProfitN == wantN && wantN > 0 && coins == cS + rev, $"research_profit: sale of 2 at {rev} vs avg {wantAvg:0.00} shows '{pt?.text}' (want '+{wantN:N0} profit')");
-      Chk(pt && Mathf.Abs(pt.color.r - UITheme.C(ProfitHex).r) < 0.01f && Mathf.Abs(pt.color.g - UITheme.C(ProfitHex).g) < 0.01f && ol.Length == 2 && ol.All(o => o.effectColor == UITheme.C(ProfitOutlineHex) && Mathf.Abs(Mathf.Abs(o.effectDistance.x) - 2) < 0.01f), "research_profit: profit text #E0B85A with a 2 px #3A2618 outline");
+      Chk(ptOk && ptx == $"+{wantN:N0} profit" && lastProfitN == wantN && wantN > 0 && coins == cS + rev, $"research_profit: sale of 2 at {rev} vs avg {wantAvg:0.00} shows '{ptx}' (want '+{wantN:N0} profit')");
+      Chk(ptOk && Mathf.Abs(pcol.r - UITheme.C(ProfitHex).r) < 0.01f && Mathf.Abs(pcol.g - UITheme.C(ProfitHex).g) < 0.01f && olc.Length == 2 && olc.All(o => o.effectColor == UITheme.C(ProfitOutlineHex) && Mathf.Abs(Mathf.Abs(o.effectDistance.x) - 2) < 0.01f), "research_profit: profit text #E0B85A with a 2 px #3A2618 outline");
       Chk(flying >= 5 && flying <= 8 && sz >= 24 && sz <= 32 && ticking, $"research_profit: {flying} profit_coin sprites (≤{sz:0} px) fly to the HUD while the counter ticks (shown {coinShown})");
       Chk(lastToast && lastToast.text == FirstProfitToast && fame == fa + 1 && firstProfitDone, $"research_profit: first profit toast '{lastToast?.text}' and +1 fame ({fa} → {fame})");
       yield return new WaitForSeconds(0.3f);
