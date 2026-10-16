@@ -95,8 +95,8 @@ public partial class Game {
   }
   RectTransform EgCard(EgContract c, Action accept, Action notNow) { /* layout per contract_card_mock.jpg, existing styles: title x130, body from y132, 110 px bottom gap */
     float H = 1010; var p = Px(root, "EgCard", 30, 260, 1020, H); Box(p, T.panel, T.gold);
-    Label(p, c.title, 130, 30, 760, 70, T.fontSizeTitle - 2, "#C9A55A", TextAnchor.MiddleCenter, true); Box(Px(p, "rule", 130, 106, 760, 2), T.brass);
-    float y = 132; Label(p, $"<i>{c.giver}</i>", 130, y, 760, 56, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 72;
+    var tf = CardTitle(p, c.title, 130, 760, T.fontSizeTitle - 2, "#C9A55A", TextAnchor.MiddleCenter, CardTitleFit(c.title, 760, T.fontSizeTitle - 2)); /* gamedev_title1: shared title (was y30 h70, rule y106) */
+    float y = 132 + tf.extra; H += tf.extra; p.sizeDelta = new Vector2(p.sizeDelta.x, H); Label(p, $"<i>{c.giver}</i>", 130, y, 760, 56, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 72;
     void Row(string head, string val, string col) { Label(p, head, 130, y, 760, 38, T.fontSizeSmall - 4, T.textMuted); Label(p, val, 130, y + 36, 760, 50, T.fontSize, col); Box(Px(p, "sep", 130, y + 98, 760, 1), T.brass); y += 108; }
     Row(ED.S("cargo", "Cargo"), GoodCount(c.good, c.qty), T.parchment); Row(ED.S("deliverTo", "Deliver to"), c.to, T.parchment); Row(ED.S("deadline", "Deadline"), EgMoonsText(c), EgMoonsColor(c));
     Label(p, ED.Reward(c.pay, c.renown), 130, y + 6, 760, 54, T.fontSize, T.parchment, TextAnchor.MiddleCenter, true); Label(p, $"<i>{ED.Deposit(c.deposit)}</i>", 130, y + 60, 760, 40, T.fontSizeSmall - 4, T.textMuted, TextAnchor.MiddleCenter); y += 116;
@@ -140,6 +140,12 @@ public partial class Game {
     var dim = ModalDim("EgDim"); var card = EgCard(shot, () => { }, () => { }); yield return null; yield return null;
     var gt = card.GetComponentsInChildren<Text>().First(t => t.text.Contains(lt.giver)); Chk(gt.preferredHeight <= gt.rectTransform.rect.height + 1 || gt.cachedTextGenerator.lineCount <= 2, $"giver line fits: lines={gt.cachedTextGenerator.lineCount} prefH={gt.preferredHeight:0} boxH={gt.rectTransform.rect.height:0}");
     string dir = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(dir); yield return ShotCo(System.IO.Path.Combine(dir, "contract_card_longest.png")); yield return new WaitForSeconds(0.5f);
+    { /* gamedev_title1: title screenshots - long legacy strings, current data, and existing cards */
+      IEnumerator Card(string n, IEnumerator co) { var h = StartCoroutine(co); yield return null; yield return null; yield return null; yield return ShotCo(System.IO.Path.Combine(dir, "title_" + n + ".png")); yield return new WaitForSeconds(0.4f); StopCoroutine(h); yield return null; yield return null; }
+      foreach (var (n, t) in new[] { ("rankup_long", "Your name carries on the quay"), ("delivered_long", "Dates for the Debal bazaar"), ("rankup_data", ED.RankUpHeading(1)), ("storm_oneline", "Storm front") }) {
+        var f = CardTitleFit(t, 640, T.fontSizeTitle); L($"title '{t}': size {f.size}/{T.fontSizeTitle} lines {f.lines} extra {f.extra:0}"); yield return Card(n, Ask(t, t == "Storm front" ? "A black wall of rain marches across the Gulf. The mate waits on your word." : "The harbour knows your name now. Trader.", ("Onward", null))); }
+      yield return Card("askcard_long", AskCard("Your name carries on the quay", "An AskCard with the long legacy heading.", ("Fight", null), ("Flee", null)));
+      tab = 8; Refresh(); yield return null; yield return Card("quest", QuestMenu("tavern", "Innkeeper of " + S.ports[port].name)); }
     L(fails == 0 ? "ALL PASS" : fails + " FAIL"); yield return new WaitForSeconds(0.5f); Application.Quit(fails == 0 ? 0 : 1);
   }
 }
