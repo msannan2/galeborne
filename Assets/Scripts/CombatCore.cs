@@ -59,7 +59,8 @@ public class CombatCore {
     return s.st.speed * C.speedScale * WindMult(s.heading) * (s.fullSail ? 1 : C.halfSailMult) * Math.Max(0.05f, 1 - sailLoss); }
   public float Upwindness(CShip s) => -(s.x * (float)Math.Sin(windTo * D2R) + s.z * (float)Math.Cos(windTo * D2R));
   public bool InArc(CShip a, CShip b) { float rel = Math.Abs(Diff(a.heading, Bearing(b.x - a.x, b.z - a.z))); return Math.Abs(rel - 90) <= C.arcDeg; }
-  public bool CanFire(CShip a, CShip b) => a.reloadT <= 0 && a.gunHp > 0 && a.hull > 0 && InArc(a, b) && Dist(a, b) <= C.ammo[a.ammo].range && !(a.ammo == 3 && a.fireLeft <= 0);
+  public float FireRange(CShip a) => C.ammo[a.ammo].range; public float FireDist(CShip a, CShip b) => Dist(a, b); public bool InFireRange(CShip a, CShip b) => FireDist(a, b) <= FireRange(a); /* gamedev_ring: the one range source for CanFire, the out-of-range message and the range ring */
+  public bool CanFire(CShip a, CShip b) => a.reloadT <= 0 && a.gunHp > 0 && a.hull > 0 && InArc(a, b) && InFireRange(a, b) && !(a.ammo == 3 && a.fireLeft <= 0);
   static float Dist(CShip a, CShip b) => (float)Math.Sqrt((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
   public static Part Match(int ammo) => ammo == 1 ? Part.Sails : ammo == 2 ? Part.Crew : Part.Hull;
   public float Accuracy(CShip a, CShip b) {
