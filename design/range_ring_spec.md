@@ -27,7 +27,7 @@ States must read by **dashed vs solid** even without colour (colour-blind safe).
 **Out of range (closing / opening)**
 - `range_ring_dashed`, brass 60%, rotating slowly at **6°/s** around its centre.
 - `range_marker` on the ring edge facing your ship.
-- Plaque: `Range 340 yd · Closing` or `Range 340 yd · Opening` (distance updates live; Closing/Opening from the sign of the distance change).
+- Plaque: `Range 340 m · Closing` or `Range 340 m · Opening` (distance updates live; Closing/Opening from the sign of the distance change).
 
 **On entering range**
 - Swap to solid `range_ring`, pale #E6CFA0, no rotation.
