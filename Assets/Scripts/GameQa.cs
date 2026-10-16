@@ -261,7 +261,7 @@ public partial class Game {
       yield return Shot("ambush_hand_0_start"); float rq = Time.realtimeSinceStartup;
       while (fighting && core.outcome == Outcome.None && core.t < 40f && !hit && Time.realtimeSinceStartup - rq < 120f) {
         float br = CombatCore.Bearing(P.x - H.x, P.z - H.z);
-        if (!ringInRange && tIn < 0) qaRudder = CombatCore.Steer(H, br); else { if (tIn < 0) { tIn = core.t; solid = ringInRange && rangeRingMat.mainTexture == rangeTexSolid && rangePlaqueTxt.text == "In range" && fireRangeBorder.gameObject.activeSelf; } qaRudder = CombatCore.Steer(H, CombatCore.Norm(br - CombatCore.Side(H, br))); /* turn her abeam */ }
+        if (!ringInRange && tIn < 0) qaRudder = CombatCore.Steer(H, br); else { if (tIn < 0) { tIn = core.t; solid = ringInRange && rangeRingMat.mainTexture == rangeTexSolid && rangePlaqueTxt.text == (core.InArc(H, P) ? "In range" : "In range · Turn broadside") && fireRangeBorder.gameObject.activeSelf == core.InArc(H, P); /* gamedev_arc: border only when the guns bear */ } qaRudder = CombatCore.Steer(H, CombatCore.Norm(br - CombatCore.Side(H, br))); /* turn her abeam */ }
         if (phase == 0 && core.t > 3f) { phase = 1; yield return Shot("ambush_hand_1_closing"); }
         if (phase == 1 && tIn >= 0) { phase = 2; yield return Shot("ambush_hand_2_in_range"); }
         if (tIn >= 0 && core.CanFire(H, P) && !firePressed) { firePressed = true; /* the FIRE button's own path */ }
@@ -278,13 +278,13 @@ public partial class Game {
     // ---- gamedev_rudder: rudder stays where the drag leaves it, snaps to 0 near centre, one-time story hint, drag zones ----
     { tab = -1; dialog = null; Refresh(); yield return null; bool town0 = town3D && town3D.gameObject.activeSelf; if (town3D) town3D.gameObject.SetActive(false); var amb0 = RenderSettings.ambientLight; RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f);
       bool af0 = ambushForced, sad0 = storyAmbushDone, bsp0 = boardedStoryPirate, shs0 = steerHintSeen;
-      Chk(!ShowSteerHint(false) && ShowSteerHint(true), "gamedev_rudder: the steer hint is for the story fog fight only (not ordinary fights)");
+      steerHintSeen = false; Chk(!ShowSteerHint(false) && ShowSteerHint(true), "gamedev_rudder: the steer hint is for the story fog fight only (not ordinary fights)");
       steerHintSeen = false; ambushForced = true; StartCoroutine(Fight(true)); yield return null; yield return null; yield return new WaitForSeconds(0.4f);
       bool hint1 = SteerHintVisible; string hintTxt = steerHint ? steerHint.GetComponentInChildren<Text>().text : ""; yield return Shot("rudder_0_hint");
       Chk(hint1 && hintTxt == "Drag to steer toward her." && steerHintSeen, $"gamedev_rudder: story fight shows 'Drag to steer toward her.' and marks it seen ('{hintTxt}')");
       core.H.rudder = 0; float W = Screen.width, Hh = Screen.height; var sea = new Vector2(W * 0.40f, Hh * 0.33f);
       var bar = rudderBar.rectTransform.parent as RectTransform; var cv = rudderBar.canvas; Camera ccam = cv.renderMode == RenderMode.ScreenSpaceOverlay ? null : cv.worldCamera; Vector2 barP = RectTransformUtility.WorldToScreenPoint(ccam, bar.position);
-      int zones = 0; string zl = ""; foreach (var zp in new[] { sea, barP, new Vector2(W * 0.5f, Hh * 0.45f), new Vector2(W * 0.2f, Hh * 0.40f), new Vector2(W * 0.6f, Hh * 0.28f) }) { bool ok = SteerStartsAt(zp); if (ok) zones++; zl += $"({zp.x:0},{zp.y:0})={(ok ? "drag" : "blocked")} "; }
+      int zones = 0; string zl = ""; foreach (var zp in new[] { sea, barP, new Vector2(W * 0.5f, Hh * 0.45f), new Vector2(W * 0.2f, Hh * 0.40f), new Vector2(W * 0.6f, Hh * 0.28f) }) { bool ok = SteerStartsAt(zp); if (ok) zones++; zl += $"({zp.x:0},{zp.y:0})={(ok ? "drag" : "blocked")}[{lastSteerHit}] "; }
       L("rudder drag zones: " + zl);
       Chk(SteerStartsAt(sea) && SteerStartsAt(barP), $"gamedev_rudder: a drag starts on the open sea and on the rudder bar itself, no dead zone there ({zl})");
       // drag right ~0.15 W, release, hold
@@ -303,6 +303,23 @@ public partial class Game {
       // a tap on a button (FIRE) never starts a steer
       var fireR = fireTxt.transform.parent as RectTransform; Vector2 fireP = RectTransformUtility.WorldToScreenPoint(ccam, fireR.position);
       Chk(!SteerStartsAt(fireP), $"gamedev_rudder: pressing FIRE does not grab the rudder ({fireP.x:0},{fireP.y:0})");
+      // ---- gamedev_arc: FIRE lit only with range AND arc; 'In range · Turn broadside'; arc wedges; FIRE tap in range resets the idle clock ----
+      { qaPtrOn = false; var H = core.H; var P = core.P; float arcD = core.C.arcDeg, rg = core.FireRange(H); H.ammo = 0; H.reloadT = 0;
+        IEnumerator Place(float relDeg, float dist, int frames) { for (int f = 0; f < frames; f++) { H.x = H.z = 0; H.heading = 0; H.rudder = 0; H.reloadT = 0; P.x = Mathf.Sin(relDeg * Mathf.Deg2Rad) * dist; P.z = Mathf.Cos(relDeg * Mathf.Deg2Rad) * dist; yield return null; } }
+        yield return Place(0, rg * 0.5f, 4); bool ahIn = core.InFireRange(H, P), ahArc = core.InArc(H, P); string plA = rangePlaqueTxt.text; bool borderA = fireRangeBorder.gameObject.activeSelf, canA = core.CanFire(H, P); Color fbA = fireBg.color; Color ftA = fireTxt.color;
+        core.idleT = 20f; firePressed = true; yield return Place(0, rg * 0.5f, 1); float idleAfter = core.idleT; string msgA = hudMsg.text;
+        yield return Place(0, rg * 0.5f, 2); yield return Shot("rudder_2_wedges_turn_broadside");
+        Chk(ahIn && !ahArc && plA == "In range · Turn broadside" && !borderA && !canA && ftA == UITheme.C(T.textMuted) && fbA != UITheme.C(T.button), $"gamedev_arc: in range but guns not bearing: plaque '{plA}', no brass border, FIRE dim");
+        Chk(idleAfter < 0.5f && msgA.StartsWith("Not in arc"), $"gamedev_arc: a FIRE tap in range resets the idle toll clock even out of arc (20.0 -> {idleAfter:0.00} s, msg '{msgA}')");
+        yield return Place(90, rg * 0.5f, 4); bool bsArc = core.InArc(H, P), canB = core.CanFire(H, P); string plB = rangePlaqueTxt.text; bool borderB = fireRangeBorder.gameObject.activeSelf; Color fbB = fireBg.color, ftB = fireTxt.color;
+        Chk(bsArc && canB && plB == "In range" && borderB && ftB == UITheme.C(T.gold) && fbB == UITheme.C(T.button), $"gamedev_arc: in range and abeam: plaque '{plB}', brass border on, FIRE lit");
+        // single source: FIRE lit == CanFire == InArc && InFireRange at sampled bearings
+        bool src = true; string sw = ""; foreach (float b in new[] { 30f, 39f, 41f, 60f, 139f, 141f, 200f, 270f, 320f, 330f }) { yield return Place(b, rg * 0.5f, 2); bool lit = fireTxt.color == UITheme.C(T.gold), bord = fireRangeBorder.gameObject.activeSelf; bool want = core.InArc(H, P) && core.InFireRange(H, P); if (lit != want || bord != want || core.CanFire(H, P) != want) { src = false; sw += $" {b}:{lit}/{bord}/{want}"; } }
+        Chk(src, $"gamedev_arc: FIRE and its border follow CanFire/InArc exactly at bearings 30..330 (arc {arcD:0}°){sw}");
+        float wIn1 = ArcWedgeAlphaAt(90 - arcD + 3, 0.6f), wIn2 = ArcWedgeAlphaAt(270 + arcD - 3, 0.6f), wOut1 = ArcWedgeAlphaAt(90 - arcD - 4, 0.6f), wOut2 = ArcWedgeAlphaAt(0, 0.6f), wOut3 = ArcWedgeAlphaAt(90, 1.05f), wPort = ArcWedgeAlphaAt(270, 0.6f), wStb = ArcWedgeAlphaAt(90, 0.6f);
+        bool wPose = arcWedges && arcWedges.gameObject.activeSelf && Mathf.Abs(arcWedges.localScale.x - 2f * rg * K / ArcTexFill) < 0.01f && Mathf.Abs(Mathf.DeltaAngle(arcWedges.eulerAngles.y, H.heading)) < 0.5f && arcWedgeMat.shader.name == "Galeborne/RangeRing" && Mathf.Abs(arcWedgeMat.GetColor("_Color").a - RingOutAlpha) < 0.01f;
+        Chk(wPose && wIn1 > 0.1f && wIn2 > 0.1f && wPort > 0.1f && wStb > 0.1f && wOut1 < 0.02f && wOut2 < 0.02f && wOut3 < 0.02f, $"gamedev_arc: port and starboard wedges match the true arc (±{arcD:0}° off the beam, radius = {rg:0} m, RangeRing shader at ring opacity) in {wIn1:0.00}/{wIn2:0.00} out {wOut1:0.00}/{wOut2:0.00}/{wOut3:0.00}");
+        yield return Place(70, rg * 0.5f, 3); yield return Shot("rudder_3_wedges_in_arc"); }
       qaPtrOn = false; qaPtrDown = false;
       core.P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       // second story fight in the same save: no hint

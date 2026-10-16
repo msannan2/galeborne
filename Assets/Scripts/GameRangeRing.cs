@@ -32,9 +32,10 @@ public partial class Game {
     rangeRing.gameObject.SetActive(true); rangeMarker.gameObject.SetActive(true); ringInRange = false; ringLastDist = -1; ringTrend = "Closing"; ringPlaqueN = -1; ringPulses = 0;
     rangePlaque = Px(cui, "RangePlaque", 404, 116, 470, 76); var pi = rangePlaque.gameObject.AddComponent<Image>(); pi.sprite = Resources.Load<Sprite>("Art/FX/range_label_plaque"); pi.type = Image.Type.Sliced; pi.raycastTarget = false;
     rangePlaqueTxt = Txt(R(rangePlaque, "t", 0, 0, 1, 1), "", 32, "#3A2618", TextAnchor.MiddleCenter, true); rangePlaqueTxt.raycastTarget = false;
+    if (arcWedges == null) { arcWedgeMat = NewRingMat(ArcWedgeTex(core.C.arcDeg)); arcWedges = RingQuad("ArcWedges", arcWedgeMat, out _); } else arcWedgeMat.mainTexture = ArcWedgeTex(core.C.arcDeg); arcWedges.gameObject.SetActive(true);
     fireRangeBorder = Px(fireButton, "rangeBorder", -8, -8, 266, 266).gameObject.AddComponent<Image>(); fireRangeBorder.sprite = Ring(0.93f); fireRangeBorder.color = RingBrass; fireRangeBorder.raycastTarget = false; fireRangeBorder.gameObject.SetActive(false);
   }
-  void HideRangeRing() { if (rangeRing) rangeRing.gameObject.SetActive(false); if (rangeMarker) rangeMarker.gameObject.SetActive(false); }
+  void HideRangeRing() { if (arcWedges) arcWedges.gameObject.SetActive(false); if (rangeRing) rangeRing.gameObject.SetActive(false); if (rangeMarker) rangeMarker.gameObject.SetActive(false); }
 
   /// called every combat frame from UpdateCombatView (after the ships are placed)
   void UpdateRangeRing() {
@@ -53,12 +54,30 @@ public partial class Game {
     rangeMarker.localScale = new Vector3(RingMarkerWorld, 1, RingMarkerWorld); rangeMarkerMat.SetColor("_Color", Color.white);
     if (ringLastDist >= 0 && Mathf.Abs(ringDistM - ringLastDist) > 0.01f) ringTrend = ringDistM < ringLastDist ? "Closing" : "Opening"; ringLastDist = ringDistM;
     ringPlaqueN = Mathf.CeilToInt(ringDistM); /* ceil: an out-of-range distance never reads at or below the range figure */
-    rangePlaqueTxt.text = inR ? "In range" : $"Range {ringPlaqueN} m · {ringTrend}";
-    fireRangeBorder.gameObject.SetActive(inR);
+    bool arc = core.InArc(H, P); /* gamedev_arc: the same arc check that gives 'Not in arc' */
+    rangePlaqueTxt.text = inR ? (arc ? "In range" : "In range · Turn broadside") : $"Range {ringPlaqueN} m · {ringTrend}";
+    fireRangeBorder.gameObject.SetActive(inR && arc);
+    UpdateArcWedges();
   }
   IEnumerator RangePulse(Vector3 c, float side) {
     var m = NewRingMat(rangeTexPulse); var t = RingQuad("RangePulse", m, out _); t.position = c;
     for (float k = 0; k < 0.4f; k += Time.deltaTime) { float u = k / 0.4f; t.localScale = new Vector3(side, 1, side) * (1 + 0.25f * u); var col = RingPale; col.a = 1 - u; m.SetColor("_Color", col);
       m.SetFloat("_Speed", waterMat.GetFloat("_Speed")); m.SetVector("_Offset", waterMat.GetVector("_Offset")); yield return null; }
     Destroy(t.gameObject); Destroy(m); }
+
+  /* gamedev_arc: two faint brass wedges off Hasan's port and starboard beams = the true firing arc (CombatCore.InArc: |bearing - 90| <= arcDeg),
+     radius = the loaded shot's range. Same RangeRing shader, brass tint and opacity as the dashed range ring. */
+  public Transform arcWedges; Material arcWedgeMat; public Texture2D arcWedgeTex; public const float ArcTexFill = 0.94f; float arcWedgeDeg = -1;
+  public Texture2D ArcWedgeTex(float arcDeg) {
+    if (arcWedgeTex && arcWedgeDeg == arcDeg) return arcWedgeTex; int n = 256; var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, name = "ArcWedges" }; var px = new Color32[n * n];
+    for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) { float u = (x + 0.5f) / n * 2 - 1, v = (y + 0.5f) / n * 2 - 1, r = Mathf.Sqrt(u * u + v * v) / ArcTexFill; /* clear margin so the clamped edge never smears */
+      float b = Mathf.Abs(Mathf.Atan2(u, v) * Mathf.Rad2Deg); float off = Mathf.Abs(b - 90) - arcDeg; float a = 0;
+      if (r <= 1 && off <= 0 && r > 0.06f) { float edgeM = -off * Mathf.Deg2Rad * r * n * 0.5f; /* px from the straight edge */ float rimM = (1 - r) * n * 0.5f;
+        a = 0.16f + 0.14f * r; if (edgeM < 2.5f || rimM < 2.5f) a = 0.85f; }
+      px[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255)); }
+    t.SetPixels32(px); t.Apply(); arcWedgeTex = t; arcWedgeDeg = arcDeg; return t; }
+  public float ArcWedgeAlphaAt(float relDeg, float frac) { var t = arcWedgeTex; if (!t) return -1; float u = Mathf.Sin(relDeg * Mathf.Deg2Rad) * frac * ArcTexFill, v = Mathf.Cos(relDeg * Mathf.Deg2Rad) * frac * ArcTexFill; return t.GetPixelBilinear((u + 1) / 2, (v + 1) / 2).a; }
+  void UpdateArcWedges() { if (!arcWedges) return; var H = core.H; float side = 2f * core.FireRange(H) * K / ArcTexFill; Vector3 c = W(H); c.y = 0;
+    arcWedges.position = c; arcWedges.rotation = Quaternion.Euler(0, H.heading, 0); arcWedges.localScale = new Vector3(side, 1, side);
+    var col = RingBrass; col.a = RingOutAlpha; arcWedgeMat.SetColor("_Color", col); arcWedgeMat.SetFloat("_Speed", waterMat.GetFloat("_Speed")); arcWedgeMat.SetVector("_Offset", waterMat.GetVector("_Offset")); if (waterMat.HasProperty("_Amp")) arcWedgeMat.SetFloat("_Amp", waterMat.GetFloat("_Amp")); }
 }

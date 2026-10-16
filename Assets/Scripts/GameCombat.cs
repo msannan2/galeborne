@@ -11,7 +11,7 @@ public partial class Game {
   public CombatCore core; public bool fighting, combatPaused; Transform pirateShip; RectTransform cui; Vector3 combatShipScale0;
   Text hudH, hudP, hudMsg, windTxt, fireTxt; Image reloadRing, rudderBar, windArrow; Button boardBtn; Image[] ammoBtns = new Image[4]; Text[] ammoTxt = new Text[4];
   RectTransform[] aimChips = new RectTransform[4]; bool firePressed, boardPressed; float camYaw; int pirateGood, pirateQty, pirateGood2, pirateQty2;
-  float dragX0; bool dragging; /* gamedev_rudder: see ReadSteer */
+  float dragX0; bool dragging; Image fireBg; /* gamedev_rudder: see ReadSteer */
   static readonly string[] PartNames = { "Hull", "Sails", "Guns", "Crew" };
 
   IEnumerator PirateEncounter() {
@@ -55,7 +55,7 @@ public partial class Game {
       fightT += Time.deltaTime; if (capS > 0 && fightT > capS) { o = capFog ? Outcome.HasanStruck : Outcome.Escaped; if (playthrough) PLog2("fight cap", $"{capS:0} s reached: auto-resolved to " + (capFog ? "the pirate toll" : "the pirate breaking off")); break; } /* the unlosable opening fight never drags on */
       if (!combatPaused) {
         ReadSteer(); core.H.ammo = Mathf.Clamp(core.H.ammo, 0, 3);
-        if (firePressed) { firePressed = false; if (core.CanFire(core.H, core.P)) core.Fire(core.H, core.P); else hudMsg.text = FireBlockReason(); }
+        if (firePressed) { firePressed = false; if (core.InFireRange(core.H, core.P)) core.idleT = 0; /* gamedev_arc: any FIRE tap in range resets the idle toll clock */ if (core.CanFire(core.H, core.P)) core.Fire(core.H, core.P); else hudMsg.text = FireBlockReason(); }
         float dt = Mathf.Min(Time.deltaTime, 0.1f); o = core.Step(dt); if (o == Outcome.HasanStruck && core.idleTollFired) { if (!capFog) o = Outcome.Escaped; Debug.Log($"GB AMBUSH idle toll after {core.idleT:0.0} s idle (fight {core.t:0.0} s)"); if (playthrough) PLog2("fight idle", $"{core.idleTollSeconds:0} s without closing or firing"); }
         if (o == Outcome.None && boardPressed) { boardPressed = false; if (core.BoardAllowed(core.H, core.P)) o = Outcome.BoardReady; }
       }
@@ -148,7 +148,8 @@ public partial class Game {
   public bool SteerHintVisible => steerHint && steerHint.activeSelf;
   bool PointerOverUI(Vector2 mp) {
     var es = UnityEngine.EventSystems.EventSystem.current; if (es == null) return false;
-    var pe = new UnityEngine.EventSystems.PointerEventData(es) { position = mp }; var hits = new List<UnityEngine.EventSystems.RaycastResult>(); es.RaycastAll(pe, hits); return hits.Count > 0; }
+    var pe = new UnityEngine.EventSystems.PointerEventData(es) { position = mp }; var hits = new List<UnityEngine.EventSystems.RaycastResult>(); es.RaycastAll(pe, hits); lastSteerHit = hits.Count > 0 ? hits[0].gameObject.name : ""; foreach (var h in hits) if (h.gameObject.GetComponentInParent<Selectable>() != null) { lastSteerHit = "button:" + h.gameObject.name; return true; } return false; } /* gamedev_rudder: only real controls block a steer drag; full-screen overlays/labels used to make the whole lower half a dead zone */
+  public string lastSteerHit = "";
   public bool SteerStartsAt(Vector2 mp) => mp.y < Screen.height * 0.5f && !PointerOverUI(mp);
   void ReadSteer() {
     if (playthrough) { core.H.rudder = ptRudder; return; }
@@ -195,7 +196,7 @@ public partial class Game {
     var rb = Px(cb, "Rudder", 350, 1784, 380, 28); Box(rb, T.panel, T.brass).raycastTarget = false; /* gamedev_rudder: the bar is not a dead zone for the steering drag */ rudderBar = Px(rb, "fill", 186, 2, 8, 24).gameObject.AddComponent<Image>(); rudderBar.color = UITheme.C(T.gold);
     Label(cb, "← drag to steer →", 350, 1820, 380, 40, T.fontSizeSmall - 4, T.textMuted, TextAnchor.MiddleCenter).raycastTarget = false;
     { var hb = Px(cb, "SteerHint", 190, 1150, 700, 110); var hi = Box(hb, T.ink, T.gold); hi.raycastTarget = false; var ht = Txt(R(hb, "t", 0, 0, 1, 1), "Drag to steer toward her.", T.fontSize, T.gold, TextAnchor.MiddleCenter, true); ht.raycastTarget = false; steerHint = hb.gameObject; steerHint.SetActive(false); } /* gamedev_rudder: one-time story-fight hint */
-    var fr = Px(cb, "Fire", 800, 1600, 250, 250); var fb = fr.gameObject.AddComponent<Image>(); fb.sprite = Ring(0, 1); fb.color = UITheme.C(T.button);
+    var fr = Px(cb, "Fire", 800, 1600, 250, 250); var fb = fr.gameObject.AddComponent<Image>(); fb.sprite = Ring(0, 1); fb.color = UITheme.C(T.button); fireBg = fb;
     reloadRing = Px(fr, "ring", 0, 0, 250, 250).gameObject.AddComponent<Image>(); reloadRing.sprite = Ring(0.86f); reloadRing.type = Image.Type.Filled; reloadRing.fillMethod = Image.FillMethod.Radial360; reloadRing.color = UITheme.C(T.gold);
     fireTxt = Txt(R(fr, "t", 0, 0, 1, 1), "FIRE", T.fontSizeTitle, T.parchment, TextAnchor.MiddleCenter, true); fr.gameObject.AddComponent<Button>().onClick.AddListener(() => firePressed = true);
     boardBtn = Btn(cb, "BOARD!", 330, 1236, 420, 130, () => boardPressed = true, true, true);
@@ -276,7 +277,7 @@ public partial class Game {
     for (int i = 0; i < 4; i++) { bool sel = H.ammo == i; ammoBtns[i].sprite = Panel(UITheme.C(sel ? T.panelAlt : T.button), UITheme.C(sel ? T.gold : T.brass));
       ammoTxt[i].text = S.combat.ammo[i].name + (i == 3 ? $" ×{H.fireLeft}" : "") + $"\n<size={T.fontSizeSmall - 8}>{S.combat.ammo[i].range:0} m</size>"; ammoTxt[i].color = UITheme.C(sel ? T.gold : T.buttonText); }
     reloadRing.fillAmount = 1 - Mathf.Clamp01(H.reloadT / Mathf.Max(0.01f, H.st.reload)); bool can = core.CanFire(H, P);
-    fireTxt.text = H.reloadT > 0 ? $"{H.reloadT:0.0}s" : can ? "FIRE" : "FIRE"; fireTxt.color = UITheme.C(can ? T.gold : T.textMuted);
+    fireTxt.text = H.reloadT > 0 ? $"{H.reloadT:0.0}s" : can ? "FIRE" : "FIRE"; fireTxt.color = UITheme.C(can ? T.gold : T.textMuted); if (fireBg) { var fc = UITheme.C(T.button); fireBg.color = can ? fc : new Color(fc.r * 0.55f, fc.g * 0.55f, fc.b * 0.55f, 0.75f); } /* gamedev_arc: FIRE dim unless range AND arc (and loaded) */
     rudderBar.rectTransform.anchoredPosition = new Vector2(186 + H.rudder * 180, -2);
     boardBtn.gameObject.SetActive(core.BoardAllowed(H, P));
     for (int i = 0; i < 4; i++) { var r = aimChips[i]; bool sel = (int)H.aim == i;
