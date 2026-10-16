@@ -377,7 +377,7 @@
    ],
    "options": [
     {
-     "label": "Heave to, they search the hold",
+     "label": "Let them search",
      "cost": "+1 week; banned non-story goods seized (LosableGoods, never story cargo)",
      "out": "They search, stamp, and wave you on."
     },
