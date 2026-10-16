@@ -218,6 +218,7 @@ public partial class Game {
     switch (storyStep) {
       case 0: return port == GwadarIdx ? 0 : -2; case 1: return -2; case 2: return 0; case 3: return 8; case 4: return port == BuyPort && hold[Gp] == 0 && !fallbackFired ? 1 : -2; case 5: return -2; case 6: return fallbackFired ? 0 : 1; case 7: return 8; }
     return -1; }
+  public string QarinPowderLine => openingGpSold ? "The garrison has its powder. My thanks, captain." : "Bring powder."; /* research_gp3: Game Designer ruling, thank-you once sold */
   (string, string, string) StoryGoals() {
     string l = qarinLetter ? "The Qarin seal: a letter names a harbour master in Muscat" : "Find who burned your ship: the Qarin seal";
     string m = "Make a fortune on one daring run";
@@ -226,9 +227,9 @@ public partial class Game {
       case 1: return ("Set sail for Debal on the chart table (safe coastal route)", m, l);
       case 2: return ("Sell your dates and salt in Debal's market", m, l);
       case 3: return ("Hear the harbour talk at Debal's tavern", m, l);
-      case 4: return rumorHeard >= 2 && hold[Gp] == 0 ? ("No gunpowder? Copper is short in Muscat: buy copper in Gwadar", "Sell it in Muscat", l) : ("Buy gunpowder from Farida in Debal's Back Alley", "Sell it in Muscat once the ban is live", l);
-      case 5: return ("Set sail for Muscat on the chart table", fallbackFired || hold[Gp] == 0 ? "Sell copper in Muscat's market" : "Sell the gunpowder in Muscat's Back Alley", l);
-      case 6: return fallbackFired ? ("Sell your copper in Muscat's market (shortage, x2)", "Then: warehouse, bank and lender open up", l) : ("Sell the gunpowder in Muscat's Back Alley", "Then: warehouse, bank and lender open up", l);
+      case 4: return rumorHeard >= 2 && hold[Gp] == 0 ? ("No gunpowder? Copper is short in Muscat: buy copper in Gwadar", "Sell it in Muscat", l) : (GpBuyGoal, GpSellGoal, l) /* research_gp3 */;
+      case 5: return ("Set sail for Muscat on the chart table", fallbackFired || hold[Gp] == 0 ? "Sell copper in Muscat's market" : GpSellGoal, l);
+      case 6: return fallbackFired ? ("Sell your copper in Muscat's market (shortage, x2)", "Then: warehouse, bank and lender open up", l) : (GpSellGoal, "Then: warehouse, bank and lender open up", l);
       case 7: return ("Ask at the tavern about the Qarin seal", "Save up for a bigger ship", l);
     } return ("", "", l); }
   /// advances the opening from the real game state; called after every Refresh
@@ -253,7 +254,7 @@ public partial class Game {
     string ban = "Muscat's customs seize gunpowder on sight, but the garrison still pays a fortune for it under the table. Farida in Debal's Back Alley sells it cheap. Sell it in Muscat's Back Alley."; /* v0.6f4 wording; rs kept for the data check */ _ = rs;
     if (storyStep == 3 || (storyStep == 2 && port == Debal)) { /* the rumor can't be missed: hearing it before selling everything still moves the opening on */ storyStep = 4; rumorHeard = 1; gpBanStart = week + 1; EnsureDesignBans(); news.Insert(0, $"Rumor ({DateStr}): {ban}"); return OpenFlag("secondRumorOnFirstTavernVisit") ? ban + " " + Rumor2 : ban; }
     if (storyStep == 4 && hold[Gp] == 0 && rumorHeard < 2) { rumorHeard++; return Rumor2; }
-    if (storyStep == 7) { storyStep = StDone; qarinLetter = true; return (boardedStoryPirate ? "A letter from the fog pirate's strongbox, sealed with the Qarin mark: " : "The tavern keeper slides you a letter sealed with the Qarin mark: ") + "\"To the captain who carries this seal: the Sultan's customs in Muscat look away for those who bear the Qarin mark. Bring powder, and ask for the man in the blue doorway. – Q.\""; }
+    if (storyStep == 7) { storyStep = StDone; qarinLetter = true; return (boardedStoryPirate ? "A letter from the fog pirate's strongbox, sealed with the Qarin mark: " : "The tavern keeper slides you a letter sealed with the Qarin mark: ") + "\"To the captain who carries this seal: the Sultan's customs in Muscat look away for those who bear the Qarin mark. " + QarinPowderLine + " Ask for the man in the blue doorway. – Q.\""; }
     return null; }
   /// a player who skipped the gunpowder after the rumor repeats gets the backup: a forced copper shortage in Muscat
   void FallbackCheck() {

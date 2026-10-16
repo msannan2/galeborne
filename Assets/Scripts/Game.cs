@@ -411,7 +411,7 @@ public partial class Game : MonoBehaviour {
       Label(led, $"·  {S.goods[b.good].name} banned in {S.ports[b.port].name}, {when}  (sells ×{S.contraband.bannedSellMult:0.#} there)", 26, y, 980, 60, T.fontSizeSmall + 6, T.text, TextAnchor.UpperLeft); y += 4 + Flow(led.GetChild(led.childCount - 1).GetComponentInChildren<Text>(), 60); }
     y += 16; Label(led, "Harbour talk", 26, y, 600, 60, T.fontSize + 8, T.parchment, TextAnchor.MiddleLeft, true); y += 66;
     foreach (var n in news.Take(4)) { y += Flow(Label(led, n, 26, y, 980, 64, T.fontSizeSmall + 4, T.textMuted, TextAnchor.UpperLeft), 96) + 8; }
-    QuestBtn(led, "alley", faridaState == 2 ? "Farida (rival)" : "Farida of the back alley", y + 20);
+    QuestBtn(led, "alley", port == Muscat ? MuscatFence : faridaState == 2 ? "Farida (rival)" : "Farida of the back alley", y + 20); /* research_gp3 */
   }
   void AlleyBuy(int g, int n) {
     bool allyCut = faridaState == 1 && port == Debal; float full = price[port, g];
@@ -420,7 +420,7 @@ public partial class Game : MonoBehaviour {
     if (allyCut) { price[port, g] = full * Mathf.Pow(1 + S.perUnitBuyRise, got); if (got > 0) { if (playthrough) PLog2("papers", "PAPERS -20%"); Debug.Log("GB PAPERS -20%"); } }
     if (got == 0) return;
     if (InOpening && jackpotStartCoins < 0 && g == G("gunpowder")) { jackpotStartCoins = coins + got * Mathf.CeilToInt(allyCut ? full * (1f - A1("faridaAllyPapersDiscount", 0.2f)) : full); news.Insert(0, "Yusuf: \"Muscat's purse is deep, Captain. Just don't let customs see what's in yours.\""); }
-    if (!papersGiven && g == G("gunpowder") && firstRun) { papersGiven = true; keeperTrig = "papers"; msg = $"Farida slips you forged papers with the {S.goods[g].name.ToLower()}: customs risk drops to {Risk(port):0}% (pay the temple tithe for less)."; }
+    if (!papersGiven && g == G("gunpowder") && firstRun) { papersGiven = true; keeperTrig = "papers"; msg = $"Farida slips you forged papers with the {S.goods[g].name.ToLower()}: Muscat customs will wave you through.";  /* research_gp3: papers make CustomsWaved true (risk 0), so say so at buy */ }
     else msg = allyCut ? $"Bought {GoodCount(g, got)} in the alley (−20%)." : $"Bought {GoodCount(g, got)} in the alley."; Refresh(); }
   void DoSellAlley(int g, RectTransform row) { int v = SellPrice(g); if (!Sell(g)) return; msg = $"A quiet buyer pays {v} for {GoodCount(g, 1)}."; var at = priceTexts[g].rectTransform.position; Refresh(); SaleFx(at); }
 
@@ -642,7 +642,7 @@ public partial class Game : MonoBehaviour {
   IEnumerator Customs() {
     float risk = Risk(port); int val = 0; for (int g = 0; g < hold.Length; g++) if (hold[g] > 0 && Banned(g, port)) val += Mathf.RoundToInt(hold[g] * basePrice[port, g]);
     bool dump = false;
-    yield return Ask($"Customs at {S.ports[port].name}", $"Inspectors wait on the quay. You carry goods banned here, worth about {val} coins.\n\n" + (CustomsWaveReason(port) == "papers" ? $"<b><color={T.up}>Search risk: none (Farida's papers).</color></b>" : CustomsWaveReason(port) == "early" ? $"<b><color={T.up}>Search risk: none. The inspectors wave you through.</color></b>" : $"Risk of being searched and caught: <b><color={T.down}>{risk:0}%</color></b>") + (crate ? "\nFaker's Crate aboard." : "") + (tithe ? "\nTithe paid." : ""), /* designer_ambush_customs */
+    yield return Ask($"Customs at {S.ports[port].name}", $"Inspectors wait on the quay. You carry goods banned here, worth about {val} coins.\n\n" + (CustomsWaveReason(port) == "papers" ? $"<b><color={T.up}>Customs waved you through.</color></b>" : CustomsWaveReason(port) == "early" ? $"<b><color={T.up}>Search risk: none. The inspectors wave you through.</color></b>" : $"Risk of being searched and caught: <b><color={T.down}>{risk:0}%</color></b>") + (crate ? "\nFaker's Crate aboard." : "") + (tithe ? "\nTithe paid." : ""), /* designer_ambush_customs */
       ("Dock", null), ("Dump it", () => dump = true));
     if (dump) { var dSg = InOpening ? StoryGoods() : new HashSet<int>(); /* gamedev_t16_dumpsafe */ int dDumped = 0, dKept = 0; for (int g = 0; g < hold.Length; g++) if (Banned(g, port) && hold[g] > 0) { if (dSg.Contains(g)) dKept += hold[g]; else { dDumped += hold[g]; hold[g] = 0; } } msg = dKept == 0 ? "You dumped the contraband before the pilot boat came alongside." : dDumped == 0 ? "You keep Farida's kegs below; nothing else to dump." : "You dumped the contraband but kept Farida's kegs below."; /* gamedev_t18_dumptext */ yield break; }
     bool safeRun = CustomsWaved(port); if (safeRun) risk = 0; /* designer_ambush_customs */

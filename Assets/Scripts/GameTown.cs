@@ -411,6 +411,7 @@ public partial class Game {
       RectTransformUtility.ScreenPointToLocalPointInRectangle(signLayer, sp, null, out var lp); r.anchoredPosition = lp - rect.min; }
   }
 
+  public const string MuscatFence = "Salim the fence"; /* research_gp3: Game Designer ruling */
   // ---- keepers ----
   static readonly Dictionary<int, (string key, string name, int row)> Keepers = new Dictionary<int, (string, string, int)> {
     { 0, ("bazaarMerchant", "Jalal the bazaar merchant", 0) }, { 1, ("farida", "Farida of the back alley", 2) }, { 3, ("shipwright", "Temple priest", 4) }, /* reuse face row until temple art */
@@ -426,6 +427,7 @@ public partial class Game {
   bool KeeperHeader(int tab) {
     if (!Keepers.TryGetValue(tab, out var k)) return false;
     bool harbour = tab == 7 && (S.ports[port].name == "Muscat" || ShipwrightMode(S.ports[port].name) == "none"); /* designer: same rule as the "Harbour Master" plaque */
+    if (tab == 1 && port == Muscat) k.name = MuscatFence; /* research_gp3 */
     if (tab == 3) k.key = "priest"; else if (harbour) { k.key = "harbourmaster"; k.name = "Harbour master"; } /* own lines + optional own portrait instead of Bashir's */
     var line = Line(k.key, keeperTrig); if (tab == 0 && S.ports[port].name != "Gwadar") { k.name = $"{S.ports[port].name} bazaar merchant"; if (line.trigger == "greet") line = new KeeperLine { trigger = line.trigger, mood = line.mood, text = "Everything except a discount!" }; } /* gamedev_t19_merchant: Jalal and his Gwadar goods cry stay in Gwadar */ int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
     var r = Px(content, "Keeper", 16, 172, 1048, KeeperH); Box(r, T.ledgerBg, T.frame);
