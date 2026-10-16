@@ -540,7 +540,7 @@ public partial class Game : MonoBehaviour {
   }
   /// blockade_polish (Game Tester): a greyed card option drew the 9-slice teak frame (~110 px borders) squeezed into an 84 px button, which smeared over its label.
   /// Greyed options get a flat dim panel instead, and the label is re-parented last so it always renders above the button art, in readable muted ink.
-  public const string GreyLabelHex = "#D9C08A", GreyPlateHex = "#6B5A40", GreyOutlineHex = "#6B5A40"; public const float GreyPlateAlpha = 1f, GreyLabelAlpha = 0.8f; /* Chief Art Designer r6: dim plate #6B5A40, no outline, parchment label at 80% */ /* Chief Art Designer r4: parchment plate 85% with a 1 px teak outline, teak label 75% on top, no grey overlay */
+  public const string GreyLabelHex = "#D9C08A", GreyPlateHex = "#4A3E2C", GreyOutlineHex = "#4A3E2C"; public const float GreyPlateAlpha = 1f, GreyLabelAlpha = 0.8f; /* Chief Art Designer r6: dim plate #6B5A40, no outline, parchment label at 80% */ /* Chief Art Designer r4: parchment plate 85% with a 1 px teak outline, teak label 75% on top, no grey overlay */
   public const float OptionLabelPad = 14f; /* gamedev_final_strings: card option labels shrink to fit inside the plate with padding */
   void FitOptionLabel(Button b) { var lt = b.transform.Find("L") as RectTransform; var tx = lt ? lt.GetComponent<Text>() : null; if (!tx) return; lt.offsetMin = new Vector2(OptionLabelPad, 4); lt.offsetMax = new Vector2(-OptionLabelPad, -4);
     tx.horizontalOverflow = HorizontalWrapMode.Overflow; tx.resizeTextForBestFit = false; float avail = ((RectTransform)b.transform).rect.width - 2 * OptionLabelPad; /* one line, shrunk until it fits (best fit would wrap it into two tiny lines) */
@@ -579,34 +579,38 @@ public partial class Game : MonoBehaviour {
   /// gamedev_salvage_full: one salvage card for every wreck. Full hold: the take option is greyed (shared greyed style) with a 'Hold full' caption;
   /// partly full: take what fits and say how much is left behind.
   public const string HoldFullCaption = "Hold full";
-  public string SalvageBody(string what, int g, int offer, int fit) => fit <= 0 ? $"{what} You could fish up {GoodCount(g, offer)}, but your hold is full."
-    : fit < offer ? $"{what} Room for {GoodCount(g, fit)} only: {offer - fit} will be left behind (hold full)." : $"{what} You could fish up {GoodCount(g, offer)}.";
-  public IEnumerator SalvageCard(string title, string what, int g, int offer, string take) {
-    int fit = Mathf.Clamp(S.holdSize - HoldUsed, 0, offer), left = offer - fit; Debug.Log($"GB SALVAGE {title} offer={offer} fit={fit} left={left}");
-    yield return Ask(title, SalvageBody(what, g, offer, fit),
-      (fit > 0 ? take : AskOff + take + "\n" + HoldFullCaption, () => { hold[g] += fit; msg = $"Salvaged {GoodCount(g, fit)}." + (left > 0 ? $" {left} left behind: hold full." : ""); }),
-      ("Sail on", () => msg = fit > 0 ? "You leave the wreckage to the gulls." : "Hold full. You leave the wreckage to the gulls.")); }
+  /// gamedev_salvage_full + gamedev_voyage_events: one salvage card for every wreck (variant wording). Full hold: the take option is greyed with 'Hold full';
+  /// partly full: take what fits and say how much is left behind.
+  public IEnumerator SalvageCard(string id, int g, int offer, string take) { var v = VePick(id); VeShown(id);
+    int fit = Mathf.Clamp(S.holdSize - HoldUsed, 0, offer), left = offer - fit; Debug.Log($"GB SALVAGE {id} offer={offer} fit={fit} left={left}");
+    (string, string)[] F(int n) => new[] { ("goods", GoodCount(g, n)), ("good", S.goods[g].name), ("n", n.ToString()) };
+    string body = fit <= 0 ? VeS(v, "bodyFull", "Casks drift by, but your hold is full.") : VeFill(VeS(v, "body", "Casks and splintered planks drift on the swell. You could fish up {goods}."), F(fit)) + (left > 0 ? $" {left} more will be left behind (hold full)." : "");
+    string title = VeS(v, "title", id == "wreckage" ? "Wreckage" : "Wreckage adrift"); take = VeOpt(v, 0, take); string full = VeS(v, "optionFull", HoldFullCaption);
+    yield return Ask(title, body,
+      (fit > 0 ? take : AskOff + take + "\n" + full, () => { hold[g] += fit; msg = VeFill(VeS(v, "salvaged", "Salvaged {goods}."), F(fit)) + (left > 0 ? $" {left} left behind: hold full." : ""); }),
+      ("Sail on", () => { string so = VeS(v, "sailOn", "You leave the wreckage to the gulls."); msg = fit > 0 ? so : "Hold full. " + so; })); }
   IEnumerator VoyageDecision() {
-    var freeKinds = Enumerable.Range(0, 3).Where(k => (voyageKindsUsed & (1 << k)) == 0).ToList(); /* gamedev_t13_nodupe */
+    var freeKinds = VeFreeKinds(voyageKindsUsed); /* gamedev_t13_nodupe + gamedev_voyage_events: not the family just shown (across voyages) */ if (veForce == "storm" || veForce == "horizon" || veForce == "wreckage") freeKinds = new List<int> { Array.IndexOf(DecisionIds, veForce) };
     if (freeKinds.Count == 0) { Debug.Log("GB VOYAGE decision kind=none (all used)"); yield break; }
     int kind = freeKinds[Rnd.Range(0, freeKinds.Count)]; if (gbForce.Contains("storm") && freeKinds.Contains(1)) kind = 1; /* gamedev_t16_stormcard */ /* -gbforce storm (test only) */ voyageKindsUsed |= 1 << kind;
     Debug.Log("GB VOYAGE decision kind=" + kind + " (" + (kind == 0 ? "horizon" : kind == 1 ? "storm" : "wreckage") + ")"); /* gamedev_t13_nodupe */
     if (kind == 0) {
       bool close = false; PasserShow("horizon"); /* gamedev_t11_passer */
-      yield return Ask("Sail on the horizon", "A lateen shows against the haze, holding a parallel course. She flies no colours you know.",
-        ("Hail her", () => { close = true; msg = "They wave a friendly pennant and sheer off."; if (BlkHailReveal()) close = false; /* gamedev_blockade_warning: Hail warning outcome */ }),
-        ("Hold your course", () => msg = "You keep the wind and leave her astern."));
+      var hv = VePick("horizon"); VeShown("horizon");
+      yield return Ask(VeS(hv, "title", "Sail on the horizon"), VeS(hv, "body", "A lateen shows against the haze, holding a parallel course. She flies no colours you know."),
+        (VeOpt(hv, 0, "Hail her"), () => { close = true; msg = "They wave a friendly pennant and sheer off."; if (BlkHailReveal()) close = false; /* gamedev_blockade_warning: Hail warning outcome */ }),
+        (VeOpt(hv, 1, "Hold your course"), () => msg = VeS(hv, "hold", "You keep the wind and leave her astern.")));
       horizonDone = true; PasserHide("horizon_closed"); /* gamedev_t11_passer */ /* gamedev_t10_lateen: the lateen leaves with the card (Hail or Hold), not behind the next card */
       if (close && Rnd.value < 0.35f) { int g = Rnd.Range(0, S.goods.Length); if (!S.goods[g].contraband) { int q = Mathf.Min(2, S.holdSize - HoldUsed); if (q > 0) { hold[g] += q; msg = $"They toss you {GoodCount(g, q)} for goodwill."; } } }
     } else if (kind == 1) {
-      bool reef = false; int stLost = 0, stG = 0; /* gamedev_t16_stormcard */
-      yield return Ask("Storm front", "A black wall of rain marches across the Gulf. The mate waits on your word.",
-        ("Reef sails", () => { reef = true; msg = "You take in canvas and ride it out."; }),
-        ("Press on", () => { if (HoldUsed > 0 && Rnd.value < 0.4f) { var held = LosableGoods(); /* gamedev_t15_storysafe */ int g = held.Count > 0 ? held[Rnd.Range(0, held.Count)] : 0; int lost = held.Count > 0 ? Mathf.Min(hold[g], 1) : 0; hold[g] -= lost; stLost = lost; stG = g; /* gamedev_t16_stormcard */ msg = lost > 0 ? $"A wave takes {GoodCount(g, lost)}." /* gamedev_t9 */ : "You punch through the squall."; } else msg = "You punch through the squall."; }));
+      bool reef = false; int stLost = 0, stG = 0; /* gamedev_t16_stormcard */ var sv = VePick("storm"); VeShown("storm"); string stT = VeS(sv, "title", "Storm front");
+      yield return Ask(stT, VeS(sv, "body", "A black wall of rain marches across the Gulf. The mate waits on your word."),
+        (VeOpt(sv, 0, "Reef sails"), () => { reef = true; msg = VeS(sv, "reef", "You take in canvas and ride it out."); }),
+        (VeOpt(sv, 1, "Press on"), () => { if (HoldUsed > 0 && Rnd.value < 0.4f) { var held = LosableGoods(); /* gamedev_t15_storysafe */ int g = held.Count > 0 ? held[Rnd.Range(0, held.Count)] : 0; int lost = held.Count > 0 ? Mathf.Min(hold[g], 1) : 0; hold[g] -= lost; stLost = lost; stG = g; /* gamedev_t16_stormcard */ msg = lost > 0 ? VeFill(VeS(sv, "pressLoss", "A wave takes {lost}."), ("lost", GoodCount(g, lost))) /* gamedev_t9 */ : VeS(sv, "pressSafe", "You punch through the squall."); } else msg = VeS(sv, "pressSafe", "You punch through the squall."); }));
       if (reef) { /* costs a little time but Voyage bar already handles FF */ }
-      yield return Ask("Storm front", stLost > 0 ? $"Lost: {GoodCount(stG, stLost)}." : "You ride it out.", ("Continue", null)); /* gamedev_t16_stormcard */
+      yield return Ask(stT, stLost > 0 ? VeFill(VeS(sv, "result", "Lost: {lost}."), ("lost", GoodCount(stG, stLost))) : VeS(sv, "resultSafe", "You ride it out."), ("Continue", null)); /* gamedev_t16_stormcard */
     } else {
-      int g = Rnd.Range(0, S.goods.Length); yield return SalvageCard("Wreckage", "Casks and splintered planks drift on the swell.", g, Rnd.Range(1, 4), "Salvage"); /* gamedev_salvage_full */
+      int g = Rnd.Range(0, S.goods.Length); yield return SalvageCard("wreckage", g, Rnd.Range(1, 4), "Salvage"); /* gamedev_salvage_full */
     }
     Refresh();
   }
@@ -614,22 +618,25 @@ public partial class Game : MonoBehaviour {
     var wgt = S.weights; float tot = wgt.pirate + wgt.wreck + wgt.merchant + wgt.squall + wgt.rumor, r = Rnd.value * tot;
     if (!pirate && gbForce.Contains("merchant")) { r = wgt.pirate + wgt.wreck + wgt.merchant * 0.5f; Debug.Log("GB FORCE merchant: event forced"); } else if (!pirate) r = gbForce.Contains("squall") ? wgt.pirate + wgt.wreck + wgt.merchant + wgt.squall * 0.5f : wgt.pirate + Rnd.value * (tot - wgt.pirate); else r = 0; /* the ambush roll (AmbushChanceFor) decides pirates; other events share the rest */
     int any = Enumerable.Range(0, hold.Length).FirstOrDefault(g => hold[g] > 0);
+    int et = -1; if (!(r < wgt.pirate)) { et = Array.IndexOf(EncIds, veForce) >= 0 ? Array.IndexOf(EncIds, veForce) : VePickEncounter(new[] { wgt.wreck, wgt.merchant, wgt.squall, wgt.rumor }); r = wgt.pirate + new[] { 0f, wgt.wreck, wgt.wreck + wgt.merchant, wgt.wreck + wgt.merchant + wgt.squall }[et] + 0.0001f; } /* gamedev_voyage_events: the type is drawn without the family just shown, then mapped back onto the coded branches */
     if ((r -= wgt.pirate) < 0) {
       yield return AmbushWithResult(forcedFog ? "fog" : PickAmbushType()); /* designer_ambush_customs */
     } else if ((r -= wgt.wreck) < 0) {
-      int g = Rnd.Range(0, S.goods.Length); yield return SalvageCard("Wreckage adrift", "Splintered timbers and sealed bales drift past.", g, Rnd.Range(2, 6), "Haul it aboard"); /* gamedev_salvage_full */
+      int g = Rnd.Range(0, S.goods.Length); yield return SalvageCard("wreckAdrift", g, Rnd.Range(2, 6), "Haul it aboard"); /* gamedev_salvage_full */
     } else if ((r -= wgt.merchant) < 0) {
       int g = Rnd.Range(0, S.goods.Length); if (S.goods[g].contraband) g = 0; int unit = Mathf.Max(1, Mathf.RoundToInt(basePrice[dest, g] * 0.7f)), q = Mathf.Min(5, S.holdSize - HoldUsed);
       q = Mathf.Min(q, Mathf.FloorToInt(coins * seaMerchantMaxFrac / unit)); /* offer capped at design frac of coins */
       Debug.Log($"GB MERCHANT coins {coins} unit {unit} cap {seaMerchantMaxFrac:0.##} -> q {q} cost {unit * Mathf.Max(q,0)} " + (q >= 1 ? "OFFER SHOWN" : "OFFER HIDDEN (smallest lot unaffordable)"));
-      if (q >= 1) yield return Ask("A merchant hails you", $"A fat baghlah offers {GoodCount(g, q)} at {unit} each, cheaper than any quay.",
-        ($"Buy ({unit * q})", () => { if (coins >= unit * q) { coins -= unit * q; hold[g] += q; msg = $"Bought {GoodCount(g, q)} at sea."; } else msg = "You can't afford it."; }), ("Decline", () => msg = "You wave the merchant on."));
+      if (q >= 1) { var mv = VePick("merchant"); VeShown("merchant"); (string, string)[] mf = { ("goods", GoodCount(g, q)), ("unit", unit.ToString()), ("cost", (unit * q).ToString()) };
+        yield return Ask(VeS(mv, "title", "A merchant hails you"), VeFill(VeS(mv, "body", "A fat baghlah offers {goods} at {unit} each."), mf),
+        (VeFill(VeOpt(mv, 0, "Buy ({cost})"), mf), () => { if (coins >= unit * q) { coins -= unit * q; hold[g] += q; msg = VeFill(VeS(mv, "bought", "Bought {goods} at sea."), mf); } else msg = "You can't afford it."; }), (VeOpt(mv, 1, "Decline"), () => msg = VeS(mv, "declined", "You wave the merchant on."))); }
     } else if ((r -= wgt.squall) < 0) {
       int lost = 0; if (HoldUsed > 0 && !(InOpening && OpenFlag("openingSquallNoCargoLoss"))) { var held = LosableGoods(); /* gamedev_t15_storysafe */ if (held.Count > 0) { int g = held[Rnd.Range(0, held.Count)]; lost = Mathf.Min(hold[g], Rnd.Range(1, 4)); hold[g] -= lost; any = g; } }
-      yield return Ask("Squall", lost > 0 ? $"A black squall heels the dhow over. {GoodCount(any, lost)} wash overboard." : HoldUsed > 0 ? "A black squall heels the dhow over. Your crew lash the cargo down and nothing is lost." : "A black squall heels the dhow over, but your empty hold rides it out.", ("Continue", () => msg = "The squall passes."));
+      var qv = VePick("squall"); VeShown("squall");
+      yield return Ask(VeS(qv, "title", "Squall"), lost > 0 ? VeFill(VeS(qv, "bodyLoss", "A black squall heels the dhow over. {lost} wash overboard."), ("lost", GoodCount(any, lost))) : HoldUsed > 0 ? VeS(qv, "bodySafe", "A black squall heels the dhow over. Your crew lash the cargo down and nothing is lost.") : VeS(qv, "bodyEmpty", "A black squall heels the dhow over, but your empty hold rides it out."), (VeOpt(qv, 0, "Continue"), () => msg = "The squall passes."));
     } else {
       int p = Rnd.Range(0, S.ports.Length); var want = S.ports[p].want; int g = G(want[Rnd.Range(0, want.Length)]);
-      price[p, g] *= S.rumorSpike; yield return Ask("Rumor on the wind", $"A fisherman swears {S.ports[p].name} is starved for {S.goods[g].name}. Prices there have jumped.", ("Noted", () => msg = $"Rumor: {S.goods[g].name} is dear in {S.ports[p].name}."));
+      price[p, g] *= S.rumorSpike; var rv = VePick("rumor"); VeShown("rumor"); yield return Ask(VeS(rv, "title", "Rumor on the wind"), VeFill(VeS(rv, "body", "A fisherman swears {port} is starved for {good}. Prices there have jumped."), ("port", S.ports[p].name), ("good", S.goods[g].name)), (VeOpt(rv, 0, "Noted"), () => msg = $"Rumor: {S.goods[g].name} is dear in {S.ports[p].name}."));
     }
     Refresh(); }
   public string CustomsWaveReason(int port) => papersGiven ? "papers" : ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails < OpenInt("customsRiskFromVoyage", 4)) ? "early" : null; /* port: papersGiven is global today, kept for future per-port papers */ /* designer_ambush_customs */

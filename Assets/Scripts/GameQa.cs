@@ -174,17 +174,48 @@ yield return Shot("polish_blk_greyed_button"); }
     { tab = -1; dialog = null; Refresh(); yield return null; var h0 = (int[])hold.Clone(); string m0 = msg; int g = G("copper"), fill = G("salt") >= 0 ? G("salt") : 0; if (fill == g) fill = (g + 1) % hold.Length;
       bool AnyS(string s0) => FindObjectsByType<Text>(FindObjectsSortMode.None).Any(t => t.gameObject.activeInHierarchy && t.text.Contains(s0));
       void SetFree(int free) { System.Array.Clear(hold, 0, hold.Length); hold[fill] = Mathf.Max(0, S.holdSize - free); }
-      SetFree(0); var sc = StartCoroutine(SalvageCard("Wreckage", "Casks and splintered planks drift on the swell.", g, 3, "Salvage")); yield return null; yield return null;
-      var sb = Find("Salvage"); var so = Find("Sail on"); var cap = dialog ? dialog.GetComponentsInChildren<Text>().FirstOrDefault(t => t.gameObject.name == "OptionReason") : null; bool bodyFull = AnyS("You could fish up 3 ") && AnyS("but your hold is full.");
+      veForceVariant = 0; SetFree(0); var sc = StartCoroutine(SalvageCard("wreckage", g, 3, "Salvage")); yield return null; yield return null;
+      var sb = Find("Salvage"); var so = Find("Sail on"); var cap = dialog ? dialog.GetComponentsInChildren<Text>().FirstOrDefault(t => t.gameObject.name == "OptionReason") : null; bool bodyFull = AnyS("hold is full");
       Chk(sb != null && !sb.interactable && sb.GetComponentInChildren<Text>().text == "Salvage" && cap != null && cap.text == HoldFullCaption && bodyFull && so != null && so.interactable, $"gamedev_salvage_full: full hold: Salvage greyed with '{cap?.text}' under it, body says the hold is full, Sail on still works");
       if (sb && so) yield return QaGreyDrawn(sb, so, (ok, d) => Chk(ok, "gamedev_salvage_full: greyed Salvage draws the shared greyed style with no disabled tint: " + d));
       yield return Shot("salvage_hold_full"); if (sb) UnityEngine.EventSystems.ExecuteEvents.Execute(sb.gameObject, new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current), UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler); /* a real tap: a disabled button ignores it */ yield return null; bool stillUp = dialog != null; if (so) so.onClick.Invoke(); yield return null; yield return null;
       Chk(stillUp && HoldUsed == S.holdSize && hold[g] == 0 && msg.StartsWith("Hold full."), $"gamedev_salvage_full: tapping the greyed Salvage does nothing; Sail on leaves it ('{msg}')");
-      SetFree(1); StartCoroutine(SalvageCard("Wreckage", "Casks and splintered planks drift on the swell.", g, 3, "Salvage")); yield return null; yield return null; var pb2 = Find("Salvage"); bool bodyPart = AnyS("Room for 1 ") && AnyS("2 will be left behind (hold full)."); yield return Shot("salvage_partial");
+      SetFree(1); StartCoroutine(SalvageCard("wreckage", g, 3, "Salvage")); yield return null; yield return null; var pb2 = Find("Salvage"); bool bodyPart = AnyS("You could fish up 1 ") && AnyS("2 more will be left behind (hold full)."); yield return Shot("salvage_partial");
       bool pOk = pb2 != null && pb2.interactable; if (pb2) pb2.onClick.Invoke(); yield return null; yield return null; Chk(pOk && bodyPart && hold[g] == 1 && HoldUsed == S.holdSize && msg.Contains("2 left behind: hold full."), $"gamedev_salvage_full: partly full hold salvages what fits (1 of 3) and says 2 were left behind ('{msg}')");
-      SetFree(10); StartCoroutine(SalvageCard("Wreckage adrift", "Splintered timbers and sealed bales drift past.", g, 3, "Haul it aboard")); yield return null; yield return null; var hb = Find("Haul it aboard"); bool bodyAll = AnyS("You could fish up 3 ");
+      SetFree(10); StartCoroutine(SalvageCard("wreckAdrift", g, 3, "Haul it aboard")); yield return null; yield return null; var hb = Find("Haul it aboard"); bool bodyAll = AnyS("3 sealed bales of ");
       bool hOk = hb != null && hb.interactable; if (hb) hb.onClick.Invoke(); yield return null; yield return null; Chk(hOk && bodyAll && hold[g] == 3 && !msg.Contains("left behind"), $"gamedev_salvage_full: room to spare takes all 3 ('{msg}')");
-      System.Array.Copy(h0, hold, hold.Length); msg = m0; dialog = null; Refresh(); yield return null; }
+      System.Array.Copy(h0, hold, hold.Length); msg = m0; veForceVariant = -1; dialog = null; Refresh(); yield return null; }
+    // ---- gamedev_voyage_events: variants load from the committed json, families never repeat back to back, outcomes apply, no unfilled placeholders ----
+    { tab = -1; dialog = null; Refresh(); yield return null; var h0 = (int[])hold.Clone(); int c0 = coins; string lf0 = lastFamily; float[,] p0 = (float[,])price.Clone(); VeHookExceptions(); int exc0 = qaExceptions;
+      var want = new System.Collections.Generic.Dictionary<string, int> { { "horizon", 3 }, { "storm", 3 }, { "wreckage", 3 }, { "wreckAdrift", 2 }, { "merchant", 3 }, { "squall", 2 }, { "rumor", 3 } };
+      string got = string.Join(" ", want.Keys.Select(k => $"{k}:{VeVariants(k).Count}/{VeFamily(k)}")); Chk(want.All(kv => VeVariants(kv.Key).Count == kv.Value) && VeVariants("storm").All(v => VeS(v, "title", null) != null), "gamedev_voyage_events: variants load from Resources/Design/voyage_events.json: " + got);
+      // no-repeat: 400 draws mixing decision and encounter picks, carrying lastFamily like real voyages do
+      lastFamily = ""; string prev = ""; int rep = 0; var seen = new System.Collections.Generic.HashSet<string>(); var wq = new[] { S.weights.wreck, S.weights.merchant, S.weights.squall, S.weights.rumor };
+      for (int k = 0; k < 400; k++) { string id; if (k % 3 == 0) { var fk = VeFreeKinds(0); id = DecisionIds[fk[Rnd.Range(0, fk.Count)]]; } else id = EncIds[VePickEncounter(wq)]; string f = VeFamily(id); if (f == prev) rep++; seen.Add(f); prev = f; VeShown(id); }
+      Chk(rep == 0 && seen.Count >= 5, $"gamedev_voyage_events: 400 draws, {rep} back-to-back repeats within a family, families seen: {string.Join(",", seen)}");
+      // lastFamily survives a save/load
+      lastFamily = "weather"; Save(); lastFamily = ""; Load(); bool saved = lastFamily == "weather"; Chk(saved && !VeFreeKinds(0).Contains(1), $"gamedev_voyage_events: lastFamily saved ('{lastFamily}') so a voyage after a squall can't open with a storm");
+      // outcomes on every variant: forced types through the real Encounter/VoyageDecision code
+      string CardText() => dialog ? string.Join(" | ", dialog.GetComponentsInChildren<Text>().Select(t => t.text)) : "";
+      int g = G("copper"); bool allOk = true; var bad = new System.Collections.Generic.List<string>();
+      for (int vi = 0; vi < 3; vi++) { veForceVariant = vi;
+        // merchant buy: coins down, cargo up
+        System.Array.Clear(hold, 0, hold.Length); coins = 5000; lastFamily = ""; veForce = "merchant"; StartCoroutine(Encounter(false, false)); yield return null; yield return null; string ct = CardText(); var bb = dialog ? dialog.GetComponentsInChildren<Button>().FirstOrDefault(xb => xb.GetComponentInChildren<Text>().text.StartsWith("Buy")) : null;
+        int hu = HoldUsed; if (bb) bb.onClick.Invoke(); yield return null; yield return null; if (!(bb && coins < 5000 && HoldUsed > hu && !ct.Contains("{") && lastFamily == "merchant")) { allOk = false; bad.Add($"merchant v{vi}: {ct}"); } if (vi == 1) { }
+        // squall with cargo: goods lost match the card
+        System.Array.Clear(hold, 0, hold.Length); hold[g] = 5; lastFamily = ""; veForce = "squall"; StartCoroutine(Encounter(false, false)); yield return null; yield return null; ct = CardText(); int lostN = 5 - hold[g];
+        if (vi == 0) yield return Shot("ve_squall"); EgTestCloseCard(); yield return null; yield return null; if (!(dialog == null && !ct.Contains("{") && (lostN == 0 ? !ct.Contains("wash") : ct.Contains(GoodCount(g, lostN))))) { allOk = false; bad.Add($"squall v{vi}: lost {lostN}: {ct}"); }
+        // rumour: price spikes and the card names the port
+        lastFamily = ""; veForce = "rumor"; var pr0 = (float[,])price.Clone(); StartCoroutine(Encounter(false, false)); yield return null; yield return null; ct = CardText(); bool spiked = false; for (int a = 0; a < S.ports.Length; a++) for (int b = 0; b < hold.Length; b++) if (price[a, b] > pr0[a, b] + 1e-3f && ct.Contains(S.ports[a].name)) spiked = true;
+        if (vi == 2) yield return Shot("ve_rumor"); EgTestCloseCard(); yield return null; yield return null; if (!(spiked && !ct.Contains("{"))) { allOk = false; bad.Add($"rumor v{vi}: {ct}"); }
+        // storm: Reef keeps the cargo; Press on loses at most 1
+        System.Array.Clear(hold, 0, hold.Length); hold[g] = 5; lastFamily = ""; voyageKindsUsed = 0; veForce = "storm"; StartCoroutine(VoyageDecision()); yield return null; yield return null; ct = CardText(); var rb = dialog ? dialog.GetComponentsInChildren<Button>().FirstOrDefault() : null;
+        if (vi == 1) yield return Shot("ve_storm"); if (rb) rb.onClick.Invoke(); for (int k = 0; k < 6; k++) yield return null; string ct2 = CardText(); EgTestCloseCard(); yield return null; yield return null; if (!(rb && hold[g] == 5 && !ct.Contains("{") && !ct2.Contains("{") && lastFamily == "weather")) { allOk = false; bad.Add($"storm v{vi}: {ct} -> {ct2}"); }
+        // horizon: Hold your course keeps everything
+        lastFamily = ""; voyageKindsUsed = 0; veForce = "horizon"; StartCoroutine(VoyageDecision()); yield return null; yield return null; ct = CardText(); var hb2 = dialog ? dialog.GetComponentsInChildren<Button>().Skip(1).FirstOrDefault() : null; if (hb2) hb2.onClick.Invoke(); for (int k = 0; k < 4; k++) yield return null;
+        if (!(hb2 && hold[g] == 5 && !ct.Contains("{") && lastFamily == "horizon")) { allOk = false; bad.Add($"horizon v{vi}: {ct}"); } dialog = null; PasserHide("qa"); }
+      Chk(allOk && qaExceptions == exc0, $"gamedev_voyage_events: every variant of merchant/squall/rumour/storm/horizon applies its outcome, fills its placeholders, sets the family, no exceptions ({qaExceptions - exc0}) " + string.Join(" ;; ", bad));
+      veForceVariant = -1; veForce = ""; lastFamily = lf0; coins = c0; System.Array.Copy(h0, hold, hold.Length); price = p0; voyageKindsUsed = 0; dialog = null; Refresh(); yield return null; }
     // ---- gamedev_continue: blockade seizure on docking is never silent; HUD Next shows the urgent contract ----
     { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; blockStart[mu] = -1000; blockKnown[mu] = true; safeUntilSail = sails + 100; Refresh(); yield return null;
       StartCoroutine(Voyage(mu)); bool card = false; float tq = Time.realtimeSinceStartup;
