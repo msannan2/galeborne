@@ -16,6 +16,7 @@ public partial class Game {
   readonly Queue<(string t, string b, string btn)> egCards = new Queue<(string, string, string)>(); /* gamedev_end1: rank-up / delivered / failed cards, shown when nothing else is up */
   bool EgForce => gbForce.Contains("endgame"); /* gamedev_end1: -gbforce endgame unlocks the board before the opening ends */
   bool EgBoardOpen => EgForce || OpeningDone; /* gamedev_end1 */
+  void EgTestCloseCard() { var bs = dialog ? dialog.GetComponentsInChildren<Button>() : null; if (bs != null && bs.Length > 0) bs[bs.Length - 1].onClick.Invoke(); } /* gamedev_title1: close a test card the normal way (last button: Onward/Flee/Leave) so its panel + dim go */
   bool egTestQuiet; /* gamedev_title1: endgame_test shows cards itself */
   void EgReset() { eg = new EgState(); egCards.Clear(); } /* gamedev_end1 */
   public string RankName => ED.RankName(Mathf.Clamp(eg.rank, 0, ED.RankCount - 1));
@@ -134,7 +135,7 @@ public partial class Game {
     for (int i = 0; i < r.moons * Wpm; i++) NewWeek(); Chk(r.status == "failed" && eg.renown == Mathf.Max(ED.RankRenown(1), rn + r.failRenown) && hold.SequenceEqual(held), $"rush {r.kind} failed after {r.moons} moon(s): renown {rn}->{eg.renown} (floor {ED.RankRenown(1)}), cargo untouched");
     EgRefreshBoards(); var a2 = eg.board.First(); EgAccept(a2); Save(); int sr = eg.renown, sa = eg.active.Count; eg = new EgState(); Load(); Chk(eg.renown == sr && eg.active.Count == sa && eg.rank == 1, $"save/load: renown {eg.renown}, active {eg.active.Count}");
     { var rc = egCards.FirstOrDefault(x => x.t == ED.RankUpHeading(1)); Chk(rc.t != null && rc.btn == ED.RankUpButtonFor(1) && !rc.b.Contains("Enjoy it while"), $"Trader rank-up card: '{rc.t}' / '{rc.btn}', no rival line"); /* gamedev_end1b */
-      if (rc.t != null) { var co = StartCoroutine(Ask(rc.t, rc.b, (rc.btn, null))); yield return null; yield return null; string d0 = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(d0); yield return ShotCo(System.IO.Path.Combine(d0, "rankup_trader.png")); yield return new WaitForSeconds(0.5f); StopCoroutine(co); yield return null; } }
+      if (rc.t != null) { var co = StartCoroutine(Ask(rc.t, rc.b, (rc.btn, null))); yield return null; yield return null; string d0 = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(d0); yield return ShotCo(System.IO.Path.Combine(d0, "rankup_trader.png")); yield return new WaitForSeconds(0.5f); EgTestCloseCard(); yield return null; yield return null; } }
     while (egCards.Count > 0) egCards.Dequeue();
     var lt = ED.Templates.OrderByDescending(t => t.giver.Length).First(); L($"longest giver line {lt.giver.Length} chars ({lt.id}): {lt.giver}");
     var shot = new EgContract { title = lt.title, giver = lt.giver, risk = lt.risk, kind = lt.kind, to = lt.dest, good = G(lt.good), qty = lt.qty, pay = Mathf.Min(lt.coins, ED.Cap(lt.kind)), renown = lt.renown, deposit = lt.deposit, moons = lt.moons, status = "offer" };
@@ -142,7 +143,7 @@ public partial class Game {
     var gt = card.GetComponentsInChildren<Text>().First(t => t.text.Contains(lt.giver)); Chk(gt.preferredHeight <= gt.rectTransform.rect.height + 1 || gt.cachedTextGenerator.lineCount <= 2, $"giver line fits: lines={gt.cachedTextGenerator.lineCount} prefH={gt.preferredHeight:0} boxH={gt.rectTransform.rect.height:0}");
     string dir = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(dir); yield return ShotCo(System.IO.Path.Combine(dir, "contract_card_longest.png")); yield return new WaitForSeconds(0.5f); Destroy0(card.gameObject); Destroy0(dim.gameObject); dialog = null; yield return null; /* gamedev_title1: clear the card before the title shots */
     { /* gamedev_title1: title screenshots - long legacy strings, current data, and existing cards */
-      IEnumerator Card(string n, IEnumerator co) { var h = StartCoroutine(co); yield return null; yield return null; yield return null; yield return ShotCo(System.IO.Path.Combine(dir, "title_" + n + ".png")); yield return new WaitForSeconds(0.4f); StopCoroutine(h); yield return null; yield return null; }
+      IEnumerator Card(string n, IEnumerator co) { var h = StartCoroutine(co); yield return null; yield return null; yield return null; yield return ShotCo(System.IO.Path.Combine(dir, "title_" + n + ".png")); yield return new WaitForSeconds(0.4f); EgTestCloseCard(); yield return null; yield return null; }
       foreach (var (n, t) in new[] { ("rankup_long", "Your name carries on the quay"), ("delivered_long", "Dates for the Debal bazaar"), ("rankup_data", ED.RankUpHeading(1)), ("storm_oneline", "Storm front") }) {
         var f = CardTitleFit(t, 640, T.fontSizeTitle); L($"title '{t}': size {f.size}/{T.fontSizeTitle} lines {f.lines} extra {f.extra:0}"); yield return Card(n, Ask(t, t == "Storm front" ? "A black wall of rain marches across the Gulf. The mate waits on your word." : "The harbour knows your name now. Trader.", ("Onward", null))); }
       yield return Card("askcard_long", AskCard("Your name carries on the quay", "An AskCard with the long legacy heading.", ("Fight", null), ("Flee", null)));
