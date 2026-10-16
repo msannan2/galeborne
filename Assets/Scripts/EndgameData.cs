@@ -38,7 +38,9 @@ public static class EndgameData {
   public static string RankName(int i) => Str(Ranks[i], "name", "?");
   public static int RankRenown(int i) => I(Ranks[i], "renown", 0);
   public static string RankPromo(int i) => Str(Ranks[i], "promo", "You are now a " + RankName(i) + ".");
-  public const string RankUpTitle = "A new title", RankUpButton = "Splendid"; /* not in the draft data yet */
+  public static string RankUpHeading(int i) => Str(Ranks[i], "heading", S("rankUpTitle", "Raised in rank")); /* gamedev_end1b */
+  public static string RankUpButtonFor(int i) => Str(Ranks[i], "button", S("rankUpButton", "Onward")); /* gamedev_end1b */
+  /* gamedev_end1b: ranks[1].rival (Rashid) is NOT shown yet - the rival isn't built */
 
   // ---- strings ----
   public static string S(string k, string def) => Str(Sec("strings"), k, def);

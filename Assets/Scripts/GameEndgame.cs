@@ -20,7 +20,7 @@ public partial class Game {
   public string RankName => ED.RankName(Mathf.Clamp(eg.rank, 0, ED.RankCount - 1));
   public void AddRenown(int n, string why) { /* gamedev_end1: the ONLY way Renown changes */
     if (n == 0) return; int floor = ED.RenownFloorAtRank ? ED.RankRenown(eg.rank) : 0; eg.renown = Mathf.Max(floor, eg.renown + n); Debug.Log($"GB RENOWN {(n > 0 ? "+" : "")}{n} ({why}) -> {eg.renown} rank={RankName}");
-    while (eg.rank + 1 < ED.RankCount && eg.renown >= ED.RankRenown(eg.rank + 1)) { eg.rank++; Debug.Log("GB RENOWN rank up -> " + RankName); egCards.Enqueue((ED.RankUpTitle + ": " + RankName, ED.RankPromo(eg.rank), ED.RankUpButton)); eg.boardMoon = -1; /* full board at Trader: re-post now */ }
+    while (eg.rank + 1 < ED.RankCount && eg.renown >= ED.RankRenown(eg.rank + 1)) { eg.rank++; Debug.Log("GB RENOWN rank up -> " + RankName); egCards.Enqueue((ED.RankUpHeading(eg.rank), ED.RankPromo(eg.rank), ED.RankUpButtonFor(eg.rank))); /* gamedev_end1b: per-rank heading + button, no rival line */ eg.boardMoon = -1; /* full board at Trader: re-post now */ }
   }
   public string RenownLine() => eg.rank + 1 < ED.RankCount ? ED.NextRank(ED.RankName(eg.rank + 1), eg.renown, ED.RankRenown(eg.rank + 1)) : $"{RankName}, {eg.renown:N0} Renown"; /* gamedev_end1 */
   void EgFirstSale(int g) { string k = port + ":" + g; if (eg.firstSales.Contains(k)) return; eg.firstSales.Add(k); AddRenown(ED.RenownFirstSale, "first sale of " + S.goods[g].name + " at " + S.ports[port].name); msg = ED.FirstSale(GoodName(g, 1), ED.RenownFirstSale); } /* gamedev_end1 */
@@ -128,6 +128,8 @@ public partial class Game {
     var r = eg.board.FirstOrDefault(b => b.kind == "rush") ?? eg.board[0]; port = PortIdx(r.from); int rn = eg.renown; var held = (int[])hold.Clone(); EgAccept(r);
     for (int i = 0; i < r.moons * Wpm; i++) NewWeek(); Chk(r.status == "failed" && eg.renown == Mathf.Max(ED.RankRenown(1), rn + r.failRenown) && hold.SequenceEqual(held), $"rush {r.kind} failed after {r.moons} moon(s): renown {rn}->{eg.renown} (floor {ED.RankRenown(1)}), cargo untouched");
     EgRefreshBoards(); var a2 = eg.board.First(); EgAccept(a2); Save(); int sr = eg.renown, sa = eg.active.Count; eg = new EgState(); Load(); Chk(eg.renown == sr && eg.active.Count == sa && eg.rank == 1, $"save/load: renown {eg.renown}, active {eg.active.Count}");
+    { var rc = egCards.FirstOrDefault(x => x.t == ED.RankUpHeading(1)); Chk(rc.t != null && rc.btn == ED.RankUpButtonFor(1) && !rc.b.Contains("Enjoy it while"), $"Trader rank-up card: '{rc.t}' / '{rc.btn}', no rival line"); /* gamedev_end1b */
+      if (rc.t != null) { var co = StartCoroutine(Ask(rc.t, rc.b, (rc.btn, null))); yield return null; yield return null; string d0 = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(d0); yield return ShotCo(System.IO.Path.Combine(d0, "rankup_trader.png")); yield return new WaitForSeconds(0.5f); StopCoroutine(co); yield return null; } }
     while (egCards.Count > 0) egCards.Dequeue();
     var lt = ED.Templates.OrderByDescending(t => t.giver.Length).First(); L($"longest giver line {lt.giver.Length} chars ({lt.id}): {lt.giver}");
     var shot = new EgContract { title = lt.title, giver = lt.giver, risk = lt.risk, kind = lt.kind, to = lt.dest, good = G(lt.good), qty = lt.qty, pay = Mathf.Min(lt.coins, ED.Cap(lt.kind)), renown = lt.renown, deposit = lt.deposit, moons = lt.moons, status = "offer" };
