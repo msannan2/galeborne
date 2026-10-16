@@ -95,7 +95,7 @@ public partial class Game {
       for (int k = 0; k < 40 && sailing; k++) { EgTestCloseCard(); yield return null; }
       port = PortIdx("Gwadar"); saveSeq = 0; ok = Load(); Chk(ok && port == PortIdx("Debal") && !sailing, $"after the voyage ends, Continue still resumes at Debal ({lastLoadedFrom})"); tab = -1; Refresh(); yield return null; }
     // ---- gamedev_customs_save: coins paid on the leg, quit on the customs card at Muscat, Continue -> Muscat with the coins after the toll, customs replayed ----
-    { tab = -1; dialog = null; int mu = PortIdx("Muscat"), gp = G("gunpowder"); port = PortIdx("Debal"); hold[gp] = Mathf.Max(hold[gp], 2); storyAmbushDone = true; safeUntilSail = sails + 100; customsPending = -1; Refresh(); yield return null;
+    { tab = -1; dialog = null; int mu = PortIdx("Muscat"), gp = G("gunpowder"); port = PortIdx("Debal"); hold[gp] = Mathf.Max(hold[gp], 2); storyAmbushDone = true; safeUntilSail = sails + 100; customsPending = -1; var qaBan = new Ban { good = gp, port = mu, start = 0, end = int.MaxValue / 2 }; bans.Add(qaBan); Refresh(); yield return null;
       Chk(CarriesBanned(mu), "customs check: gunpowder in the hold is banned at Muscat");
       StartCoroutine(Voyage(mu)); yield return null; int c0 = coins; coins -= 88; Save(); /* the toll paid mid-leg, saved like the pirate-toll outcome (port still Debal) */ int cAfter = coins; bool cc = false; float tq = Time.realtimeSinceStartup;
       while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true;
@@ -109,7 +109,7 @@ public partial class Game {
       dialog = null; saveSeq = 0; ok = Load(); StartCoroutine(ResumeCustoms()); bool rc = false;
       for (int k = 0; k < 400; k++) { if (dialog != null) { rc |= dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("Customs at")); EgTestCloseCard(); } else if (rc && !sailing) break; yield return null; }
       saveSeq = 0; ok = Load();
-      Chk(rc && ok && port == mu && customsPending == -1 && !sailing, $"Continue replays the customs card, then docks at Muscat with nothing pending ({S.ports[port].name}, pending {customsPending})");
+      Chk(rc && ok && port == mu && customsPending == -1 && !sailing, $"Continue replays the customs card, then docks at Muscat with nothing pending ({S.ports[port].name}, pending {customsPending})"); bans.RemoveAll(b => b.good == gp && b.port == mu && b.end == int.MaxValue / 2);
       tab = -1; Refresh(); yield return null; }
     // ---- gamedev_continue: blockade seizure on docking is never silent; HUD Next shows the urgent contract ----
     { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; safeUntilSail = sails + 100; Refresh(); yield return null;
