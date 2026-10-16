@@ -48,14 +48,14 @@ public partial class Game {
     camYaw = CombatCore.Bearing(core.P.x - core.H.x, core.P.z - core.H.z);
     if (ambushForced) hudMsg.text = "Tutorial: tap CHAIN and aim at their SAILS to slow her; then GRAPE at the CREW, or BOARD when she is crippled.";
     Outcome o = Outcome.None; float fightT = 0; float capS = Design.F(DZ?.Path(DZ.settings, "ambush.fightCapSeconds"), 60f); bool capFog = ambushForced && InOpening && OpenFlag("openingAmbushNoDefeat");
-    if (ambushForced) { var sc = S.combat; core.SetupStoryApproach(sc.storyStartRange > 0 ? sc.storyStartRange : 140); core.idleTollSeconds = sc.storyIdleTollSeconds > 0 ? sc.storyIdleTollSeconds : 30; capS = sc.storySafetyCapSeconds > 0 ? sc.storySafetyCapSeconds : 180; camYaw = CombatCore.Bearing(core.P.x - core.H.x, core.P.z - core.H.z);
+    if (ambushForced) { var sc = S.combat; core.SetupStoryApproach(sc.storyStartRange > 0 ? sc.storyStartRange : 140); core.ApplyStoryBalance(); /* gamedev_balance: story fog fight only */ core.idleTollSeconds = sc.storyIdleTollSeconds > 0 ? sc.storyIdleTollSeconds : 30; capS = sc.storySafetyCapSeconds > 0 ? sc.storySafetyCapSeconds : 180; camYaw = CombatCore.Bearing(core.P.x - core.H.x, core.P.z - core.H.z);
       if (ShowSteerHint(true)) { steerHint.SetActive(true); steerHintSeen = true; Debug.Log("GB RUDDER steer hint shown"); } /* gamedev_rudder: once per save */
       Debug.Log($"GB AMBUSH start range={core.Range:0.0} idleToll={core.idleTollSeconds:0} cap={capS:0}"); } /* gamedev_ambush: Game Designer ruling (140 m start, 30 s idle toll, the 60 s cap no longer ends the story fight) */
     while (o == Outcome.None) {
       fightT += Time.deltaTime; if (capS > 0 && fightT > capS) { o = capFog ? Outcome.HasanStruck : Outcome.Escaped; if (playthrough) PLog2("fight cap", $"{capS:0} s reached: auto-resolved to " + (capFog ? "the pirate toll" : "the pirate breaking off")); break; } /* the unlosable opening fight never drags on */
       if (!combatPaused) {
         ReadSteer(); core.H.ammo = Mathf.Clamp(core.H.ammo, 0, 3);
-        if (firePressed) { firePressed = false; if (core.InFireRange(core.H, core.P)) core.idleT = 0; /* gamedev_arc: any FIRE tap in range resets the idle toll clock */ if (core.CanFire(core.H, core.P)) core.Fire(core.H, core.P); else hudMsg.text = FireBlockReason(); }
+        if (firePressed) { firePressed = false; if (!core.FireTap()) hudMsg.text = FireBlockReason(); /* gamedev_toll_fix: CombatCore.FireTap resets the idle clock on any in-range tap and on every shot */ }
         float dt = Mathf.Min(Time.deltaTime, 0.1f); o = core.Step(dt); if (o == Outcome.HasanStruck && core.idleTollFired) { if (!capFog) o = Outcome.Escaped; Debug.Log($"GB AMBUSH idle toll after {core.idleT:0.0} s idle (fight {core.t:0.0} s)"); if (playthrough) PLog2("fight idle", $"{core.idleTollSeconds:0} s without closing or firing"); }
         if (o == Outcome.None && boardPressed) { boardPressed = false; if (core.BoardAllowed(core.H, core.P)) o = Outcome.BoardReady; }
       }

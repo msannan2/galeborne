@@ -15,6 +15,7 @@ public partial class Game {
     string dir = Path.Combine(SaveDir, "qa"); Directory.CreateDirectory(dir); var log = new StreamWriter(Path.Combine(dir, "qa_results.txt")); int fails = 0, n = 0;
     void L(string s) { log.WriteLine(s); log.Flush(); Debug.Log("GB QA " + s); }
     void Chk(bool ok, string what) { n++; if (!ok) fails++; L((ok ? "PASS " : "FAIL ") + what); }
+    void QaTapFire() { var b = fireTxt ? fireTxt.transform.parent.GetComponent<Button>() : null; if (b) UnityEngine.EventSystems.ExecuteEvents.Execute(b.gameObject, new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current), UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler); } /* gamedev_toll_fix: the same click a tap sends to the FIRE button */
     IEnumerator Shot(string name) { yield return null; yield return ShotCo(Path.Combine(dir, name + ".png")); yield return new WaitForSeconds(0.3f); }
     IEnumerator Back() { yield return null; HandleBack(); yield return null; yield return null; }
     yield return new WaitForSeconds(1f); onTitle = false; Init(); egTestQuiet = true; storyStep = StDone; coins = 3000; port = PortIdx("Gwadar"); tab = -1; Refresh(); yield return null;
@@ -307,7 +308,7 @@ public partial class Game {
       { qaPtrOn = false; var H = core.H; var P = core.P; float arcD = core.C.arcDeg, rg = core.FireRange(H); H.ammo = 0; H.reloadT = 0;
         IEnumerator Place(float relDeg, float dist, int frames) { for (int f = 0; f < frames; f++) { H.x = H.z = 0; H.heading = 0; H.rudder = 0; H.reloadT = 0; P.x = Mathf.Sin(relDeg * Mathf.Deg2Rad) * dist; P.z = Mathf.Cos(relDeg * Mathf.Deg2Rad) * dist; yield return null; } }
         yield return Place(0, rg * 0.5f, 4); bool ahIn = core.InFireRange(H, P), ahArc = core.InArc(H, P); string plA = rangePlaqueTxt.text; bool borderA = fireRangeBorder.gameObject.activeSelf, canA = core.CanFire(H, P); Color fbA = fireBg.color; Color ftA = fireTxt.color;
-        core.idleT = 20f; firePressed = true; yield return Place(0, rg * 0.5f, 1); float idleAfter = core.idleT; string msgA = hudMsg.text;
+        core.idleT = 20f; QaTapFire(); yield return Place(0, rg * 0.5f, 1); float idleAfter = core.idleT; string msgA = hudMsg.text;
         yield return Place(0, rg * 0.5f, 2); yield return Shot("rudder_2_wedges_turn_broadside");
         Chk(ahIn && !ahArc && plA == "In range · Turn broadside" && !borderA && !canA && ftA == UITheme.C(T.textMuted) && fbA != UITheme.C(T.button), $"gamedev_arc: in range but guns not bearing: plaque '{plA}', no brass border, FIRE dim");
         Chk(idleAfter < 0.5f && msgA.StartsWith("Not in arc"), $"gamedev_arc: a FIRE tap in range resets the idle toll clock even out of arc (20.0 -> {idleAfter:0.00} s, msg '{msgA}')");
@@ -319,7 +320,24 @@ public partial class Game {
         float wIn1 = ArcWedgeAlphaAt(90 - arcD + 3, 0.6f), wIn2 = ArcWedgeAlphaAt(270 + arcD - 3, 0.6f), wOut1 = ArcWedgeAlphaAt(90 - arcD - 4, 0.6f), wOut2 = ArcWedgeAlphaAt(0, 0.6f), wOut3 = ArcWedgeAlphaAt(90, 1.05f), wPort = ArcWedgeAlphaAt(270, 0.6f), wStb = ArcWedgeAlphaAt(90, 0.6f);
         bool wPose = arcWedges && arcWedges.gameObject.activeSelf && Mathf.Abs(arcWedges.localScale.x - 2f * rg * K / ArcTexFill) < 0.01f && Mathf.Abs(Mathf.DeltaAngle(arcWedges.eulerAngles.y, H.heading)) < 0.5f && arcWedgeMat.shader.name == "Galeborne/RangeRing" && Mathf.Abs(arcWedgeMat.GetColor("_Color").a - RingOutAlpha) < 0.01f;
         Chk(wPose && wIn1 > 0.1f && wIn2 > 0.1f && wPort > 0.1f && wStb > 0.1f && wOut1 < 0.02f && wOut2 < 0.02f && wOut3 < 0.02f, $"gamedev_arc: port and starboard wedges match the true arc (±{arcD:0}° off the beam, radius = {rg:0} m, RangeRing shader at ring opacity) in {wIn1:0.00}/{wIn2:0.00} out {wOut1:0.00}/{wOut2:0.00}/{wOut3:0.00}");
-        yield return Place(70, rg * 0.5f, 3); yield return Shot("rudder_3_wedges_in_arc"); }
+        yield return Place(70, rg * 0.5f, 3); yield return Shot("rudder_3_wedges_in_arc");
+        // gamedev_toll_fix (a): 90 s of fight firing on every reload through the real FIRE button (pointer click on the button) never trips the idle toll
+        { Chk(core.storyBalance && Mathf.Abs(core.P.hull0 - core.C.pirate.hull * CombatCore.StoryPirateHullMult) < 0.01f && core.pirateDmgMult == CombatCore.StoryPirateDamageMult, $"gamedev_balance (c): the live story fog fight is scaled (pirate hull0 {core.P.hull0:0.#} = {CombatCore.StoryPirateHullMult} x {core.C.pirate.hull:0.#}, damage x{core.pirateDmgMult})");
+          float toll0 = core.C.tollSeconds, max0 = core.C.maxFightSeconds; core.C.tollSeconds = core.C.maxFightSeconds = 1e5f; /* only the idle clock may end this window */ float ts0 = Time.timeScale; Time.timeScale = 4f; float t0 = core.t, rq2 = Time.realtimeSinceStartup; int taps = 0, shots = 0; float maxIdle = 0; core.idleT = 0; System.Action<CShip, CShip, int, int> cnt = (a, b, n, h) => { if (a == core.H) shots++; }; core.OnBroadside += cnt;
+          while (fighting && core.outcome == Outcome.None && core.t - t0 < 90f && Time.realtimeSinceStartup - rq2 < 120f) {
+            H.x = H.z = 0; H.heading = 0; H.rudder = 0; P.x = rg * 0.5f; P.z = 0; H.hull = H.hull0; H.crew = H.crew0; H.gunHp = H.gun0; H.sails = H.sails0; P.hull = P.hull0; P.crew = P.crew0; P.sails = P.sails0; H.burnT = P.burnT = 0;
+            if (H.reloadT <= 0) { QaTapFire(); taps++; } maxIdle = Mathf.Max(maxIdle, core.idleT); yield return null; }
+          core.OnBroadside -= cnt; Time.timeScale = ts0; core.C.tollSeconds = toll0; core.C.maxFightSeconds = max0; float ran = core.t - t0;
+          Chk(ran >= 90f && core.outcome == Outcome.None && !core.idleTollFired && shots >= 10 && maxIdle < core.idleTollSeconds, $"gamedev_toll_fix (a): {ran:0} s firing through the real FIRE button on every reload: no toll ({taps} taps, {shots} broadsides, idle clock peak {maxIdle:0.0} s of {core.idleTollSeconds:0})"); }
+        // gamedev_balance (b)/(c): headless fire-every-reload broadside story fights with the same CombatCore
+        { var cc = S.combat; var res = new System.Collections.Generic.List<(Outcome o, float t, float hull)>(); for (int sd2 = 1; sd2 <= 60; sd2++) res.Add(CombatCore.SimStory(cc, sd2, 0, difficulty, true, true, cc.storyStartRange, cc.storyIdleTollSeconds));
+          var wins = res.Where(r => r.o == Outcome.Sunk || r.o == Outcome.Surrender).ToList(); float tMed = wins.Count > 0 ? wins.OrderBy(r => r.t).ElementAt(wins.Count / 2).t : 0, hMed = wins.Count > 0 ? wins.OrderBy(r => r.hull).ElementAt(wins.Count / 2).hull : 0, hMin = wins.Count > 0 ? wins.Min(r => r.hull) : 0;
+          Debug.Log($"GB BALANCE story sim broadside: wins {wins.Count}/60 median {tMed:0} s hull median {hMed:P0} min {hMin:P0}");
+          Chk(wins.Count == res.Count && hMin >= 0.35f && !res.Any(r => r.o == Outcome.HasanStruck), $"gamedev_balance (b): fire-every-reload broadside story fight wins {wins.Count}/60 (median {tMed:0} s, hull left median {hMed:P0}, min {hMin:P0}), no toll");
+          var bow = res.Select((_, i) => CombatCore.SimStory(cc, i + 1, 0, difficulty, false, true, cc.storyStartRange, cc.storyIdleTollSeconds)).ToList(); Debug.Log("GB BALANCE story sim bow-on: " + string.Join(" ", bow.GroupBy(r => r.o).Select(g => g.Key + ":" + g.Count())));
+          var nq = new CombatCore(cc, 7, false, 0, difficulty); var nq1 = new CombatCore(cc, 7, false, 1, difficulty);
+          Chk(!nq.storyBalance && !nq1.storyBalance && nq.P.hull0 == cc.pirate.hull && nq.pirateDmgMult == 1f && nq1.pirateDmgMult == 1f, $"gamedev_balance (c): later (non-story) fights keep full pirate hull {nq.P.hull0:0.#} and damage x{nq.pirateDmgMult}"); }
+      }
       qaPtrOn = false; qaPtrDown = false;
       core.P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       // second story fight in the same save: no hint

@@ -49,13 +49,25 @@ public class CombatCore {
   /* gamedev_ambush: fog-ambush approach (Game Designer ruling). The pirate appears at `range` dead downwind of Hasan, Hasan's bow ~20 deg off her,
      so full sail toward her is a fast run and even an unsteered ship passes inside Round range. She heaves to broadside until Hasan is in Round range. */
   public bool pirateHolds; public float idleTollSeconds, idleT, hShotAgo = 999; float idlePrevRange = -1; public bool idleTollFired;
+  /* gamedev_balance (Game Designer ruling): story fog fight ONLY - pirate hull 50%, pirate damage 40% of the normal values */
+  public const float StoryPirateHullMult = 0.5f, StoryPirateDamageMult = 0.4f; public bool storyBalance; public float pirateDmgMult = 1f;
+  public void ApplyStoryBalance() { if (storyBalance) return; storyBalance = true; P.hull *= StoryPirateHullMult; P.hull0 *= StoryPirateHullMult; pirateDmgMult = StoryPirateDamageMult; }
+  /// gamedev_toll_fix: the FIRE button's one path. Any tap in range resets the idle clock; fires when the guns can.
+  public bool FireTap() { if (InFireRange(H, P)) idleT = 0; if (!CanFire(H, P)) return false; Fire(H, P); return true; }
   public void SetupStoryApproach(float range) {
     float a = (float)(R.NextDouble() * 360); H.x = H.z = 0; P.x = (float)Math.Sin(a * D2R) * range; P.z = (float)Math.Cos(a * D2R) * range; windTo = a; /* wind blows from Hasan toward the pirate */
     H.heading = Norm(a + (R.NextDouble() < 0.5 ? -20 : 20)); P.heading = Norm(a + 90); H.fullSail = P.fullSail = true; H.spd = SpeedOf(H) * 0.1f; P.spd = SpeedOf(P) * 0.3f; pirateHolds = true; /* Hasan just sets sail as the fog lifts */ idleT = 0; idlePrevRange = -1; hShotAgo = 999; }
   /// toll clock: advances only while Hasan is neither closing the gap nor firing (a shot counts as firing for one reload); true when it runs out
   public bool IdleTick(float dt) {
-    if (idleTollSeconds <= 0) return false; float r = Range; hShotAgo += dt; bool closing = idlePrevRange >= 0 && r < idlePrevRange - 1e-4f, firing = hShotAgo < H.st.reload;
+    if (idleTollSeconds <= 0) return false; float r = Range; hShotAgo += dt; bool closing = idlePrevRange >= 0 && r < idlePrevRange - 1e-4f, firing = hShotAgo < ReloadTime(H) + 0.5f; /* gamedev_toll_fix: real reload (crew losses slow it), not the base stat */
     if (!closing && !firing) idleT += dt; idlePrevRange = r; return idleT > idleTollSeconds; }
+  /// gamedev_balance: headless story-fight sim. broadside: steer in, turn the guns on her and fire on every reload; else hold the bow on her and keep tapping FIRE.
+  public static (Outcome o, float t, float hull) SimStory(CombatCfg c, int seed, int tier, int diff, bool broadside, bool scaled, float startRange, float idleToll, float cap = 180f, float dt = 0.05f) {
+    var k = new CombatCore(c, seed, false, tier, diff); k.SetupStoryApproach(startRange); k.idleTollSeconds = idleToll; if (scaled) k.ApplyStoryBalance(); var H = k.H; H.ammo = 0; H.aim = Part.Hull; var o = Outcome.None;
+    while (o == Outcome.None && k.t < cap) { var P = k.P; float br = Bearing(P.x - H.x, P.z - H.z), want = br;
+      if (broadside && k.Range < k.FireRange(H) * 0.85f) { float a1 = Norm(br - 90), a2 = Norm(br + 90); want = Math.Abs(Diff(H.heading, a1)) < Math.Abs(Diff(H.heading, a2)) ? a1 : a2; }
+      H.rudder = Math.Max(-1, Math.Min(1, Diff(H.heading, want) / 25f)); if (H.reloadT <= 0) k.FireTap(); o = k.Step(dt); }
+    return (o, k.t, H.hull / H.hull0); }
   public static float Lerp(float a, float b, float t) => a + (b - a) * t;
   public static float Norm(float a) { a %= 360; return a < 0 ? a + 360 : a; }
   public static float Diff(float a, float b) { float d = Norm(b - a); return d > 180 ? d - 360 : d; }
@@ -84,12 +96,12 @@ public class CombatCore {
   public void Fire(CShip a, CShip b) {
     var am = C.ammo[a.ammo]; int shots = a.Guns(C); int hits = 0; float acc = Accuracy(a, b);
     for (int i = 0; i < shots; i++) if (R.NextDouble() < acc) { hits++;
-      float k = C.damageScale * (a == P ? PT.damageMult : 1f) * (b == P && a.ammo == 0 && a.aim == Part.Hull && BreachOpen ? C.breachDamageMult * (aimAssist && a == H ? 1f + (DF.aimAssistDamageMult - 1f) * AssistScale() : 1f) : 1f); Func<Part, float> m = p => p == a.aim ? C.aimedPartMult : 1f;
+      float k = C.damageScale * (a == P ? PT.damageMult * pirateDmgMult : 1f) * (b == P && a.ammo == 0 && a.aim == Part.Hull && BreachOpen ? C.breachDamageMult * (aimAssist && a == H ? 1f + (DF.aimAssistDamageMult - 1f) * AssistScale() : 1f) : 1f); Func<Part, float> m = p => p == a.aim ? C.aimedPartMult : 1f;
       b.hull -= am.hull * k * m(Part.Hull); b.sails -= am.sails * k * m(Part.Sails); b.gunHp -= am.guns * k * m(Part.Guns); b.crew -= am.crew * k * m(Part.Crew); }
     if (a.ammo == 3) { a.fireLeft--; if (hits > 0) { b.burnT = C.fireBurnSecs; b.burnTick = 0; } a.ammo = 0; }
     b.sails = Math.Max(0, b.sails); b.gunHp = Math.Max(0, b.gunHp); b.crew = Math.Max(1, b.crew);
     if (b == P && pirateFleeing && a.ammo == 1 && hits > 0 && R.NextDouble() < C.chainStopChance) { pirateFleeing = false; fleeSpent = true; P.sails = Math.Min(P.sails, C.disableSails); } // chain to the sails stops a runner
-    if (a == H && a.ammo == 0 && a.aim == Part.Hull) { hShots += shots; hHits += hits; } a.reloadT = ReloadTime(a); lastShotT = t; if (a == H) hShotAgo = 0; OnBroadside?.Invoke(a, b, shots, hits);
+    if (a == H && a.ammo == 0 && a.aim == Part.Hull) { hShots += shots; hHits += hits; } a.reloadT = ReloadTime(a); lastShotT = t; if (a == H) { hShotAgo = 0; idleT = 0; } /* gamedev_toll_fix: every Hasan broadside resets the idle clock */ OnBroadside?.Invoke(a, b, shots, hits);
   }
   void Burn(CShip s, float dt) {
     if (s.burnT <= 0) return; s.burnT -= dt; s.hull -= C.fireBurnPerSec * dt; s.burnTick += dt;
@@ -115,7 +127,7 @@ public class CombatCore {
   float pThinkT;
   public void PirateAI() {
     var s = P; if (t < pThinkT) { if (CanFire(P, H)) Fire(P, H); return; } pThinkT = t + PT.reactionSeconds; float br = Bearing(H.x - P.x, H.z - P.z), rng = Range;
-    if (!pirateFleeing && !fleeSpent && s.hull < C.pirate.hull * C.enemyFleeHull && SpeedOf(P) >= SpeedOf(H)) pirateFleeing = true;
+    if (!pirateFleeing && !fleeSpent && s.hull < P.hull0 * C.enemyFleeHull /* gamedev_balance: hull0 == C.pirate.hull except in the scaled story fight */ && SpeedOf(P) >= SpeedOf(H)) pirateFleeing = true;
     float want;
     if (pirateFleeing) want = AvoidWind(Norm(br + 180));
     else if (pirateHolds && rng > C.ammo[0].range) { want = Norm(br - Side(s, br) * 1.45f); s.rudder = Steer(s, want); s.fullSail = false; s.ammo = 0; s.aim = Part.Hull; return; } /* gamedev_ambush: hove to broadside, waiting */
