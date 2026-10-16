@@ -19,7 +19,7 @@ public partial class Game {
   static string SavePathB => Path.Combine(SaveDir, "galeborne_save_b.json");
   static string VoyageBackup => Path.Combine(SaveDir, "galeborne_save_voyage.json");
   public static bool HasSave => File.Exists(SavePath) || File.Exists(SavePathB) || File.Exists(VoyageBackup);
-  static bool welcomedThisSession; public long saveSeq; public bool saveBroken; public string lastLoadedFrom = "";
+  public long saveSeq; public bool saveBroken; public string lastLoadedFrom = "";
   float[] Flat(float[,] a) { int np = a.GetLength(0), ng = a.GetLength(1); var f = new float[np * ng]; for (int p = 0; p < np; p++) for (int g = 0; g < ng; g++) f[p * ng + g] = a[p, g]; return f; }
   void Unflat(float[] f, float[,] a) { int np = a.GetLength(0), ng = a.GetLength(1); if (f == null || f.Length != np * ng) return; for (int p = 0; p < np; p++) for (int g = 0; g < ng; g++) a[p, g] = f[p * ng + g]; }
   public void Save() {
@@ -39,7 +39,7 @@ public partial class Game {
       hold = d.hold; avgCost = d.avgCost; rep = d.rep; Unflat(d.price, price); Unflat(d.lastPrice, lastPrice); Unflat(d.basePrice, basePrice);
       bans = d.bans ?? new List<Ban>(); EnsureDesignBans(); if (d.wh != null && d.wh.Length == wh.Length) wh = d.wh; news = d.news ?? new List<string>(); charms = d.charms ?? new List<string>();
       JournalFromSave(d.journal, d.declined, d.oneShotUsed, d.cursorKeys, d.cursorVals);
-      var dm = (d.msg ?? "").Replace("Welcome back, Captain.", "").Trim(); msg = (welcomedThisSession ? "" : "Welcome back, Captain. ") + dm; welcomedThisSession = true; return true; /* k4: greeting once per session, never re-saved into msg */
+      var dm = d.msg ?? ""; while (dm.StartsWith("Welcome back, Captain. ")) dm = dm.Substring(23); msg = "Welcome back, Captain. " + dm; return true;
     } catch (Exception e) { Debug.LogWarning("Load failed: " + e.Message); return false; } }
   /// newest slot first, then the older slot, then the voyage-start backup; only if all fail does the title offer New Game alone
   public bool Load() {
@@ -47,7 +47,7 @@ public partial class Game {
     foreach (var p in new[] { SavePath, SavePathB, VoyageBackup }) { if (!File.Exists(p)) continue; SaveData d = null; try { d = JsonUtility.FromJson<SaveData>(File.ReadAllText(p)); } catch (Exception e) { Debug.LogWarning($"Save {Path.GetFileName(p)} unreadable: {e.Message}"); }
       cands.Add((p, d)); }
     foreach (var c in cands.OrderByDescending(c => c.d == null ? long.MinValue : c.path == VoyageBackup ? c.d.seq - 1 : c.d.seq)) {
-      if (c.d != null && Apply(c.d)) { saveSeq = Math.Max(c.d.seq, cands.Where(x => x.d != null).Select(x => x.d.seq).DefaultIfEmpty(0).Max()); lastLoadedFrom = Path.GetFileName(c.path); Debug.Log("GB SAVE loaded " + lastLoadedFrom + " seq " + c.d.seq); GbCoins("after load"); return true; }
+      if (c.d != null && Apply(c.d)) { saveSeq = Math.Max(c.d.seq, cands.Where(x => x.d != null).Select(x => x.d.seq).DefaultIfEmpty(0).Max()); lastLoadedFrom = Path.GetFileName(c.path); Debug.Log("GB SAVE loaded " + lastLoadedFrom + " seq " + c.d.seq); return true; }
       try { File.Copy(c.path, c.path + ".corrupt-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"), true); File.Delete(c.path); } catch { } /* broken slot set aside */ }
     lastLoadedFrom = ""; return false; }
   /// a copy of the current save at the start of every voyage
@@ -65,9 +65,8 @@ public partial class Game {
     bool has = HasSave; float y = 280;
     if (saveBroken) { has = false; Label(pnl, "Both voyage logs are damaged. Start a new voyage, or wait until we can mend them.", 40, 250, 720, 80, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 80; }
     if (has) { Btn(pnl, "Continue", 120, y, 560, 110, () => { if (!Load()) { saveBroken = true; ShowTitle(); return; } onTitle = false; Refresh(); }, true, true); y += 140; }
-    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); difficulty = 1; Save(); /* back_market_t6: old save overwritten at once with the fresh Captain game, so a quit before the difficulty card cannot Continue on Hard */ /* final ask_modal: new game defaults to Captain (middle) even if the difficulty card is never answered */ prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
+    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
       ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }, true, !has);
-    float cy = y + 130; Btn(pnl, "Credits", 250, cy, 300, 62, () => ShowCredits()); /* art_t5_fixes: 20 px under New Game */
-    pnl.sizeDelta = new Vector2(800, Mathf.Max(620f, cy + 62 + 110)); /* art_t5_fixes: frame grows so Credits clears the ~110 px bottom brackets */
+    Btn(pnl, "Credits", 250, 548, 300, 62, () => ShowCredits());
   }
 }

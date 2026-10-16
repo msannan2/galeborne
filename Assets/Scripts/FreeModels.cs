@@ -149,14 +149,9 @@ public static class FreeModels {
     sailMf.sharedMesh = mesh;
     sailMf.gameObject.name = "CreamLateen";
     /* Runtime cream atlas (ShipHasan asset texture can be missing/stripped in player → pink checkers) */
-    /* k4art: plain cream canvas — sail UVs span 0..1, so the full ShipArt atlas bled its teal stripe in */
-    const int CN = 128; var atlas = new Texture2D(CN, CN, TextureFormat.RGBA32, false); var px = new Color[CN * CN]; var cream = new Color(0.93f, 0.88f, 0.76f);
-    for (int y = 0; y < CN; y++) for (int x = 0; x < CN; x++) { float n = 0.94f + 0.06f * Mathf.PerlinNoise(x * 0.15f, y * 0.15f); var sc = cream * ((y % 32) == 0 ? n * 0.94f : n); sc.a = 1; px[y * CN + x] = sc; }
-    atlas.name = "CreamSailCanvas"; atlas.SetPixels(px); atlas.Apply(false, true); atlas.wrapMode = TextureWrapMode.Clamp;
-    /* k4art: dark line along the sail edge = lateen_yard on the near-black colormap swatch → teak */
-    foreach (var rr in go.GetComponentsInChildren<Renderer>(true)) if (rr.gameObject.name.ToLower().Contains("yard")) { var tm = new Material(Shader.Find("Universal Render Pipeline/Lit")); tm.SetColor("_BaseColor", new Color(0.45f, 0.30f, 0.17f)); tm.SetFloat("_Smoothness", 0.15f); rr.sharedMaterial = tm; }
-    /* k4art: Gulf dhow read — hide Kenney masthead flags (read as foremast square/top sails) */
-    foreach (var rr in go.GetComponentsInChildren<Renderer>(true)) if (rr.gameObject.name.ToLower().StartsWith("flag")) rr.enabled = false;
+    ShipArt.Paint(false, out var albedo, out _);
+    var atlas = new Texture2D(ShipArt.N, ShipArt.N, TextureFormat.RGBA32, false);
+    atlas.name = "CreamSailAtlas"; atlas.SetPixels(albedo); atlas.Apply(false, true);
     var lit = Shader.Find("Universal Render Pipeline/Lit");
     var mat = lit != null ? new Material(lit) : new Material(Shader.Find("Sprites/Default"));
     if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", atlas);

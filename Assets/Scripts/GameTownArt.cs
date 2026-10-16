@@ -6,34 +6,6 @@ using UnityEngine.UI;
 
 /// Town art kit: painted textures into the atlas, townsfolk (8 kinds, idle/walk loops), props, event hints, and the tutorial pointer.
 public partial class Game {
-  // ---- k4 per-town keeper skins (Game Designer): one shared code path, palette + height keyed by town name ----
-  // Repaints townMat's atlas cells per port (matte, solid + faint noise, no stripes, no emission). Landmarks use lmMat's own atlas,
-  // so Debal's pennant (#A8322A) stays the only red. Called from TownLayoutsK4.SharedHider when a town's layout is shown.
-  Color[] k4AtlasBase; string k4SkinTown = "";
-  static readonly Dictionary<string, (TCell cell, string hex)[]> K4Skins = new Dictionary<string, (TCell, string)[]> {
-    { "Gwadar", new[] { (TCell.Plaster, "#8A5A3C"), (TCell.Ochre, "#8A5A3C"), (TCell.Stone, "#6B4430"), (TCell.Indigo, "#3E4A6E"), (TCell.Cloth, "#3E4A6E"),
-                        (TCell.AwnRed, "#3E4A6E"), (TCell.AwnTeal, "#3E4A6E"), (TCell.Roof, "#9C8A5A"), (TCell.Rug, "#3E4A6E") } },
-    { "Debal",  new[] { (TCell.Plaster, "#C9A46A"), (TCell.Ochre, "#C9A46A"), (TCell.Stone, "#C9A46A"), (TCell.AwnRed, "#D08A2E"), (TCell.Cloth, "#D08A2E"),
-                        (TCell.AwnTeal, "#2F6E6A"), (TCell.Teak, "#6A4528"), (TCell.Roof, "#6A4528"), (TCell.Rug, "#D08A2E") } /* k4 fix: terracotta roof + rugs were the last reds */ },
-    { "Muscat", new[] { (TCell.Plaster, "#ECE6D8"), (TCell.Ochre, "#ECE6D8"), (TCell.Stone, "#ECE6D8"), (TCell.Whitewash, "#ECE6D8"), (TCell.Paving, "#CFC7B5"),
-                        (TCell.Roof, "#CFC7B5"), (TCell.AwnRed, "#8FAE8C"), (TCell.AwnTeal, "#8FAE8C"), (TCell.Cloth, "#8FAE8C"), (TCell.Marble, "#B8AE9A"), (TCell.Rock, "#9A9283"), (TCell.Rug, "#8FAE8C") } },
-  };
-  static readonly Dictionary<string, float> K4KeeperHeight = new Dictionary<string, float> { { "Gwadar", 0.75f }, { "Debal", 1f }, { "Muscat", 1f } };
-  public void ApplyKeeperSkinK4(string town) {
-    if (townMat == null || town == k4SkinTown) return; var tex = townMat.GetTexture("_BaseMap") as Texture2D; if (tex == null || !tex.isReadable) return;
-    if (k4AtlasBase == null) k4AtlasBase = tex.GetPixels(0);
-    var px = (Color[])k4AtlasBase.Clone();
-    if (K4Skins.TryGetValue(town, out var cells)) foreach (var (cell, hex) in cells) { ColorUtility.TryParseHtmlString(hex, out var c);
-      int cx = (int)cell % TN, cy = (int)cell / TN;
-      for (int y = 0; y < TC; y++) for (int x = 0; x < TC; x++) { float n = 0.95f + 0.05f * Mathf.PerlinNoise(x * 0.09f, y * 0.09f); var o = c * n; o.a = 1; px[(cy * TC + y) * TA + cx * TC + x] = o; } }
-    tex.SetPixels(px, 0); tex.Apply(true); k4SkinTown = town;
-    float hs = K4KeeperHeight.TryGetValue(town, out var h) ? h : 1f;
-    foreach (var b in bldgs) if (b.t) b.t.localScale = new Vector3(1, hs, 1);
-    StartCoroutine(K4NeutralTint()); /* the shared palette tint would muddy these exact hexes; reset after ApplyTownPaletteV06k3 runs */
-    Debug.Log($"GB k4 keeper skin {town} height x{hs}");
-  }
-  System.Collections.IEnumerator K4NeutralTint() { yield return null; if (townMat && townMat.HasProperty("_BaseColor")) townMat.SetColor("_BaseColor", Color.white); }
-
   /// copies the team's textures into atlas cells; walls get 2x2 mirrored tiling so the non-seamless edges meet themselves
   void PaintKitTextures(Texture2D atlas) {
     void Put(string n, TCell cell, bool mirror) { var src = Resources.Load<Texture2D>("TownTex/" + n); if (src == null || !src.isReadable) return; int cx = (int)cell % TN, cy = (int)cell / TN;
@@ -153,7 +125,7 @@ public partial class Game {
     float t = Time.time;
     foreach (var f in folk) { if (f.t == null || !f.t.gameObject.activeSelf) continue;
       if (f.speed > 0) { float L = Vector3.Distance(f.a, f.b), u = Mathf.PingPong((t + f.phase) * f.speed / Mathf.Max(0.1f, L), 1); var pos = Vector3.Lerp(f.a, f.b, u); var dir = (f.b - f.a) * (Mathf.Repeat((t + f.phase) * f.speed / Mathf.Max(0.1f, L), 2) < 1 ? 1 : -1);
-        float step = (t + f.phase) * f.speed * (f.kind == 4 ? 7 : 5); f.t.position = pos + Vector3.up * Mathf.Abs(Mathf.Sin(step)) * (f.kind == 4 ? 0.12f : 0.05f); f.t.rotation = SafeRot.Look(-dir, f.t.rotation) /* gamedev_t8: folk standing still */ * Quaternion.Euler(0, 0, Mathf.Sin(step) * 3); }
+        float step = (t + f.phase) * f.speed * (f.kind == 4 ? 7 : 5); f.t.position = pos + Vector3.up * Mathf.Abs(Mathf.Sin(step)) * (f.kind == 4 ? 0.12f : 0.05f); f.t.rotation = Quaternion.LookRotation(-dir) * Quaternion.Euler(0, 0, Mathf.Sin(step) * 3); }
       else { f.t.position = f.a + Vector3.up * Mathf.Sin((t + f.phase) * 1.7f) * 0.012f; f.t.rotation = Quaternion.Euler(0, 180 + Mathf.Sin((t + f.phase) * 0.6f) * 18, Mathf.Sin((t + f.phase) * 1.2f) * 1.5f); } }
     TutorialPointer(t);
   }

@@ -28,7 +28,9 @@ public partial class Game {
     string s;
     bool needGpAgain = !openingGpSold && !fallbackFired && jackpotStartCoins > 0 && hold[Gp] == 0 && (storyStep >= 6 || !InOpening);
     if (needGpAgain) s = (InOpening && OpenFlag("openingDebalAlleyStocksGunpowder")) ? "Buy gunpowder in Debal" : "Buy gunpowder in Gwadar";
-    else if (InOpening) { s = OpeningGoalLine(); /* gamedev_t9: Now = the shared Journal line */ m = OpeningMediumGoalAt(storyStep); /* gamedev_t10_next: Next = medium goal, not the following step */ }
+    else if (InOpening) s = new[] { "Buy dates and salt in Gwadar", "Sail to Debal", "Sell dates and salt in Debal", "Hear the talk at Debal's tavern",
+        rumorHeard >= 2 && hold[Gp] == 0 ? "Buy copper in Gwadar" : "Buy gunpowder in Debal's alley", fallbackFired || hold[Gp] == 0 ? "Sail to Muscat with the copper" : "Sail to Muscat with the gunpowder",
+        fallbackFired ? "Sell copper in Muscat (x2)" : "Sell gunpowder in Muscat's alley", "Ask Muscat's tavern about the seal" }[Mathf.Clamp(storyStep, 0, 7)];
     else if (hold[Rugs] > 0) s = "Sell rugs in Muscat's alley (x3)";
     else if (!yusufSeal) s = "Show Yusuf the seal in Debal";
     else if (faridaState == 0) s = "Meet Farida in Debal's alley";
@@ -39,8 +41,7 @@ public partial class Game {
   Texture2D ArtSlot(string path, string fallback = null) => Resources.Load<Texture2D>(path) ?? (fallback != null ? Resources.Load<Texture2D>(fallback) : null);
   /// a story card with a portrait slot on the right (AskCard + portrait, body narrowed so text never runs under it)
   IEnumerator PortraitCard(string title, string body, Texture2D face, params (string, Action)[] opts) {
-    int seq0 = cardSeq; var co = AskCard(title, body, opts); bool more = co.MoveNext();
-    while (more && cardSeq == seq0) { yield return co.Current; more = co.MoveNext(); } /* final modal_queue_back: AskCard may be queued; attach the portrait only to its own card */
+    var co = AskCard(title, body, opts); bool more = co.MoveNext();
     if (dialog != null && face != null) { var inner = dialog.Find("in") as RectTransform; if (inner) { foreach (var t in inner.GetComponentsInChildren<Text>()) if (t.GetComponentInParent<Button>() == null && t.rectTransform.sizeDelta.y > 200) t.rectTransform.sizeDelta = new Vector2(700, t.rectTransform.sizeDelta.y);
         var fr = Px(inner, "Portrait", 752, 100, 222, 296); var teak = fr.gameObject.AddComponent<Image>(); teak.color = new Color(0.24f, 0.14f, 0.08f); teak.raycastTarget = false;
         var brass = Px(fr, "brass", 7, 7, 208, 282).gameObject.AddComponent<Image>(); brass.color = new Color(0.72f, 0.56f, 0.3f); brass.raycastTarget = false;

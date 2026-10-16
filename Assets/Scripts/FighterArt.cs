@@ -136,7 +136,7 @@ public static class FighterArt {
   /// hand: palm + 4 two-segment fingers + thumb; grip curls round the hilt (sword along +z/up)
   static void Hand(int sd, Vector3 wr, Vector3 tip, bool grip, bool raider) {
     var dn = (tip - wr).normalized; var side = Vector3.Cross(dn, Vector3.forward).sqrMagnitude < 0.01f ? Vector3.right : Vector3.Cross(dn, grip ? Vector3.forward : Vector3.right * sd).normalized; var fw = Vector3.Cross(side, dn).normalized; float k = raider ? 1.08f : 1f;
-    var palm = wr + dn * 0.045f * k; M("F_Skin").Ell(palm, new Vector3(0.042f, 0.05f, 0.019f) * k, SafeRot.Look(fw, -dn, Quaternion.identity) /* gamedev_t8 */, 12);
+    var palm = wr + dn * 0.045f * k; M("F_Skin").Ell(palm, new Vector3(0.042f, 0.05f, 0.019f) * k, Quaternion.LookRotation(fw, -dn), 12);
     for (int f = 0; f < 4; f++) { float o = (f - 1.5f) * 0.019f * k; var b0 = palm + dn * 0.045f * k + side * o; var len = (0.04f - Mathf.Abs(f - 1.3f) * 0.005f) * k;
       Vector3 b1, b2; if (grip) { b1 = b0 + dn * len * 0.6f + fw * len * 0.5f; b2 = b1 + fw * len * 0.5f - dn * len * 0.45f; } else { b1 = b0 + dn * len + fw * len * 0.15f; b2 = b1 + dn * len * 0.8f + fw * len * 0.3f; }
       var P = new[] { b0, b1, b2 }; M("F_Skin").Add(b => Tube(b, P, s => 0.0085f * k - 0.002f * s, 8)); }
@@ -145,7 +145,7 @@ public static class FighterArt {
     if (grip) { /* scimitar: hilt in the fist, guard, curved blade forward and up */
       var hilt = palm + dn * 0.07f * k + fw * 0.03f; var bd = (new Vector3(0.02f, 0.38f, 0.92f)).normalized;
       M("F_Leather").Add(b => Tube(b, new[] { hilt - bd * 0.07f, hilt + bd * 0.06f }, s => 0.013f, 8));
-      M("F_Gold").Add(b => Ell(b, hilt + bd * 0.07f, new Vector3(0.05f, 0.012f, 0.012f), SafeRot.Look(bd, Quaternion.identity) /* gamedev_t8 */, 10)); M("F_Gold").Add(b => Ell(b, hilt - bd * 0.08f, Vector3.one * 0.016f, Quaternion.identity, 8));
+      M("F_Gold").Add(b => Ell(b, hilt + bd * 0.07f, new Vector3(0.05f, 0.012f, 0.012f), Quaternion.LookRotation(bd), 10)); M("F_Gold").Add(b => Ell(b, hilt - bd * 0.08f, Vector3.one * 0.016f, Quaternion.identity, 8));
       var bl = Bez(hilt + bd * 0.08f, hilt + bd * 0.42f, hilt + bd * 0.72f + Vector3.up * 0.12f, 12);
       M("F_Steel").Add(b => Tube(b, bl, s => 0.018f * (1 - s * 0.85f) + 0.002f, 6, 0.22f, Vector3.right)); } }
 }

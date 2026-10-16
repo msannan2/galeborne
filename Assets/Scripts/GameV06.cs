@@ -93,7 +93,7 @@ public partial class Game {
     if (fe != null && Rnd.value < Design.F(fe["weight"]) && !InOpening) { var pool = Design.SL(fe["pool"]); int g = G(pool[Rnd.Range(0, pool.Count)]);
       foreignPort = port; foreignGood = g; stock[port, g] = (int)Design.F(fe["stockUnits"], 20); price[port, g] = lastPrice[port, g] = basePrice[port, g] * Design.F(fe["buyPriceMult"], 0.6f);
       var c = Content("foreignShip"); townHint[port] = "foreignShipInHarbor"; hintEnd[port] = week + 1; news.Insert(0, Fill((string)c["headline"], port, g) + ". " + Fill((string)c["text"], port, g)); }
-    if (blockGood[port] >= 0 && hold[blockGood[port]] > 0 && !StoryGoods().Contains(blockGood[port]) /* gamedev_t16_seizesafe */) { int q = hold[blockGood[port]]; hold[blockGood[port]] = 0; msg = $"Soldiers on the quay seize your {GoodCount(blockGood[port], q)}." /* gamedev_t9 */; }
+    if (blockGood[port] >= 0 && hold[blockGood[port]] > 0) { int q = hold[blockGood[port]]; hold[blockGood[port]] = 0; msg = $"Soldiers on the quay seize your {q} {S.goods[blockGood[port]].name}."; }
   }
 
   // ---------------- ambush ----------------
@@ -121,61 +121,40 @@ public partial class Game {
 
   public IEnumerator AmbushEncounter(string type) {
     var card = ((List<object>)DZ.content["ambushCards"]).Select(Design.D).First(x => (string)x["type"] == type);
-    lastAmbushOutcome = ""; /* ambush_customs_t6 */ ambushMood = type; ApplyMood(type); yield return AmbushApproach();
+    ambushMood = type; ApplyMood(type); yield return AmbushApproach();
     var ir = Design.D(DZ.Path(DZ.ambush, "playerResponses.intimidate")); float fleeAt = Design.F(ir["fleeAtStrengthRatio"], 2), from = Design.F(ir["chanceScalesFromRatio"], 1);
     bool desperate = type == "nightRaid" && ir["namedAndDesperateNeverFlee"] is bool nd && nd; float ratio = StrengthRatio;
     float scare = desperate || ambushForced ? 0 : ratio >= fleeAt ? 1 : Mathf.Clamp01((ratio - from) / (fleeAt - from));
-    if (Rnd.value < scare) { yield return AskCard("They turn away", (string)DZ.content["intimidated"], ("Sail on", null)); msg = "Intimidated, the pirate sheers off."; lastAmbushOutcome = "turned"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
-    int cargo = HoldUsed, toll = Mathf.CeilToInt(cargo * S.combat.tollCargoPct); var tollSg = StoryGoods(); int tollable = LosableGoods().Sum(g => hold[g]); /* gamedev_t15_storysafe */ bool canToll = tollable > 0 && tollable >= toll; /* gamedev_t18_notoll */ /* gamedev_t8: toll only from non-story goods; hidden if they cannot cover it (no coin fallback) */ float wind = Rnd.value;
+    if (Rnd.value < scare) { yield return AskCard("They turn away", (string)DZ.content["intimidated"], ("Sail on", null)); msg = "Intimidated, the pirate sheers off."; EndMood(); yield break; }
+    int cargo = HoldUsed, toll = Mathf.CeilToInt(cargo * S.combat.tollCargoPct); float wind = Rnd.value;
     float flee = Mathf.Clamp01((S.combat.encounterFleeBase + S.combat.fleeWindWeight * wind) * (type == "fog" ? 0.7f : type == "nightRaid" ? 1.2f : 1f));
-    float baitPct = Design.F(DZ.Path(DZ.ambush, "playerResponses.bait.minCostPctOfHold"), 0.1f); int baitCost = Mathf.CeilToInt(BaitableValue * baitPct); /* gamedev_t7: story cargo excluded; 0 → no Bait button */
+    float baitPct = Design.F(DZ.Path(DZ.ambush, "playerResponses.bait.minCostPctOfHold"), 0.1f); int baitCost = Mathf.CeilToInt(HoldValue * baitPct);
     bool canBluff = DZ.Path(DZ.ambush, "playerResponses.bluff.enabled") is bool bb && bb;
-    int choice = 0; var odds = new List<string> { $"Run: {flee * 100:0}%" }; if (canToll) odds.Add($"Toll: {toll} of {tollable} cargo"); /* gamedev_t11_toll: count only cargo the toll can take (excl. StoryGoods) */ if (canBluff) odds.Add($"Bluff: {Cunning * 100:0}%"); /* gamedev_t9: odds line rebuilt from the options actually offered - no gaps when Toll/Bait are hidden */
-    string body = $"<i>{card["warning"]}</i>\n{card["reveal"]}\n\n" + string.Join("   ·   ", odds) + (baitCost > 0 ? $"\nBait: dump goods worth {baitCost} coins and slip away while they fish them out." : ""); /* gamedev_t9 */
+    int choice = 0; string body = $"<i>{card["warning"]}</i>\n{card["reveal"]}\n\nRun: {flee * 100:0}%   Toll: {toll} of {cargo} cargo" + (canBluff ? $"   Bluff: {Cunning * 100:0}%" : "") + (baitCost > 0 ? $"\nBait: dump goods worth {baitCost} coins and slip away while they fish them out." : "");
     yield return AskCard(type == "fog" ? "Ambush in the fog" : type == "nightRaid" ? "Night raid" : "False distress", body,
-      ("Fight", (Action)(() => choice = 0)), ($"Run {flee * 100:0}%", (Action)(() => choice = 1)), canToll ? (cargo > 0 ? "Pay toll" : "Pay nothing", (Action)(() => choice = 2)) : ((string, Action))(null, null), /* gamedev_t8 */ canBluff ? ($"Bluff {Cunning * 100:0}%", (Action)(() => choice = 3)) : ((string, Action))(null, null), baitCost > 0 ? ("Bait", (Action)(() => choice = 4)) : ((string, Action))(null, null));
+      ("Fight", (Action)(() => choice = 0)), ($"Run {flee * 100:0}%", (Action)(() => choice = 1)), (cargo > 0 ? "Pay toll" : "Pay nothing", (Action)(() => choice = 2)), canBluff ? ($"Bluff {Cunning * 100:0}%", (Action)(() => choice = 3)) : ((string, Action))(null, null), baitCost > 0 ? ("Bait", (Action)(() => choice = 4)) : ((string, Action))(null, null));
     lastAmbushChoice = choice;
-    if (choice == 2) { PayCargo(toll, false, tollSg); /* gamedev_t8 */ msg = toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off."; lastAmbushOutcome = "toll"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
-    if (choice == 1 && Rnd.value < flee) { msg = "Hasan catches the gust and the pirate falls astern."; lastAmbushOutcome = "run"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
-    if (choice == 3 && Rnd.value < Cunning) { msg = "Hasan roars about the navy squadron just over the horizon. They believe him and bear away."; lastAmbushOutcome = "bluff"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
-    if (choice == 4) { DumpForBait(baitCost); msg = "Bales hit the water and the pirates turn to fish them out. You slip away."; lastAmbushOutcome = "bait"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: bait result card shows at once while the pirate turns away */ EndMood(); yield break; }
+    if (choice == 2) { PayCargo(toll); msg = toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off."; EndMood(); yield break; }
+    if (choice == 1 && Rnd.value < flee) { msg = "Hasan catches the gust and the pirate falls astern."; EndMood(); yield break; }
+    if (choice == 3 && Rnd.value < Cunning) { msg = "Hasan roars about the navy squadron just over the horizon. They believe him and bear away."; EndMood(); yield break; }
+    if (choice == 4) { DumpForBait(baitCost); msg = "Bales hit the water and the pirates turn to fish them out. You slip away."; EndMood(); yield break; }
     if (choice == 1 || choice == 3) msg = "It doesn't work. They close to fight!";
     spareGunpowder = firstRun && !storyAmbushDone && DZ.Path(DZ.settings, "opening.spareGunpowderOnFirstAmbushLoss") is bool sg && sg;
-    lastAmbushOutcome = choice == 1 || choice == 3 ? "fled_fail" : "fight"; /* ambush_customs_t6 */ yield return Fight(); spareGunpowder = false; storyAmbushDone = true; Save(); /* ambush_customs_t6: also covers fight after failed Run/Bluff */ EndMood();
+    yield return Fight(); spareGunpowder = false; storyAmbushDone = true; EndMood();
   }
   public int lastAmbushChoice; public bool ambushForced;
-  /* ambush_customs_t6: explicit outcome of the last AmbushEncounter, read by AmbushWithResult (designer_ambush_customs) instead of msg text */
-  public string lastAmbushOutcome = ""; /* ambush_customs_t6 */
-  IEnumerator PirateSailsOff() { if (pirateShip == null || !pirateShip.gameObject.activeSelf) yield break; Vector3 p0 = pirateShip.position; float y0 = pirateShip.eulerAngles.y; /* ambush_customs_t6 */
-    for (float t = 0; t < 2.4f; t += Time.deltaTime) { float k = Mathf.SmoothStep(0, 1, t / 2.4f); pirateShip.rotation = Quaternion.Euler(0, Mathf.LerpAngle(y0, 60f, Mathf.Clamp01(t / 0.8f)), Mathf.Sin(t * 1.1f) * 4); pirateShip.position = p0 + new Vector3(70f, 0, 45f) * k; yield return null; } /* ambush_customs_t6 */
-    pirateShip.gameObject.SetActive(false); } /* ambush_customs_t6 */
-  /* gamedev_t7: goods the story or an active job still needs - never thrown to pirates. Opening good while its Muscat sale is pending; any active job objective naming a good. */
-  HashSet<int> StoryGoods() { var r = new HashSet<int>(); /* gamedev_t7 */
-    if (InOpening && !openingGpSold) { int og = G(Design.Path0(DZ, "opening.good", "gunpowder")); if (og >= 0) r.Add(og); } /* gamedev_t7 */
-    foreach (var a in journal) { if (a.status != "active" || a.objective == null) continue; foreach (var k in new[] { "good", "goodId", "cargo" }) if (JGet(a.objective, k) is string gid) { int g = G(gid); if (g >= 0) r.Add(g); } } /* gamedev_t7 */
-    return r; } /* gamedev_t7 */
-  List<int> LosableGoods() { var sg = StoryGoods(); return Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !sg.Contains(g)).ToList(); } /* gamedev_t15_storysafe */
-  float BaitableValue { get { return LosableGoods().Sum(/* gamedev_t15_storysafe */ g => hold[g] * price[port, g]); } } /* gamedev_t7 */
-  void DumpForBait(int worth) { int gp = G("gunpowder"); var sg = StoryGoods(); /* gamedev_t7 */ while (worth > 0 && HoldUsed > 0) { var held = LosableGoods().Where(g => !(spareGunpowder && g == gp)) /* gamedev_t15_storysafe */.OrderBy(g => price[port, g]).ToList(); if (held.Count == 0) break; hold[held[0]]--; worth -= Mathf.CeilToInt(price[port, held[0]]); } }
+  void DumpForBait(int worth) { int gp = G("gunpowder"); while (worth > 0 && HoldUsed > 0) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !(spareGunpowder && g == gp)).OrderBy(g => price[port, g]).ToList(); if (held.Count == 0) break; hold[held[0]]--; worth -= Mathf.CeilToInt(price[port, held[0]]); } }
 
   /// card sits in the bottom third so the pirate stays visible above it
-  IEnumerator AskCard(string title, string body, params (string, Action)[] opts) { PasserHide("askcard:" + title); /* gamedev_t11_passer */
+  IEnumerator AskCard(string title, string body, params (string, Action)[] opts) {
     opts = opts.Where(o => o.Item1 != null).ToArray(); bool done = false;
-    while (CardBusy) yield return null; /* final modal_queue_back: queue (never waits on itself) */
-    int perRow = opts.Length > 3 ? (opts.Length + 1) / 2 : opts.Length, /* gamedev_t9: 4 → 2+2, 5 → 3+2 (was 3+1 / 3+2 left-packed) */ rows = Mathf.Max(1, (opts.Length + perRow - 1) / Mathf.Max(1, perRow)); /* final: card sized to its measured body (was a fixed 330 px body box, leaving a gap above the buttons) */
-    float bodyH = Mathf.Min(330f, CardBodyH(body, 800f)) /* art_t4_fixes: measured at the inset width */, btnY = 132 + bodyH + 24 /* art_t12_cards: body moved to y 132 under the lowered rule */, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 110); /* art_t5_fixes: ~110 px under the last button row, clear of the bottom brackets */
-    var myDim = ModalDim("CardDim"); modalDepth++; cardSeq++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
-    var my = R(root, "Card", 0, 0, 1, 0); dialog = my; my.pivot = new Vector2(0.5f, 0); my.offsetMin = new Vector2(30, 30); my.offsetMax = new Vector2(-30, 30 + cardH); Box(my, T.panel, T.gold); var be = PushBack(title, () => my != null, null); /* final modal_queue_back: AskCard is always FORCED */
-    var inner = R(my, "in", 0.5f, 1, 0.5f, 1); inner.sizeDelta = new Vector2(1000, cardH); inner.pivot = new Vector2(0.5f, 1); inner.anchoredPosition = Vector2.zero;
-    Label(inner, title, 130, 40, 740, 52, /* art_t12_cards: off the top rail, between the corner brackets (Ask geometry) */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(inner, "rule", 130, 100, 740, 2), T.brass); /* art_t12_cards: rule 8 px under the title descenders, between brackets */
-    Label(inner, body, 100, 132, /* art_t12_cards: was y 104 */ 800, bodyH, /* art_t4_fixes: x 100–900, clear of the bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft);
-    float w = (800f - (perRow - 1) * 16) / Mathf.Max(1, perRow); /* art_t5_fixes: buttons x 100–900 inside the 1000-wide card */ /* final2: title and buttons inset to x 95–905 so no button corner sits on a brass bracket (5-button ambush) */
-    Debug.Log("GB CARD show " + title); /* gamedev_t9 */
-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; int inRow = Mathf.Min(perRow, opts.Length - row * perRow); float rowX = 100 + (800f - (inRow * w + (inRow - 1) * 16)) / 2f; /* gamedev_t9: a short last row is centred, same button width and 16 px gaps */ Btn(inner, o.Item1, rowX + col * (w + 16) /* art_t5_fixes */, btnY + row * 124, w, 108, () => { Debug.Log("GB CARD choose " + title + " " + o.Item1); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, true, i == 0); }
-    try { while (!done) yield return null; }
-    finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } }
-  int routeLogged = -1; /* gamedev_t9: route card logs show once per destination (it rebuilds on every Refresh) */
-  int cardSeq; /* final modal_queue_back: bumped when an AskCard actually builds its card (PortraitCard waits for it) */ /* final ask_modal: own panel + own dim only (was: destroyed whatever dialog pointed at) */
+    dialog = R(root, "Card", 0, 0, 1, 0); dialog.pivot = new Vector2(0.5f, 0); dialog.offsetMin = new Vector2(30, 30); dialog.offsetMax = new Vector2(-30, 30 + 740); Box(dialog, T.panel, T.gold);
+    var inner = R(dialog, "in", 0.5f, 1, 0.5f, 1); inner.sizeDelta = new Vector2(1000, 740); inner.pivot = new Vector2(0.5f, 1); inner.anchoredPosition = Vector2.zero;
+    Label(inner, title, 30, 20, 940, 64, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(inner, "rule", 30, 90, 940, 2), T.brass);
+    Label(inner, body, 30, 104, 940, 330, T.fontSize, T.text, TextAnchor.UpperLeft);
+    int perRow = opts.Length > 3 ? 3 : opts.Length; float w = (940f - (perRow - 1) * 16) / perRow;
+    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; Btn(inner, o.Item1, 30 + col * (w + 16), 450 + row * 124, w, 108, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+    while (!done) yield return null; Destroy0(dialog.gameObject); dialog = null; }
 
   Light seaSun; Color sunCol0; float sunInt0; Color amb0, fog0; float fogS0, fogE0;
   void ApplyMood(string type) {
@@ -189,7 +168,7 @@ public partial class Game {
   IEnumerator AmbushApproach() {
     if (pirateShip == null) pirateShip = Dhow.Build(sea3D, T, true, "PirateDhow"); pirateShip.gameObject.SetActive(true); sea3D.gameObject.SetActive(true); backdrop.color = Color.clear;
     fighting = true; /* holds the sailing camera still */ var hp = new Vector3(0, 0.15f, 0); ship.position = hp; ship.rotation = Quaternion.Euler(0, -8, 0);
-    var pp = new Vector3(26, 0.1f, 42); pirateShip.position = pp; float y0 = 100, y1 = SafeRot.Look(hp - pp, Quaternion.identity).eulerAngles.y; /* gamedev_t8 */
+    var pp = new Vector3(26, 0.1f, 42); pirateShip.position = pp; float y0 = 100, y1 = Quaternion.LookRotation(hp - pp).eulerAngles.y;
     for (float t = 0; t < 2.2f; t += Time.deltaTime) { float k = Mathf.SmoothStep(0, 1, t / 2.2f);
       pirateShip.rotation = Quaternion.Euler(Mathf.Sin(t * 1.6f) * 2, Mathf.LerpAngle(y0, y1, k), Mathf.Sin(t * 1.1f) * 4 - k * 6); pirateShip.position = pp + (hp - pp).normalized * k * 6;
       cam.transform.position = hp + new Vector3(-9, 6.5f, -16); cam.transform.LookAt(Vector3.Lerp(hp, pirateShip.position, 0.72f) + Vector3.up * 5f); yield return null; }
@@ -286,32 +265,13 @@ public partial class Game {
   public int quality = -1; static readonly string[] QNames = { "Low", "Medium", "High" };
   public void ApplyQuality(int q) {
     quality = q; PlayerPrefs.SetInt("gbQuality", q);
-    QualitySettings.SetQualityLevel(Mathf.Clamp(q, 0, QualitySettings.names.Length - 1), true); /* k4: switch level FIRST, then edit the active URP asset */
     var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
     if (urp) { urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; urp.msaaSampleCount = q == 0 ? 1 : q == 1 ? 2 : 4; urp.shadowDistance = q == 0 ? 0 : q == 1 ? 40 : 70; }
-    QualitySettings.shadows = q == 0 ? ShadowQuality.Disable : ShadowQuality.All; if (urp) urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; Application.targetFrameRate = q == 2 ? 60 : 30; if (cam) { cam.allowMSAA = q > 0; var cd = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(); if (cd) { cd.renderShadows = q > 0; cd.renderPostProcessing = q == 2; } } msg = $"Graphics: {QNames[q]}."; Debug.Log($"GB QUALITY {q} renderScale {(urp ? urp.renderScale : -1)} shadows {QualitySettings.shadows}"); if (town3D) { var h = town3D.Find("Hills"); if (h) h.gameObject.SetActive(q > 0); foreach (var f in folk) if (f.t) f.t.gameObject.SetActive(q > 0 || f.idx % 2 == 0); } }
+    QualitySettings.SetQualityLevel(Mathf.Clamp(q, 0, QualitySettings.names.Length - 1), true); QualitySettings.shadows = q == 0 ? ShadowQuality.Disable : ShadowQuality.All; if (urp) urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; Application.targetFrameRate = q == 2 ? 60 : 30; msg = $"Graphics: {QNames[q]}."; Debug.Log($"GB QUALITY {q} renderScale {(urp ? urp.renderScale : -1)} shadows {QualitySettings.shadows}"); if (town3D) { var h = town3D.Find("Hills"); if (h) h.gameObject.SetActive(q > 0); foreach (var f in folk) if (f.t) f.t.gameObject.SetActive(q > 0 || f.idx % 2 == 0); } }
   int DefaultQuality() => SystemInfo.systemMemorySize < 3000 ? 0 : SystemInfo.systemMemorySize < 6000 ? 1 : 2;
-  void OptionsMenu() { StartCoroutine(AskD("Options", $"Difficulty: {S.combat.difficulties[difficulty].name}\nGraphics: {QNames[Mathf.Max(0, quality)]}", ("Difficulty", () => OptionsDialog()), ("Graphics", () => StartCoroutine(AskD("Graphics quality", "High: full resolution, shadows, 60 fps.\nMedium: 85% resolution, short shadows.\nLow: 70% resolution, no shadows, fewer townsfolk.",
-      ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits(true)), ("Close", null))); } /* back_market_t6: Credits from Options returns to Options */
-  /* final: Credits gets its own card (same look as Ask) with a centred 600 px Close, so the button ends clear the bottom corner brackets (~95 px each).
-     Ask() is untouched; this panel owns and closes only itself. */
-  RectTransform creditsCard, creditsDim; /* final credits_modal: Credits owns its panel AND its dimmer (same pattern as the job-offer myDim fix) */
-  bool creditsFromOptions; /* back_market_t6 */
-  void CloseCredits() {
-    var cp = creditsCard; if (cp) Destroy0(cp.gameObject); if (creditsDim) Destroy0(creditsDim.gameObject);
-    if (cp != null && dialog == cp) dialog = null; creditsCard = null; creditsDim = null;
-    if (cp != null && creditsFromOptions && !onTitle) { creditsFromOptions = false; OptionsMenu(); } creditsFromOptions = false; } /* back_market_t6: reopen Options (its own fresh dim + Back entry; the old Options card already closed) */
-  void ShowCredits(bool fromOptions = false) { /* back_market_t6 */
-    if (creditsCard != null) return; creditsFromOptions = fromOptions; /* back_market_t6 */ /* final credits_modal: a second open while one is showing is ignored (double tap stacked two panels) */
-    const string body = "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.";
-    float bodyH = CardBodyH(body, 700f), by = 106 + bodyH + 20, panelH = by + 84 + 110; /* art_t6_fixes: body measured at x 100–800; Close lifted ~110 px off the bottom brackets */ /* final credits_modal: 780 like Ask() */
-    float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
-    var dim = ModalDim("CreditsDim"); creditsDim = dim; /* final modal_queue_back: shared ModalDimColor */ /* blocks Options/Journal taps behind the card */
-    var cp = Px(root, "Dialog", 90, top, 900, panelH); creditsCard = cp; dialog = cp; Box(cp, T.panel, T.gold); dim.SetAsLastSibling(); cp.SetAsLastSibling();
-    Label(cp, "Credits", 130, 22, 640, 52, /* art_t8_brackets: x 130, clear of the top-left bracket */ /* final2: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
-    Label(cp, body, 100, 106, 700, bodyH, /* art_t6_fixes: like Ask() */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
-    Btn(cp, "Close", 250, by, 400, 84, /* art_t6_fixes: centred, x 250–650 */ () => CloseCredits(), true, true); PushBack("Credits", () => creditsCard != null, CloseCredits); /* final modal_queue_back: DISMISSABLE */
-  }
+  void OptionsMenu() { StartCoroutine(Ask("Options", $"Difficulty: {S.combat.difficulties[difficulty].name}\nGraphics: {QNames[Mathf.Max(0, quality)]}", ("Difficulty", () => OptionsDialog()), ("Graphics", () => StartCoroutine(Ask("Graphics quality", "High: full resolution, shadows, 60 fps.\nMedium: 85% resolution, short shadows.\nLow: 70% resolution, no shadows, fewer townsfolk.",
+      ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits()), ("Close", null))); }
+  void ShowCredits() { StartCoroutine(Ask("Credits", "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.", ("Close", null))); }
 }
 public partial class Game {
   /// v0.6i SET SAIL art button: cream serif caps, press-down on tap, short send-off
@@ -360,9 +320,8 @@ public partial class Game {
       Txt(R(nin, "t", 0, 0, 1, 1), kv.Key + (pi == port ? " (here)" : known ? "" : " · uncharted"), T.fontSizeSmall - 2, "#1A120A", TextAnchor.MiddleCenter, true);
       if (known && pi != port) { int k = pi; foreach (var go in new[] { m.gameObject, nb.gameObject }) { var bt = go.AddComponent<Button>(); bt.onClick.AddListener(() => { chartDest = k; Refresh(); }); } } }
     /* v0.6i: you-are-here ship marker (~64px at 1080), rotated toward destination or NE */
-    { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 104; /* k4: bigger you-are-here marker */
+    { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 72;
       var mr = Px(map, "ShipHere", here.x - ms / 2, here.y - ms / 2, ms, ms);
-      mr.pivot = new Vector2(0.5f, 0.5f); mr.anchoredPosition = new Vector2(here.x, -here.y); /* final: rotate about the marker centre (Px pivot is top-left, so the route heading swung it off the port) */
       if (mtex) { var mri = mr.gameObject.AddComponent<RawImage>(); mri.texture = mtex; mri.raycastTarget = false; }
       else { var mi = mr.gameObject.AddComponent<Image>(); mi.sprite = Tri(); mi.color = UITheme.C(T.gold); mi.raycastTarget = false; }
       float ang = -45f; if (chartDest >= 0 && chartDest != port) { var to = P(S.ports[chartDest].name) - here; ang = Mathf.Atan2(-to.y, to.x) * Mathf.Rad2Deg - 90f; }
@@ -371,19 +330,17 @@ public partial class Game {
     var card = R(content, "RouteCard", 0, 0, 1, 0); card.pivot = new Vector2(0.5f, 0); card.offsetMin = new Vector2(16, 16); card.offsetMax = new Vector2(-16, 16 + (chartDest >= 0 && chartDest != port ? Mathf.Max(cardH, 640) : 120)); Box(card, T.panel, T.gold);
     var ci = R(card, "in", 0, 1, 0, 1); ci.pivot = new Vector2(0, 1); ci.sizeDelta = new Vector2(1048, 640); ci.anchoredPosition = Vector2.zero;
     if (chartDest < 0 || chartDest == port) { Label(ci, "Tap a port on the chart to plan a route. Drag to pan the map.", 26, 14, 1000, 90, T.fontSize, T.parchment, TextAnchor.MiddleCenter); return; }
-    int dp = chartDest; float ap = AmbushChanceFor(dp); bool risky = RiskyRoute(port, dp); if (routeLogged != dp) { routeLogged = dp; Debug.Log("GB CARD show Route to " + S.ports[dp].name); } /* gamedev_t9 */
-    Label(ci, $"To {S.ports[dp].name}", 100, 16, 440, 76, /* final3: title starts 100 px in, clear of the ~95–110 px top-left bracket */ T.fontSizeTitle + 4, T.parchment, TextAnchor.MiddleLeft, true);
-    bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; var routeLbl = Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 548, 62, 370, 34, /* art_t13_route: below the gold top rule (~y52) with ~10 px gap, above the danger row (y100); ends x918 = cardW-130 */ /* art_t8_brackets: ends at x 900 (148 px inside), clear of the top-right bracket */ /* art_t7_fixes: ends at x 938 (110 px inside the 1048 card), clear of the top-right bracket */ T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight); routeLbl.horizontalOverflow = HorizontalWrapMode.Wrap; routeLbl.verticalOverflow = VerticalWrapMode.Truncate; routeLbl.resizeTextForBestFit = true; routeLbl.resizeTextMinSize = 18; routeLbl.resizeTextMaxSize = T.fontSizeSmall; /* art_t12b_route: x548-938 (110 px inside 1048, 8 px right of title end 540), best-fit keeps it one line */
+    int dp = chartDest; float ap = AmbushChanceFor(dp); bool risky = RiskyRoute(port, dp);
+    Label(ci, $"To {S.ports[dp].name}", 26, 16, 700, 76, T.fontSizeTitle + 4, T.parchment, TextAnchor.MiddleLeft, true);
+    bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 560, 26, 460, 60, T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight);
     float y = 100; bool fogAhead = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; string danger = fogAhead ? $"<color={T.gold}>Moderate pirate danger (25%)</color>" : DangerLabel(ap, sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail);
-    Label(ci, danger, 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSize, T.text); y += 62; if (fogAhead) { Label(ci, $"<color={T.gold}>Fog banks reported on this route</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 50, T.fontSizeSmall, T.text); y += 54; }
+    Label(ci, danger, 26, y, 1000, 56, T.fontSize, T.text); y += 62; if (fogAhead) { Label(ci, $"<color={T.gold}>Fog banks reported on this route</color>", 26, y, 1000, 50, T.fontSizeSmall, T.text); y += 54; }
     var bannedHere = Enumerable.Range(0, S.goods.Length).Where(g => Banned(g, dp) || bans.Any(b => b.good == g && b.port == dp && b.start <= week + 1 && b.end > week)).Select(g => S.goods[g].name).ToList();
-    Label(ci, bannedHere.Count > 0 ? $"Banned on arrival (back alley pays ×{S.contraband.bannedSellMult:0}): " + string.Join(", ", bannedHere) : "No bans reported.", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 58;
-    if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.text); y += 58; }
+    Label(ci, bannedHere.Count > 0 ? $"Banned on arrival (back alley pays ×{S.contraband.bannedSellMult:0}): " + string.Join(", ", bannedHere) : "No bans reported.", 26, y, 1000, 56, T.fontSizeSmall, T.textMuted); y += 58;
+    if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 26, y, 1000, 56, T.fontSizeSmall, T.text); y += 58; }
     bool carries = Enumerable.Range(0, S.goods.Length).Any(g => hold[g] > 0 && bannedHere.Contains(S.goods[g].name));
-    if (carries) { Label(ci, CustomsWaveReason(dp) == "papers" ? $"<color={T.up}>Customs: waved through (Farida's papers)</color>" /* gamedev_l366 */ : (InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Customs: likely waved through</color>" /* art_t5_fixes */ : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>", 100, y, 848, 56, T.fontSizeSmall, T.textMuted); y += 58; } /* art_t5_fixes: customs/Farida line on its own row so "Prices unknown" never squeezes against it */
-    Label(ci, "Prices unknown until you dock." /* art_t5_fixes */ + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 70;
-    float routeH = Mathf.Max(cardH, y + 140 + 24); card.offsetMax = new Vector2(-16, 16 + routeH); ci.sizeDelta = new Vector2(1048, routeH); /* final2: card sized to its content (was fixed 640 with Set Sail pinned at 470 → big empty gap); never shorter than the chart cut-out */
-    SetSailBtn(ci, 100, y, 848, 140, /* final3: x 100–948 so the rope ends clear the bottom brackets */ $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { Debug.Log("GB CARD choose Route to " + S.ports[dp].name + " Set sail"); routeLogged = -1; /* gamedev_t9 */ chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
+    Label(ci, (carries ? ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Farida's papers: customs will wave you through this time</color>   " : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>   ") : "") + "Prices unknown until you dock." + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 26, y, 1000, 56, T.fontSizeSmall, T.textMuted); y += 70;
+    SetSailBtn(ci, 26, 470, 996, 140, $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
   }
 
   /// one danger wording for town and chart (design ambush.dangerLabels); pirate-free voyages are "Calm waters"
@@ -427,9 +384,9 @@ public partial class Game {
     yield return PrologueChoice();
     yield return AskCard("A scorched seal", "On the deck lies a SCORCHED SEAL: a falcon in flames.\nHASAN: \"A falcon in flames... House Qarin?\"", ("Limp into Gwadar", null));
     foreach (var r in shipR) if (r) r.SetPropertyBlock(null); cam.fieldOfView = fov0; cam.backgroundColor = bg0; RenderSettings.fogColor = fogc0; Destroy(deck.gameObject); Destroy(fp); Destroy(night.gameObject); Destroy(moon.gameObject); Destroy(fire.gameObject); foreach (var l in lights) if (l) l.enabled = true; RenderSettings.ambientLight = amb0;
-    pirateShip.gameObject.SetActive(false); fighting = false; { int gw = Array.FindIndex(S.ports, pp => pp.name == "Gwadar"); if (gw >= 0 && sea3D) { sea3D.gameObject.SetActive(true); backdrop.color = Color.clear; Clear(content); TopBar(); ShowSeaLandmark(gw); Debug.Log("GB ARRIVAL landmark Gwadar (intro)"); yield return ArrivalHold("Gwadar", week); ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); } } /* gamedev_t7: intro limps into Gwadar through the same arrival hold */ tab = -1; sails = OpenFlag("voyageCountExcludesDuel") ? 0 : Math.Max(sails, 1); /* limping into Gwadar is voyage 1: Gwadar->Debal is 2, Debal->Muscat is 3 (fog) */ msg = "Dawn at Gwadar. Hasan's dhow creaks against the pier. Tap the bazaar."; lastInput = Time.unscaledTime; Refresh(); }
+    pirateShip.gameObject.SetActive(false); fighting = false; tab = -1; sails = OpenFlag("voyageCountExcludesDuel") ? 0 : Math.Max(sails, 1); /* limping into Gwadar is voyage 1: Gwadar->Debal is 2, Debal->Muscat is 3 (fog) */ msg = "Dawn at Gwadar. Hasan's dhow creaks against the pier. Tap the bazaar."; lastInput = Time.unscaledTime; Refresh(); }
   /// idle 45 s in town during the opening: the goal chip pulses and repeats the current goal
-  public void Nudge() { nudges++; msg = "Next: " + OpeningMediumGoalAt(storyStep); /* gamedev_t10_next: medium goal */ nudgeT = Time.unscaledTime; Refresh(); }
+  public void Nudge() { nudges++; msg = "Next: " + StoryGoals().Item1; nudgeT = Time.unscaledTime; Refresh(); }
   public float nudgeT = -99; Vector3 fire_pos;
   IEnumerator FireSim(Transform tr) {
     const int N = 160; var pos = new Vector3[N]; var vel = new Vector3[N]; var age = new float[N]; var life = new float[N]; var size = new float[N];
@@ -446,26 +403,20 @@ public partial class Game {
   IEnumerator Flicker(Light l) { while (l) { l.intensity = 1.1f + Mathf.PerlinNoise(Time.time * 7, 0.3f) * 0.8f; yield return null; } }
   /// prologue duel: exactly three STRIKE taps, unlosable. 1: the raider blocks, 2: an opening, 3: the finishing blow in slow motion.
   IEnumerator PrologueDuel() {
-    var pnl = Px(root, "Duel", 30, 1480, 1020, 680); /* art_t7_fixes: raised 120 px - the t6 card ran ~30 px off the bottom of the screen */ Box(pnl, T.panel, T.gold);
-    var dTitle = Label(pnl, "Blade to blade on a burning deck", 130, 40, 640, /* art_t11_fixes: off the top rail, between the corner brackets (AskCore geometry) */ /* art_t7_fixes: x 100–900, clear of the top-right bracket */ /* art_t4_fixes: clear of the left bracket arm */ 52, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(pnl, "rule", 130, 100, 640, 2), T.brass); /* art_t11_fixes: rule under title */
-    dTitle.verticalOverflow = VerticalWrapMode.Truncate; dTitle.resizeTextForBestFit = true; dTitle.resizeTextMinSize = 20; dTitle.resizeTextMaxSize = T.fontSizeTitle - 4; /* art_t8_duel: always one line at w800, never wraps into the line below */
-    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 130, 108, 640, /* art_t11_fixes: below the rule, y 108-146 */ /* art_t8_duel: y 80, w 800 */ /* art_t7_fixes */ /* art_t4_fixes */ 38, T.fontSize, T.text);
-    score.verticalOverflow = VerticalWrapMode.Truncate; score.resizeTextForBestFit = true; score.resizeTextMinSize = 18; score.resizeTextMaxSize = T.fontSize; /* art_t8_duel: y 80–140, clear of title (12–72) and ring (150) */
-    var arena = Px(pnl, "arena", 110, 150, 380, 380); /* art_t7_fixes: ring x 110–490, y 150–530 (150 px above the card bottom) */
-    var bg = Px(arena, "bg", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); bg.sprite = Ring(0, 1); bg.color = UITheme.C(T.ink);
-    var goldR = Px(arena, "gold", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); goldR.sprite = Ring(0.7f, 1); goldR.color = UITheme.C(T.gold) * new Color(1, 1, 1, 0.85f); goldR.rectTransform.pivot = new Vector2(.5f, .5f); goldR.rectTransform.anchoredPosition = new Vector2(190, -190); /* art_t8_duel: scale about the centre so the band sits concentric in the disc */ goldR.rectTransform.localScale = Vector3.one * 0.6f;
-    var closing = Px(arena, "closing", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); closing.sprite = Ring(0.95f, 1); closing.color = UITheme.C(T.parchment); closing.rectTransform.pivot = new Vector2(.5f, .5f); closing.rectTransform.anchoredPosition = new Vector2(190, -190); /* art_t8_duel: closing ring shrinks to the disc centre, not its top-left */
-    var res = Label(pnl, "", 500, 170, 440, 116, /* art_t13_block: x500-940 y170-286, 14 px above STRIKE (300); two lines max */ /* art_t7_fixes */ T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true); res.verticalOverflow = VerticalWrapMode.Truncate; res.resizeTextForBestFit = true; res.resizeTextMinSize = 22; res.resizeTextMaxSize = T.fontSizeTitle - 4; /* art_t13_block */
-    bool tapped = false; var strikeBtn = Btn(pnl, "STRIKE", 520, 300, 380, 190, /* art_t7_fixes: x 520–900, bottom 190 px above the card edge */ () => tapped = true, true, true);
-    string[] beats = { "A clean hit! The raider staggers!", "An opening!", "The finishing blow!" }; /* gamedev_t11_prologue: hit beats in order */
-    int hits = 0, missStreak = 0, tapN = 0; score.text = "Hits 0 of 3"; /* gamedev_t11_prologue: a block no longer uses up a strike; ends after 3 band hits */
-    while (hits < 3) { tapped = false; float sc = 1f; tapN++;
-      for (float t = 0; !tapped; t += Time.unscaledDeltaTime / Mathf.Max(0.5f, S.combat.ringSeconds)) { sc = Mathf.Max(0.05f, 1 - Mathf.Repeat(t, 1f)); closing.rectTransform.localScale = Vector3.one * sc; yield return null; }
-      bool onBand = sc >= 0.42f && sc <= 0.60f; bool forced = !onBand && missStreak >= 3; /* gamedev_t11_prologue: gold band radii 0.42-0.60; anti-stuck after 3 misses in a row */
-      string beat; if (onBand || forced) { beat = beats[hits]; hits++; missStreak = 0; } else { missStreak++; beat = (sc > 0.60f ? "Too early!" : "Too late!") + "\nWatch the gold band!"; /* gamedev_t12_blockline: shorter, clear of STRIKE */ }
-      Debug.Log($"GB DUEL prologue tap={tapN} scale={sc:0.000} onBand={onBand} hits={hits} missStreak={missStreak} forced={forced}"); /* gamedev_t11_prologue */
-      res.text = beat; score.text = $"Hits {hits} of 3"; if (playthrough) PLog2("duel strike", beat.Replace("\n", " "));
-      if (hits == 3) { Destroy0(strikeBtn.gameObject); Destroy0(arena.gameObject); /* no 4th tap during the slow-motion finish */ float ts = Time.timeScale; Time.timeScale = 0.2f; var p0 = cam.transform.position; var target = ship.TransformPoint(new Vector3(0, 1.2f, -1.4f));
+    var pnl = Px(root, "Duel", 30, 1600, 1020, 660); Box(pnl, T.panel, T.gold);
+    Label(pnl, "Blade to blade on a burning deck", 24, 12, 960, 60, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
+    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 24, 70, 960, 46, T.fontSize, T.text);
+    var arena = Px(pnl, "arena", 30, 196, 440, 440);
+    var bg = Px(arena, "bg", 0, 0, 440, 440).gameObject.AddComponent<Image>(); bg.sprite = Ring(0, 1); bg.color = UITheme.C(T.ink);
+    var goldR = Px(arena, "gold", 0, 0, 440, 440).gameObject.AddComponent<Image>(); goldR.sprite = Ring(0.7f, 1); goldR.color = UITheme.C(T.gold) * new Color(1, 1, 1, 0.85f); goldR.rectTransform.localScale = Vector3.one * 0.6f;
+    var closing = Px(arena, "closing", 0, 0, 440, 440).gameObject.AddComponent<Image>(); closing.sprite = Ring(0.95f, 1); closing.color = UITheme.C(T.parchment);
+    var res = Label(pnl, "", 490, 220, 500, 100, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
+    bool tapped = false; var strikeBtn = Btn(pnl, "STRIKE", 490, 330, 500, 190, () => tapped = true, true, true);
+    string[] beats = { "The raider blocks!", "An opening!", "The finishing blow!" };
+    for (int k = 0; k < 3; k++) { tapped = false;
+      for (float t = 0; !tapped; t += Time.unscaledDeltaTime / Mathf.Max(0.5f, S.combat.ringSeconds)) { closing.rectTransform.localScale = Vector3.one * Mathf.Max(0.05f, 1 - Mathf.Repeat(t, 1f)); yield return null; }
+      res.text = beats[k]; score.text = $"Strike {k + 1} of 3"; if (playthrough) PLog2("duel strike", beats[k]);
+      if (k == 2) { Destroy0(strikeBtn.gameObject); Destroy0(arena.gameObject); /* no 4th tap during the slow-motion finish */ float ts = Time.timeScale; Time.timeScale = 0.2f; var p0 = cam.transform.position; var target = ship.TransformPoint(new Vector3(0, 1.2f, -1.4f));
         for (float u = 0; u < 1.4f; u += Time.unscaledDeltaTime) { cam.transform.position = Vector3.Lerp(p0, target + (p0 - target).normalized * 2.6f, Mathf.SmoothStep(0, 1, u / 1.4f)); cam.transform.LookAt(target); yield return null; }
         Time.timeScale = ts; }
       else yield return new WaitForSecondsRealtime(0.7f); }

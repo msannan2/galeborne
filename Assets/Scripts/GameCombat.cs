@@ -25,7 +25,7 @@ public partial class Game {
     if (choice == 1) msg = "The wind fails you. They close to fight!";
     yield return Fight();
   }
-  void PayCargo(int n, bool spareGp = false, HashSet<int> keep = null) { int gp = G("gunpowder"); for (int i = 0; i < n && HoldUsed > 0; i++) { var held = LosableGoods() /* gamedev_t15_storysafe */ .Where(g => !(spareGp && g == gp) && (keep == null || !keep.Contains(g)) /* gamedev_t8 */).ToList(); if (held.Count == 0) break; hold[held[Rnd.Range(0, held.Count)]]--; } } /* the opening spares the gunpowder on a first-ambush loss */
+  void PayCargo(int n, bool spareGp = false) { int gp = G("gunpowder"); for (int i = 0; i < n && HoldUsed > 0; i++) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !(spareGp && g == gp)).ToList(); if (held.Count == 0) break; hold[held[Rnd.Range(0, held.Count)]]--; } } /* the opening spares the gunpowder on a first-ambush loss */
   int AddCargo(int g, int q) { q = Mathf.Min(q, S.holdSize - HoldUsed); if (q > 0) hold[g] += q; return Mathf.Max(0, q); }
 
   public IEnumerator Fight(bool scripted = false) {
@@ -275,61 +275,30 @@ public partial class Game {
     int n = 256; var tex = new Texture2D(n, n, TextureFormat.RGBA32, false); var px = new Color[n * n];
     for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) { float r = new Vector2(x - n / 2f + .5f, y - n / 2f + .5f).magnitude / (n / 2f); px[y * n + x] = r <= outer && r >= inner ? Color.white : Color.clear; }
     tex.SetPixels(px); tex.Apply(); return rings[key] = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(.5f, .5f)); }
-  /* gamedev_t10_duel: short procedural metal clang (no SFX assets in the project) */
-  AudioClip clangClip; AudioSource clangSrc;
-  void PlayClang() {
-    if (clangClip == null) { int sr = 44100, n = (int)(sr * 0.45f); var d = new float[n]; var r = new System.Random(7);
-      for (int i = 0; i < n; i++) { float t = i / (float)sr, env = Mathf.Exp(-t * 9f), hitEnv = Mathf.Exp(-t * 60f);
-        d[i] = 0.5f * env * (0.45f * Mathf.Sin(2 * Mathf.PI * 1180f * t) + 0.3f * Mathf.Sin(2 * Mathf.PI * 2730f * t) + 0.2f * Mathf.Sin(2 * Mathf.PI * 4310f * t) + 0.12f * Mathf.Sin(2 * Mathf.PI * 6150f * t)) + 0.35f * hitEnv * (float)(r.NextDouble() * 2 - 1); }
-      clangClip = AudioClip.Create("gb_clang", n, 1, sr, false); clangClip.SetData(d, 0); }
-    if (clangSrc == null) clangSrc = gameObject.AddComponent<AudioSource>();
-    clangSrc.PlayOneShot(clangClip, 0.8f); Debug.Log("GB DUEL clang");
-  }
   IEnumerator Duel(bool attacking) {
     var c = S.combat; float zone = core.DuelZone(); int need = c.duelRounds / 2 + 1, won = 0, lost = 0;
-    var pnl = Px(root, "Duel", 30, 1540, 1020, 720) /* art_t12_cards: 60 px taller, grown upward (bottom stays at 2260) */; Box(pnl, T.panel, T.gold);
-    Label(pnl, attacking ? "Boarding: blade to blade" : "Repel boarders!", 130, 40, 760, 52, /* art_t12_cards: off the top rail, between the corner brackets */ T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
-    Box(Px(pnl, "rule", 130, 100, 760, 2), T.brass); /* art_t12_cards: rule under title */ var score = Label(pnl, "", 130, 110, 760, 44, /* art_t12_cards: was 24,70 */ T.fontSize, T.text);
-    Label(pnl, $"Tap STRIKE as the ring crosses the gold band. Gold zone {zone * 100:0}%" + (core.P.crew < core.H.crew ? " (crew advantage)" : ""), 130, 156, 760, 70, /* art_t12_cards: was 24,114,970 */ T.fontSizeSmall - 4, T.textMuted);
-    var arena = Px(pnl, "arena", 110, 236, 370, 370) /* art_t13_ring: disc x110-480 y236-606, 110+ px inside the bottom-left bracket and bottom edge (card h720), clear of the help line (ends 226) */ /* art_t12_cards: +60 */;
-    var bg = Px(arena, "bg", 0, 0, 370, 370) /* art_t13_ring */.gameObject.AddComponent<Image>(); bg.sprite = Ring(0, 1); bg.color = UITheme.C(T.ink);
-    var goldR = Px(arena, "gold", 0, 0, 370, 370) /* art_t13_ring */.gameObject.AddComponent<Image>(); goldR.sprite = Ring((0.5f - zone / 2) / (0.5f + zone / 2), 1); goldR.color = UITheme.C(T.gold) * new Color(1, 1, 1, 0.85f);
-    goldR.rectTransform.pivot = new Vector2(.5f, .5f); goldR.rectTransform.anchoredPosition = new Vector2(185, -185); /* art_t13_ring: scale about the disc centre (Px pivot is top-left) */ goldR.rectTransform.localScale = Vector3.one * (0.5f + zone / 2);
-    var closing = Px(arena, "closing", 0, 0, 370, 370) /* art_t13_ring */.gameObject.AddComponent<Image>(); closing.sprite = Ring(0.95f, 1); closing.color = UITheme.C(T.parchment); closing.rectTransform.pivot = new Vector2(.5f, .5f); closing.rectTransform.anchoredPosition = new Vector2(185, -185); /* art_t13_ring: closing ring shrinks to the disc centre */
-    var res = Label(pnl, "", 490, 280, /* art_t12_cards: +60 */ 500, 80, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
-    bool tapped = false; Btn(pnl, "STRIKE", 490, 390, /* art_t12_cards: +60 */ 500, 190, () => tapped = true, true, true);
-    bool paced = duelsFought > 0; /* gamedev_t13_duelpace: repel/board only, prologue unchanged */
+    var pnl = Px(root, "Duel", 30, 1600, 1020, 660); Box(pnl, T.panel, T.gold);
+    Label(pnl, attacking ? "Boarding: blade to blade" : "Repel boarders!", 24, 12, 960, 60, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
+    var score = Label(pnl, "", 24, 70, 960, 46, T.fontSize, T.text);
+    Label(pnl, $"Tap STRIKE as the ring crosses the gold band. Gold zone {zone * 100:0}%" + (core.P.crew < core.H.crew ? " (crew advantage)" : ""), 24, 114, 970, 70, T.fontSizeSmall - 4, T.textMuted);
+    var arena = Px(pnl, "arena", 30, 196, 440, 440);
+    var bg = Px(arena, "bg", 0, 0, 440, 440).gameObject.AddComponent<Image>(); bg.sprite = Ring(0, 1); bg.color = UITheme.C(T.ink);
+    var goldR = Px(arena, "gold", 0, 0, 440, 440).gameObject.AddComponent<Image>(); goldR.sprite = Ring((0.5f - zone / 2) / (0.5f + zone / 2), 1); goldR.color = UITheme.C(T.gold) * new Color(1, 1, 1, 0.85f);
+    goldR.rectTransform.localScale = Vector3.one * (0.5f + zone / 2);
+    var closing = Px(arena, "closing", 0, 0, 440, 440).gameObject.AddComponent<Image>(); closing.sprite = Ring(0.95f, 1); closing.color = UITheme.C(T.parchment);
+    var res = Label(pnl, "", 490, 220, 500, 80, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
+    bool tapped = false; Btn(pnl, "STRIKE", 490, 330, 500, 190, () => tapped = true, true, true);
     for (int round = 0; won < need && lost < need; round++) {
       score.text = $"Round {round + 1}   You {won} – {lost} Pirate"; tapped = false; res.text = ""; float hitAt = -1;
-      float ringSec = (paced && round == 0) ? Mathf.Max(c.ringSeconds, 2.0f) : c.ringSeconds; /* gamedev_t13_duelpace: gentler round 1 only; json value untouched */
-      if (paced) { closing.rectTransform.localScale = Vector3.one; if (round == 0) { res.text = "En garde!"; yield return new WaitForSeconds(1.0f); } else yield return new WaitForSeconds(0.6f); res.text = ""; tapped = false; Debug.Log($"GB DUEL pace round={round + 1} ringSec={ringSec:0.0} lead={(round == 0 ? 1.0f : 0.6f):0.0}"); } /* gamedev_t13_duelpace: early taps during the beat are discarded */
-      for (float t = 0; t < 1f; t += Time.deltaTime / ringSec) {
+      for (float t = 0; t < 1f; t += Time.deltaTime / c.ringSeconds) {
         if (duelFreeze >= 0) t = duelFreeze;
         closing.rectTransform.localScale = Vector3.one * Mathf.Max(0.02f, 1 - t);
-        if (gbDuelAuto && t >= 0.5f) tapped = true; /* gamedev_t11_gbduel: -gbduelshots auto-taps mid-band */
         if (tapped) { hitAt = t; break; } yield return null; }
       bool hit = hitAt >= 0.5f - zone / 2 && hitAt <= 0.5f + zone / 2;
-      bool parried = false; /* gamedev_t10_duel */
-      bool forcedParry = !attacking && hit && GbParry; /* gamedev_t11_gbduel */
-      if (!attacking && hit && (forcedParry || Rnd.value < c.pirateDuelHit * 0.5f)) { hit = false; parried = true; } // a defending crew is pressed harder (Jeff t10: kept, but shown as a visible parry)
-      if (!hit && duelsFought == 0) { hit = true; parried = false; hitAt = 0.5f; } // prologue duel: Hasan's crew rallies, it can't be lost
-      if (parried) PlayClang(); /* gamedev_t10_duel */
-      Debug.Log($"GB DUEL round={round + 1} tap={hitAt:0.000} band=[{0.5f - zone / 2:0.000},{0.5f + zone / 2:0.000}] hit={hit} parried={parried}" + (forcedParry ? " forced" : "")); /* gamedev_t10_duel: ring outer radius = 1-tap; gold ring spans the same [lo,hi] radii */
-      if (hit) won++; else lost++; res.text = hit ? "Hit!" : parried ? "Good strike, but the pirate parried!" /* gamedev_t10_duel */ : hitAt < 0 ? "Too slow — parried" : hitAt < 0.5f - zone / 2 ? "Too early — parried" : "Too late — parried";
-      score.text = $"You {won} – {lost} Pirate"; if (gbDuelShotDir != null) { yield return new WaitForSeconds(0.2f); yield return ShotCo(System.IO.Path.Combine(gbDuelShotDir, $"gbduel_{(attacking ? "board" : "repel")}_r{round + 1}_{(hit ? "hit" : parried ? "parried" : "miss")}.png")); } yield return new WaitForSeconds(0.9f); }
+      if (!attacking && hit && Rnd.value < c.pirateDuelHit * 0.5f) hit = false; // a defending crew is pressed harder
+      if (!hit && duelsFought == 0) { hit = true; hitAt = 0.5f; } // prologue duel: Hasan's crew rallies, it can't be lost
+      if (hit) won++; else lost++; res.text = hit ? "Hit!" : hitAt < 0 ? "Too slow — parried" : hitAt < 0.5f - zone / 2 ? "Too early — parried" : "Too late — parried";
+      score.text = $"You {won} – {lost} Pirate"; yield return new WaitForSeconds(0.9f); }
     duelWon = won >= need; duelsFought++; Destroy0(pnl.gameObject);
   }
-
-  /* gamedev_t11_gbduel: -gbduel repel|board opens the real Duel() at launch; -gbparry 1 forces the defending parry; -gbduelshots DIR auto-taps and screenshots */
-  bool gbDuelAuto; string gbDuelShotDir;
-  static bool GbParry { get { var a = System.Environment.GetCommandLineArgs(); int i = System.Array.IndexOf(a, "-gbparry"); return i >= 0 && i + 1 < a.Length && a[i + 1] == "1"; } }
-  IEnumerator GbDuelIfAsked(string mode) {
-    var a = System.Environment.GetCommandLineArgs(); int si = System.Array.IndexOf(a, "-gbduelshots"); if (si >= 0 && si + 1 < a.Length) { gbDuelShotDir = a[si + 1]; gbDuelAuto = true; System.IO.Directory.CreateDirectory(gbDuelShotDir); }
-    bool attacking = mode == "board"; onTitle = false; if (duelsFought < 1) duelsFought = 1;
-    core = new CombatCore(S.combat, Rnd.Range(0, int.MaxValue), crewInjured, PirateTierNow, difficulty);
-    Debug.Log($"GB DUEL start mode={mode} attacking={attacking} duelsFought={duelsFought} parryForced={GbParry} zone={core.DuelZone():0.000}");
-    yield return new WaitForSeconds(0.5f); yield return Duel(attacking);
-    Debug.Log($"GB DUEL end mode={mode} won={duelWon}"); core = null; fighting = false;
-    if (gbDuelShotDir != null) { yield return new WaitForSeconds(0.5f); Application.Quit(); yield break; }
-    ShowTitle(); }
 }
