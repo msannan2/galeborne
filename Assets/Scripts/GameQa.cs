@@ -251,7 +251,7 @@ public partial class Game {
       L($"ambush toll clock: still ships toll at {tf:0.00} s; 40 s closing idle {k0:0.00} s; 40 s firing idle {w.idleT:0.00} s; one shot then still: toll at {vi:0.00} s (reload {wReload})");
       Chk(tf > 29.9f && tf < 30.1f, $"gamedev_ambush: with no closing and no firing the toll fires after 30 s ({tf:0.00} s)");
       Chk(!yFired && k0 < 0.05f, $"gamedev_ambush: toll clock paused while the gap shrinks (40 s closing, idle {k0:0.00} s)");
-      Chk(!wFired && w.idleT < 0.05f && Mathf.Abs(vi - (30f + wReload)) < 0.1f, $"gamedev_ambush: toll clock paused while firing (40 s firing idle {w.idleT:0.00} s; one shot delays the toll to {vi:0.00} s)");
+      Chk(!wFired && w.idleT < 0.05f && Mathf.Abs(vi - (30f + wReload + 0.5f)) < 0.1f, $"gamedev_toll_fix: a shot resets the idle clock and holds it for a reload + 0.5 s (40 s firing idle {w.idleT:0.00} s; one shot then still tolls at {vi:0.00} s)");
       var u = new CombatCore(cc, 11, false, 0, difficulty); u.SetupStoryApproach(st); u.idleTollSeconds = cc.storyIdleTollSeconds; for (int i = 0; i < 5000 && u.outcome == Outcome.None; i++) { u.H.rudder = CombatCore.Steer(u.H, CombatCore.Bearing(u.H.x - u.P.x, u.H.z - u.P.z)); u.Step(0.02f); }
       Chk(u.outcome == Outcome.HasanStruck && u.idleTollFired && u.t >= 30f, $"gamedev_ambush: sailing away ends the story fight with the toll once 30 idle seconds add up (outcome {u.outcome}, fight {u.t:0.0} s, idle {u.idleT:0.0} s)"); }
     // ---- gamedev_ambush: hand-style fog ambush in the live game: steer at the pirate at full sail through the real rudder input, solid ring, FIRE button, hit ----
