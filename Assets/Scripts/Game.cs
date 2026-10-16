@@ -576,6 +576,16 @@ public partial class Game : MonoBehaviour {
   public float lastVoyageAmbushChance;
   /// v0.6i soft mid-voyage choices (not ambushes): sail on horizon, storm front, wreckage
   int voyageKindsUsed; /* gamedev_t13_nodupe: bitmask of decision kinds already drawn this voyage */
+  /// gamedev_salvage_full: one salvage card for every wreck. Full hold: the take option is greyed (shared greyed style) with a 'Hold full' caption;
+  /// partly full: take what fits and say how much is left behind.
+  public const string HoldFullCaption = "Hold full";
+  public string SalvageBody(string what, int g, int offer, int fit) => fit <= 0 ? $"{what} You could fish up {GoodCount(g, offer)}, but your hold is full."
+    : fit < offer ? $"{what} Room for {GoodCount(g, fit)} only: {offer - fit} will be left behind (hold full)." : $"{what} You could fish up {GoodCount(g, offer)}.";
+  public IEnumerator SalvageCard(string title, string what, int g, int offer, string take) {
+    int fit = Mathf.Clamp(S.holdSize - HoldUsed, 0, offer), left = offer - fit; Debug.Log($"GB SALVAGE {title} offer={offer} fit={fit} left={left}");
+    yield return Ask(title, SalvageBody(what, g, offer, fit),
+      (fit > 0 ? take : AskOff + take + "\n" + HoldFullCaption, () => { hold[g] += fit; msg = $"Salvaged {GoodCount(g, fit)}." + (left > 0 ? $" {left} left behind: hold full." : ""); }),
+      ("Sail on", () => msg = fit > 0 ? "You leave the wreckage to the gulls." : "Hold full. You leave the wreckage to the gulls.")); }
   IEnumerator VoyageDecision() {
     var freeKinds = Enumerable.Range(0, 3).Where(k => (voyageKindsUsed & (1 << k)) == 0).ToList(); /* gamedev_t13_nodupe */
     if (freeKinds.Count == 0) { Debug.Log("GB VOYAGE decision kind=none (all used)"); yield break; }
@@ -596,10 +606,7 @@ public partial class Game : MonoBehaviour {
       if (reef) { /* costs a little time but Voyage bar already handles FF */ }
       yield return Ask("Storm front", stLost > 0 ? $"Lost: {GoodCount(stG, stLost)}." : "You ride it out.", ("Continue", null)); /* gamedev_t16_stormcard */
     } else {
-      int g = Rnd.Range(0, S.goods.Length), q = Mathf.Min(Rnd.Range(1, 4), S.holdSize - HoldUsed);
-      yield return Ask("Wreckage", q > 0 ? $"Casks and splintered planks drift on the swell. You could fish up {GoodCount(g, q)}." : "Casks drift by, but your hold is full.",
-        ("Salvage", () => { if (q > 0) { hold[g] += q; msg = $"Salvaged {GoodCount(g, q)}."; } else msg = "Nothing to take."; }),
-        ("Sail on", () => msg = "You leave the wreckage to the gulls."));
+      int g = Rnd.Range(0, S.goods.Length); yield return SalvageCard("Wreckage", "Casks and splintered planks drift on the swell.", g, Rnd.Range(1, 4), "Salvage"); /* gamedev_salvage_full */
     }
     Refresh();
   }
@@ -610,9 +617,7 @@ public partial class Game : MonoBehaviour {
     if ((r -= wgt.pirate) < 0) {
       yield return AmbushWithResult(forcedFog ? "fog" : PickAmbushType()); /* designer_ambush_customs */
     } else if ((r -= wgt.wreck) < 0) {
-      int g = Rnd.Range(0, S.goods.Length), q = Mathf.Min(Rnd.Range(2, 6), S.holdSize - HoldUsed);
-      yield return Ask("Wreckage adrift", q > 0 ? $"Splintered timbers and {q} sealed bales of {S.goods[g].name}." : "Splintered timbers, but your hold is full.",
-        ("Haul it aboard", () => { hold[g] += q; msg = q > 0 ? $"Salvaged {GoodCount(g, q)}." : "Nothing to take."; }));
+      int g = Rnd.Range(0, S.goods.Length); yield return SalvageCard("Wreckage adrift", "Splintered timbers and sealed bales drift past.", g, Rnd.Range(2, 6), "Haul it aboard"); /* gamedev_salvage_full */
     } else if ((r -= wgt.merchant) < 0) {
       int g = Rnd.Range(0, S.goods.Length); if (S.goods[g].contraband) g = 0; int unit = Mathf.Max(1, Mathf.RoundToInt(basePrice[dest, g] * 0.7f)), q = Mathf.Min(5, S.holdSize - HoldUsed);
       q = Mathf.Min(q, Mathf.FloorToInt(coins * seaMerchantMaxFrac / unit)); /* offer capped at design frac of coins */

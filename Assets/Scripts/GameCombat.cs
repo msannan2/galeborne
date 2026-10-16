@@ -97,8 +97,8 @@ public partial class Game {
   IEnumerator Resolve(Outcome o) {
     var c = S.combat; string pg = S.goods[pirateGood].name;
     switch (o) {
-      case Outcome.Sunk: { EgFightWon("sunk"); /* gamedev_end1 */ int q = AddCargo(pirateGood, Mathf.RoundToInt(pirateQty * c.sinkCargoPct)); int coinsWon = Rnd.Range((int)c.sinkCoinsMin, (int)c.sinkCoinsMax + 1); coins += coinsWon;
-        yield return Ask("She goes down", $"The pirate dhow settles by the stern. You fish {q} {pg} and {coinsWon} coins from the wreckage." + (crateBonus > 0 ? $"\n\n{crateBonus} floating crates hauled aboard: +{AddCargo(pirateGood2, crateBonus)} {S.goods[pirateGood2].name} and {crateBonus * 25} coins." : ""), ("Continue", null)); if (crateBonus > 0) coins += crateBonus * 25; crateBonus = 0; break; }
+      case Outcome.Sunk: { EgFightWon("sunk"); /* gamedev_end1 */ int want = Mathf.RoundToInt(pirateQty * c.sinkCargoPct), q = AddCargo(pirateGood, want); int coinsWon = Rnd.Range((int)c.sinkCoinsMin, (int)c.sinkCoinsMax + 1); coins += coinsWon;
+        yield return Ask("She goes down", $"The pirate dhow settles by the stern. You fish {q} {pg} and {coinsWon} coins from the wreckage." + (want > q ? $" {want - q} {pg} left behind: hold full." : "") + (crateBonus > 0 ? $"\n\n{crateBonus} floating crates hauled aboard: +{AddCargo(pirateGood2, crateBonus)} {S.goods[pirateGood2].name} and {crateBonus * 25} coins." : ""), ("Continue", null)); if (crateBonus > 0) coins += crateBonus * 25; crateBonus = 0; break; }
       case Outcome.Surrender:
       case Outcome.Disabled: { bool board = false;
         askGuardSec = BoardInputGuardSec; yield return Ask("Colours struck", (o == Outcome.Surrender ? "Her crew is broken and hauls down the flag." : "Crippled and outnumbered, the pirate hauls down her flag.") +

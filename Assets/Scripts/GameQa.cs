@@ -10,6 +10,18 @@ using UnityEngine.UI;
    (HandleBack = what the Android Back / Escape key calls, real Button.onClick for taps), prints "GB QA PASS|FAIL <check>",
    writes <savedir>/qa/qa_results.txt + screenshots, then runs the endgame self-test (GB EGTEST lines) and quits (exit 0 = all pass). */
 public partial class Game {
+  /// gamedev_salvage_full: drawn-pixel check of a greyed option (plate, no outline, label ink, contrast vs an active button) from a real screen capture
+  IEnumerator QaGreyDrawn(Button ub, Button act, System.Action<bool, string> rep) {
+    yield return new WaitForEndOfFrame(); var cap = ScreenCapture.CaptureScreenshotAsTexture(); var cv = ub.GetComponentInParent<Canvas>().rootCanvas; Camera ucam = cv.renderMode == RenderMode.ScreenSpaceOverlay ? null : cv.worldCamera;
+    Color P(float x, float y) => cap.GetPixel(Mathf.Clamp(Mathf.RoundToInt(x), 0, cap.width - 1), Mathf.Clamp(Mathf.RoundToInt(y), 0, cap.height - 1));
+    (Vector2, Vector2) Sc(RectTransform r) { var w = new Vector3[4]; r.GetWorldCorners(w); return (RectTransformUtility.WorldToScreenPoint(ucam, w[0]), RectTransformUtility.WorldToScreenPoint(ucam, w[2])); }
+    Color Ink(Text t, bool bright) { var (a, b) = Sc((RectTransform)t.transform); Color best = bright ? Color.black : Color.white; for (float x = a.x; x < b.x; x++) for (float y = a.y; y < b.y; y++) { var c = P(x, y); float s = c.r + c.g + c.b; if (bright ? s > best.r + best.g + best.b : s < best.r + best.g + best.b) best = c; } return best; }
+    float Lum(Color c) { float F(float v) => v <= 0.03928f ? v / 12.92f : Mathf.Pow((v + 0.055f) / 1.055f, 2.4f); return 0.2126f * F(c.r) + 0.7152f * F(c.g) + 0.0722f * F(c.b); }
+    float CR(Color a, Color b) { float l1 = Lum(a), l2 = Lum(b); return (Mathf.Max(l1, l2) + 0.05f) / (Mathf.Min(l1, l2) + 0.05f); } float D(Color p, Color q) => Mathf.Max(Mathf.Abs(p.r - q.r), Mathf.Abs(p.g - q.g), Mathf.Abs(p.b - q.b)) * 255f;
+    var (b0, b2) = Sc((RectTransform)ub.transform); float my = (b0.y + b2.y) / 2; Color bg = P(b0.x - 5, my), plc = P(b0.x + 4, my), edge = P(b0.x + 1, my), want = Color.Lerp(bg, UITheme.C(GreyPlateHex), GreyPlateAlpha);
+    var ut = ub.GetComponentInChildren<Text>(); bool light = UITheme.C(GreyLabelHex).grayscale > UITheme.C(GreyPlateHex).grayscale; Color ink = Ink(ut, light), wantL = Color.Lerp(plc, UITheme.C(GreyLabelHex), GreyLabelAlpha);
+    var (a0, a2) = Sc((RectTransform)act.transform); Color apl = P(a0.x + 6, (a0.y + a2.y) / 2), aink = Ink(act.GetComponentInChildren<Text>(), true); float cg = CR(ink, plc), ca = CR(aink, apl); Destroy(cap);
+    rep(D(plc, want) <= 14 && D(edge, plc) <= 8 && D(ink, wantL) <= 18 && cg < ca && cg >= 2.5f, $"plate #{ColorUtility.ToHtmlStringRGB(plc)} (want #{ColorUtility.ToHtmlStringRGB(want)}), edge #{ColorUtility.ToHtmlStringRGB(edge)}, label #{ColorUtility.ToHtmlStringRGB(ink)} (want #{ColorUtility.ToHtmlStringRGB(wantL)}), contrast {cg:0.00}:1 vs active {ca:0.00}:1"); }
   IEnumerator QaRun() {
     if (!SaveDirIsolated) { Debug.Log("GB QA REFUSED: run with -gbsavedir under /tmp"); Application.Quit(4); yield break; }
     string dir = Path.Combine(SaveDir, "qa"); Directory.CreateDirectory(dir); var log = new StreamWriter(Path.Combine(dir, "qa_results.txt")); int fails = 0, n = 0;
@@ -158,6 +170,21 @@ public partial class Game {
 yield return Shot("polish_blk_greyed_button"); }
       EgTestCloseCard(); yield return null; yield return null; Chk(hold[cu] == 0 && coins == fee - 1, "greyed card still lets them take it");
       blockGood[mu] = -1; blockKnown[mu] = false; blockPending = -1; port = db; coins = c0; hold[cu] = h0; tab = -1; dialog = null; Refresh(); yield return null; }
+    // ---- gamedev_salvage_full: full hold greys Salvage with 'Hold full'; partial hold takes what fits and says what is left behind ----
+    { tab = -1; dialog = null; Refresh(); yield return null; var h0 = (int[])hold.Clone(); string m0 = msg; int g = G("copper"), fill = G("salt") >= 0 ? G("salt") : 0; if (fill == g) fill = (g + 1) % hold.Length;
+      bool AnyS(string s0) => FindObjectsByType<Text>(FindObjectsSortMode.None).Any(t => t.gameObject.activeInHierarchy && t.text.Contains(s0));
+      void SetFree(int free) { System.Array.Clear(hold, 0, hold.Length); hold[fill] = Mathf.Max(0, S.holdSize - free); }
+      SetFree(0); var sc = StartCoroutine(SalvageCard("Wreckage", "Casks and splintered planks drift on the swell.", g, 3, "Salvage")); yield return null; yield return null;
+      var sb = Find("Salvage"); var so = Find("Sail on"); var cap = dialog ? dialog.GetComponentsInChildren<Text>().FirstOrDefault(t => t.gameObject.name == "OptionReason") : null; bool bodyFull = AnyS("You could fish up 3 ") && AnyS("but your hold is full.");
+      Chk(sb != null && !sb.interactable && sb.GetComponentInChildren<Text>().text == "Salvage" && cap != null && cap.text == HoldFullCaption && bodyFull && so != null && so.interactable, $"gamedev_salvage_full: full hold: Salvage greyed with '{cap?.text}' under it, body says the hold is full, Sail on still works");
+      if (sb && so) yield return QaGreyDrawn(sb, so, (ok, d) => Chk(ok, "gamedev_salvage_full: greyed Salvage draws the shared greyed style with no disabled tint: " + d));
+      yield return Shot("salvage_hold_full"); if (sb) sb.onClick.Invoke(); yield return null; bool stillUp = dialog != null; if (so) so.onClick.Invoke(); yield return null; yield return null;
+      Chk(stillUp && HoldUsed == S.holdSize && hold[g] == 0 && msg.StartsWith("Hold full."), $"gamedev_salvage_full: tapping the greyed Salvage does nothing; Sail on leaves it ('{msg}')");
+      SetFree(1); StartCoroutine(SalvageCard("Wreckage", "Casks and splintered planks drift on the swell.", g, 3, "Salvage")); yield return null; yield return null; var pb2 = Find("Salvage"); bool bodyPart = AnyS("Room for 1 ") && AnyS("2 will be left behind (hold full)."); yield return Shot("salvage_partial");
+      if (pb2) pb2.onClick.Invoke(); yield return null; yield return null; Chk(pb2 != null && pb2.interactable && bodyPart && hold[g] == 1 && HoldUsed == S.holdSize && msg.Contains("2 left behind: hold full."), $"gamedev_salvage_full: partly full hold salvages what fits (1 of 3) and says 2 were left behind ('{msg}')");
+      SetFree(10); StartCoroutine(SalvageCard("Wreckage adrift", "Splintered timbers and sealed bales drift past.", g, 3, "Haul it aboard")); yield return null; yield return null; var hb = Find("Haul it aboard"); bool bodyAll = AnyS("You could fish up 3 ");
+      if (hb) hb.onClick.Invoke(); yield return null; yield return null; Chk(hb != null && hb.interactable && bodyAll && hold[g] == 3 && !msg.Contains("left behind"), $"gamedev_salvage_full: room to spare takes all 3 ('{msg}')");
+      System.Array.Copy(h0, hold, hold.Length); msg = m0; dialog = null; Refresh(); yield return null; }
     // ---- gamedev_continue: blockade seizure on docking is never silent; HUD Next shows the urgent contract ----
     { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; blockStart[mu] = -1000; blockKnown[mu] = true; safeUntilSail = sails + 100; Refresh(); yield return null;
       StartCoroutine(Voyage(mu)); bool card = false; float tq = Time.realtimeSinceStartup;
