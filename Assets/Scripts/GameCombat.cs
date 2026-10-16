@@ -91,22 +91,23 @@ public partial class Game {
   IEnumerator Resolve(Outcome o) {
     var c = S.combat; string pg = S.goods[pirateGood].name;
     switch (o) {
-      case Outcome.Sunk: { int q = AddCargo(pirateGood, Mathf.RoundToInt(pirateQty * c.sinkCargoPct)); int coinsWon = Rnd.Range((int)c.sinkCoinsMin, (int)c.sinkCoinsMax + 1); coins += coinsWon;
+      case Outcome.Sunk: { EgFightWon("sunk"); /* gamedev_end1 */ int q = AddCargo(pirateGood, Mathf.RoundToInt(pirateQty * c.sinkCargoPct)); int coinsWon = Rnd.Range((int)c.sinkCoinsMin, (int)c.sinkCoinsMax + 1); coins += coinsWon;
         yield return Ask("She goes down", $"The pirate dhow settles by the stern. You fish {q} {pg} and {coinsWon} coins from the wreckage." + (crateBonus > 0 ? $"\n\n{crateBonus} floating crates hauled aboard: +{AddCargo(pirateGood2, crateBonus)} {S.goods[pirateGood2].name} and {crateBonus * 25} coins." : ""), ("Continue", null)); if (crateBonus > 0) coins += crateBonus * 25; crateBonus = 0; break; }
       case Outcome.Surrender:
       case Outcome.Disabled: { bool board = false;
         yield return Ask("Colours struck", (o == Outcome.Surrender ? "Her crew is broken and hauls down the flag." : "Crippled and outnumbered, the pirate hauls down her flag.") +
           "\n\nSurrender: their hold and the ship.\nBoard: also the captain, his strongbox and a charm — but you must win the duel.", ("Accept surrender", null), ("Board", () => board = true));
-        if (board) { yield return BoardFlow(); break; }
+        if (board) { yield return BoardFlow(); break; } EgFightWon("surrender"); /* gamedev_end1 */
         int q = AddCargo(pirateGood, pirateQty) + AddCargo(pirateGood2, pirateQty2); coins += (int)c.prizeShipCoins; string extra = "";
         if (Rnd.value < c.surrenderCrewJoinChance) { crewInjured = false; extra = " A few of their sailors sign on with Hasan."; }
         yield return Ask("Spoils", $"They hand over their hold ({q} goods) and you sell the ship as a prize for {c.prizeShipCoins:0} coins.{extra}", ("Continue", null)); break; }
       case Outcome.HasanStruck: yield return Lose("Hasan's crew can fight no more and you strike your colours."); break;
       case Outcome.BoardReady: yield return BoardFlow(); break;
-      case Outcome.TollPaid: { int q = AddCargo(pirateGood, Mathf.CeilToInt(pirateQty * c.tollLootFrac)); int pay = Mathf.RoundToInt(c.prizeShipCoins * c.tollLootFrac); coins += pay;
+      case Outcome.TollPaid: { EgFightWon("toll"); /* gamedev_end1 */ int q = AddCargo(pirateGood, Mathf.CeilToInt(pirateQty * c.tollLootFrac)); int pay = Mathf.RoundToInt(c.prizeShipCoins * c.tollLootFrac); coins += pay;
         yield return Ask("They pay a toll", $"Beaten and with dusk coming, the pirate captain strikes his flag and offers a toll to be let go: {pay} coins and {q} {pg}.", ("Accept", null)); break; }
       case Outcome.Escaped: yield return Ask("She escapes", "The pirate claws away out of range. She will remember you.", ("Continue", null)); break;
       case Outcome.HasanBoarded: { yield return Duel(false);
+        if (duelWon) EgFightWon("boarders repelled"); /* gamedev_end1 */
         if (duelWon) yield return Ask("Boarders repelled", "Hasan's crew throw the boarders back. The pirate cuts loose and flees.", ("Continue", null)); else yield return Lose("The pirates swarm aboard."); break; }
       case Outcome.HasanSunk: yield return Lose("Your dhow is holed and wallowing. A passing fisher tows you on."); break;
       default: yield return Ask("Night falls", "Both ships lose each other in the dark.", ("Continue", null)); break;
@@ -115,7 +116,7 @@ public partial class Game {
   IEnumerator BoardFlow() {
     var c = S.combat; yield return Duel(true);
     if (!duelWon) { yield return Lose("Their captain's blade drives you back to your own deck."); yield break; }
-    if (ambushForced) boardedStoryPirate = true;
+    EgFightWon("ship taken"); /* gamedev_end1 */ if (ambushForced) boardedStoryPirate = true;
     int q = AddCargo(pirateGood, pirateQty) + AddCargo(pirateGood2, pirateQty2); int box = Rnd.Range((int)c.strongboxMin, (int)c.strongboxMax + 1); coins += (int)c.prizeShipCoins + box;
     var ch = c.charms[Rnd.Range(0, c.charms.Length)]; charms.Add(ch); string charm = $" The captain's strongbox holds {box} coins and {ch}.";
     yield return Ask("Ship taken", $"The pirate dhow is yours. You take {q} goods and sell her as a prize for {c.prizeShipCoins:0} coins.{charm}\n\nTheir captain kneels before Hasan.",

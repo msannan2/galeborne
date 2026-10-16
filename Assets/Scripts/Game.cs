@@ -46,6 +46,7 @@ public partial class Game : MonoBehaviour {
   /* debug: -gbcoins N (tests only) */
   public void GbCoins(string when) { var ga = Environment.GetCommandLineArgs(); int i = Array.IndexOf(ga, "-gbcoins"); if (i >= 0 && i + 1 < ga.Length && int.TryParse(ga[i + 1], out int n)) { coins = n; Debug.Log("GB COINS " + n + " (" + when + ")"); } }
   public void Init() {
+    EgReset(); /* gamedev_end1 */
     S = GameSettings.Load(); T = UITheme.Load(); ApplyDesign(); Act1Init();
     int ng = S.goods.Length, np = S.ports.Length;
     coins = S.startCoins; GbCoins("new game"); hold = new int[ng]; rep = new int[np]; wh = new Warehouse[np];
@@ -99,7 +100,7 @@ public partial class Game : MonoBehaviour {
     int paid = Mathf.CeilToInt(price[port, g]); AvgCost[g] = (AvgCost[g] * hold[g] + paid) / (hold[g] + 1); coins -= paid; hold[g]++; price[port, g] *= 1 + S.perUnitBuyRise; return true; }
   public int SellPrice(int g) => RugsBanSale(g) ? RugsBanPrice() : Mathf.FloorToInt(price[port, g] * (Banned(g, port) ? S.contraband.bannedSellMult : S.sellSpread));
   public bool Sell(int g) {
-    if (hold[g] <= 0) return false; int v = SellPrice(g); coins += v; hold[g]--; JackpotCheck(g, v);
+    if (hold[g] <= 0) return false; int v = SellPrice(g); coins += v; hold[g]--; JackpotCheck(g, v); EgFirstSale(g); /* gamedev_end1 */
     if (g == Gp && port == Muscat && !openingGpSold) { openingGpSold = true; if (playthrough) PLog2("opening sale", "gunpowder sold in Muscat's alley — medium goal clears"); } /* v0.6h4: sale not confiscation */
     price[port, g] *= 1 - (Banned(g, port) ? S.contraband.bannedPerUnitSellDrop : S.perUnitSellDrop); return true; }
 
@@ -162,6 +163,7 @@ public partial class Game : MonoBehaviour {
 
   float sailT; int hasanTris;
   void Update() {
+    EgUpdate(); /* gamedev_end1 */
     if (Input.GetKeyDown(KeyCode.Escape)) HandleBack(); /* final modal_queue_back: general Back handler (replaces the Credits-only Escape line) */
     if (prologuePending && dialog == null && !fighting) { prologuePending = false; StartCoroutine(Prologue()); }
     if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) lastInput = Time.unscaledTime;
