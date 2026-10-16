@@ -379,7 +379,8 @@ public partial class Game {
   (string, string, string) JournalGoalsSummary() {
     var top = journal.FirstOrDefault(j => j.status == "active");
     string s = top != null ? top.title : "Ask keepers for work (Journal)";
-    string m = ActiveJobCount > 1 ? $"{ActiveJobCount} jobs active — open Journal" : (top != null ? $"To: {top.destination}" : "Journal empty");
+    var ec = eg?.active?.OrderBy(c => c.dueWeek).FirstOrDefault(); /* gamedev_continue: HUD Next = most urgent contract, in its deadline colour */
+    string m = ec != null ? $"<color={EgMoonsColor(ec)}>{S.goods[ec.good].name} to {ec.to}, {EgMoonsText(ec).ToLowerInvariant()}</color>" : ActiveJobCount > 1 ? $"{ActiveJobCount} jobs active — open Journal" : (top != null ? $"To: {top.destination}" : "Journal empty");
     string l = yusufSeal ? "Find out what House Qarin is hoarding." : "Who burned your ship? The Qarin seal."; /* full line kept for journal; HUD shortens via ShortStoryGoal */
     return (s, m, l);
   }

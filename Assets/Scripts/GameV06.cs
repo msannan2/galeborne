@@ -93,7 +93,7 @@ public partial class Game {
     if (fe != null && Rnd.value < Design.F(fe["weight"]) && !InOpening) { var pool = Design.SL(fe["pool"]); int g = G(pool[Rnd.Range(0, pool.Count)]);
       foreignPort = port; foreignGood = g; stock[port, g] = (int)Design.F(fe["stockUnits"], 20); price[port, g] = lastPrice[port, g] = basePrice[port, g] * Design.F(fe["buyPriceMult"], 0.6f);
       var c = Content("foreignShip"); townHint[port] = "foreignShipInHarbor"; hintEnd[port] = week + 1; news.Insert(0, Fill((string)c["headline"], port, g) + ". " + Fill((string)c["text"], port, g)); }
-    if (blockGood[port] >= 0 && hold[blockGood[port]] > 0 && !StoryGoods().Contains(blockGood[port]) /* gamedev_t16_seizesafe */) { int q = hold[blockGood[port]]; hold[blockGood[port]] = 0; msg = $"Soldiers on the quay seize your {GoodCount(blockGood[port], q)}." /* gamedev_t9 */; }
+    if (blockGood[port] >= 0 && hold[blockGood[port]] > 0 && !StoryGoods().Contains(blockGood[port]) /* gamedev_t16_seizesafe */) { int q = hold[blockGood[port]]; hold[blockGood[port]] = 0; msg = $"Soldiers on the quay seize your {GoodCount(blockGood[port], q)}." /* gamedev_t9 */; dockSeizeMsg = msg + $" {S.ports[port].name} is under a blockade on {S.goods[blockGood[port]].name}."; Debug.Log($"GB DOCK blockade seized {q}x{S.goods[blockGood[port]].id} at {S.ports[port].name}"); } /* gamedev_continue: the seizure gets its own card + log (it was silent: the dock message was overwritten by later dock lines such as the contract NeedCargo) */
   }
 
   // ---------------- ambush ----------------

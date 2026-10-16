@@ -82,6 +82,31 @@ public partial class Game {
         foreach (var o in all.Where(r => r.name.StartsWith("plaque ") || r.name.StartsWith("town ") || r.name == "ShipHere")) { var orr = SR(o); bool ov = fr.Overlaps(orr); L($"rect {o.name}: {orr}{(ov ? "  OVERLAPS FLAG" : "")}"); any |= ov; }
         Chk(!any, "map flag overlaps no port plaque / port ring / ship marker"); }
       tab = -1; Refresh(); }
+    // ---- gamedev_continue: dock at a new port, quit on the arrival card, Continue -> that port and week ----
+    { tab = -1; dialog = null; port = PortIdx("Gwadar"); safeUntilSail = sails + 100; giftPending = 1; int w0 = week; Refresh(); yield return null;
+      StartCoroutine(Voyage(PortIdx("Debal"))); bool gift = false; float tq = Time.realtimeSinceStartup;
+      while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true;
+        if (dialog != null) { bool g = dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("A gift from Yusuf")); if (g) { gift = true; break; } EgTestCloseCard(); }
+        yield return null; }
+      Chk(gift && sailing && port == PortIdx("Debal"), $"voyage Gwadar->Debal reaches the arrival gift card (port {S.ports[port].name}, week {week})");
+      int wDock = week; OnApplicationQuit(); /* the real quit path, with the arrival card still open */
+      port = PortIdx("Gwadar"); week = w0; saveSeq = 0; bool ok = Load();
+      Chk(ok && port == PortIdx("Debal") && week == wDock, $"Continue after quitting on the arrival card resumes at Debal week {wDock} (loaded {lastLoadedFrom}: {S.ports[port].name} week {week})");
+      for (int k = 0; k < 40 && sailing; k++) { EgTestCloseCard(); yield return null; }
+      port = PortIdx("Gwadar"); saveSeq = 0; ok = Load(); Chk(ok && port == PortIdx("Debal") && !sailing, $"after the voyage ends, Continue still resumes at Debal ({lastLoadedFrom})"); tab = -1; Refresh(); yield return null; }
+    // ---- gamedev_continue: blockade seizure on docking is never silent; HUD Next shows the urgent contract ----
+    { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; safeUntilSail = sails + 100; Refresh(); yield return null;
+      StartCoroutine(Voyage(mu)); bool card = false; float tq = Time.realtimeSinceStartup;
+      while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true; if (blockGood[mu] != cu) blockGood[mu] = cu;
+        if (dialog != null) { if (dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("Blockade at Muscat"))) { card = true; break; } EgTestCloseCard(); }
+        yield return null; }
+      yield return Shot("cont_blockade_card"); Chk(card && hold[cu] == 0, $"blockade seizure on docking shows a 'Blockade at Muscat' card (copper now {hold[cu]})");
+      for (int k = 0; k < 40 && sailing; k++) { EgTestCloseCard(); yield return null; } blockGood[mu] = -1;
+      Chk(msg.Contains("seize"), $"after the card the dock message still names the seizure ({msg})");
+      if (eg.active.Count == 0) { coins += 5000; EgRefreshBoards(); foreach (var b in eg.board.ToList()) { if (eg.active.Count >= 1) break; EgAccept(b); } }
+      var u = eg.active.OrderBy(c => c.dueWeek).FirstOrDefault(); var g3 = Goals3();
+      Chk(u != null && g3.Item2.Contains($"{S.goods[u.good].name} to {u.to}") && g3.Item2.Contains(EgMoonsColor(u)) && !g3.Item2.Contains("Journal empty"), $"HUD Next shows the most urgent contract in its deadline colour ({g3.Item2})");
+      tab = -1; Refresh(); yield return null; }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);

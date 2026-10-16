@@ -54,8 +54,8 @@ public partial class Game {
     lastLoadedFrom = ""; return false; }
   /// a copy of the current save at the start of every voyage
   public void SaveVoyageBackup() { Save(); try { var src = saveSeq % 2 == 1 ? SavePath : SavePathB; if (File.Exists(src)) File.Copy(src, VoyageBackup, true); } catch (Exception e) { Debug.LogWarning("Voyage backup failed: " + e.Message); } }
-  void OnApplicationPause(bool paused) { NotePause(paused); if (paused && !sailing) Save(); if (!paused && wasPaused) { wasPaused = false; ShowPauseCard(); } }
-  void OnApplicationQuit() { if (!sailing) Save(); }
+  void OnApplicationPause(bool paused) { NotePause(paused); if (paused && (!sailing || dockedSave)) Save(); if (!paused && wasPaused) { wasPaused = false; ShowPauseCard(); } }
+  void OnApplicationQuit() { if (!sailing || dockedSave) Save(); } /* gamedev_continue: docked-but-cards-open counts as in port */
 
   void ShowTitle() {
     onTitle = true; Clear(content);

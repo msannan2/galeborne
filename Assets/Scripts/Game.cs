@@ -469,7 +469,7 @@ public partial class Game : MonoBehaviour {
   }
 
   // ---------------- voyage ----------------
-  bool sailing; int dest; RectTransform dialog;
+  string dockSeizeMsg; bool sailing, dockedSave; int dest; RectTransform dialog;
   IEnumerator Voyage(int to) {
     if (sailing) yield break; if (!CanLeavePort(out var hullWhy)) { msg = hullWhy; sailing = false; Refresh(); yield break; } if (town3D) town3D.gameObject.SetActive(false); RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f); RenderSettings.fogColor = UITheme.C(T.skyHorizon); RenderSettings.fogEndDistance = 210; SaveVoyageBackup(); sailing = true; dest = to; sails++; backdrop.color = Color.clear; sea3D.gameObject.SetActive(true); BuildLandmarksV06k(); HideAllSeaLandmarks(); EnsureKenneyDhowOnShip(); Refresh(); /* v0.6k3: no landmarks mid-ocean */
     float dur = Rnd.Range(S.sailSecondsMin, S.sailSecondsMax) / ((S.debugFast || Array.IndexOf(Environment.GetCommandLineArgs(), "-fast") >= 0) ? S.debugFastMultiplier : 1) / Mathf.Max(0.35f, LimpSailMult);
@@ -498,8 +498,8 @@ public partial class Game : MonoBehaviour {
     NewWeek(); port = to; adsThisVisit = 0; bool atCustoms = CarriesBanned(port); /* ambush_customs_t6 */
     if (atCustoms) { PasserHide("customs"); /* gamedev_t11_passer */ if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(port); backdrop.color = Color.clear; if (pirateShip) pirateShip.gameObject.SetActive(false); /* gamedev_t7 */ string cn = S.ports[port].name; arrivalTarget = (seaMarks.TryGetValue(cn, out var clm) && clm ? clm.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * CustomsLookUp; customsFrame = true; /* gamedev_t7 */ yield return Customs(); customsFrame = false; /* gamedev_t7 */ } /* ambush_customs_t6: customs card over the port arrival view (+ shared ModalDim from Ask), not blank sand */
     ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); /* ambush_customs_t6 */
-    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); /* gamedev_end1 */ FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
-    tithe = false; sailing = false; crewInjured = false; tab = -1; Refresh(); Save();
+    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); /* gamedev_end1 */ FallbackCheck(); dockedSave = true; Save(); /* gamedev_continue: the arrival is on disk before any arrival card, so a quit on the gift/contract cards still Continues at this port */ if (dockSeizeMsg != null) { string sm = dockSeizeMsg; dockSeizeMsg = null; yield return Ask($"Blockade at {S.ports[port].name}", sm, ("Continue", null)); msg = sm; } if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
+    tithe = false; sailing = false; dockedSave = false; crewInjured = false; tab = -1; Refresh(); Save();
   }
   bool ff, skipVoyage; Text ffTxt; bool horizonDone; /* gamedev_t10_lateen */
   /* gamedev_t11_passer: the lateen is visible ONLY during the Sail on the horizon moment */
