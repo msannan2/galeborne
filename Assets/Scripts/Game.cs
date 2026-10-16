@@ -546,6 +546,7 @@ public partial class Game : MonoBehaviour {
     tx.horizontalOverflow = HorizontalWrapMode.Overflow; tx.resizeTextForBestFit = false; float avail = ((RectTransform)b.transform).rect.width - 2 * OptionLabelPad; /* one line, shrunk until it fits (best fit would wrap it into two tiny lines) */
     while (tx.preferredWidth > avail && tx.fontSize > 14) tx.fontSize--; }
   void GreyOption(Button b) { var im = b.GetComponent<Image>(); if (im) { im.sprite = Panel(UITheme.C(GreyPlateHex), UITheme.C(GreyOutlineHex)); im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = Mathf.Max(1, T.borderPx) / 2f; /* outline = 2 canvas units = 1 px at 540 wide */ im.color = new Color(1, 1, 1, GreyPlateAlpha); }
+    { var cb = b.colors; cb.disabledColor = Color.white; b.colors = cb; } if (im) im.canvasRenderer.SetColor(Color.white); /* gamedev_final_strings: the disabled tint was already cross-faded onto the plate before the transition was switched off (Game Tester: #63553F) */
     b.transition = Selectable.Transition.None; /* no disabled colour-tint overlay */
     var lt = b.transform.Find("L"); if (lt) { lt.SetAsLastSibling(); var tx = lt.GetComponent<Text>(); if (tx) { var lc = UITheme.C(GreyLabelHex); lc.a = GreyLabelAlpha; tx.color = lc; tx.raycastTarget = false; } } b.gameObject.name = "Btn " + (lt ? lt.GetComponent<Text>()?.text : "") ; }
   int modalDepth; /* final ask_modal: >0 while any Ask/AskCard card is up; HUD taps are ignored */
