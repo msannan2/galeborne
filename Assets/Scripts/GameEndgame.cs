@@ -16,6 +16,7 @@ public partial class Game {
   readonly Queue<(string t, string b, string btn)> egCards = new Queue<(string, string, string)>(); /* gamedev_end1: rank-up / delivered / failed cards, shown when nothing else is up */
   bool EgForce => gbForce.Contains("endgame"); /* gamedev_end1: -gbforce endgame unlocks the board before the opening ends */
   bool EgBoardOpen => EgForce || OpeningDone; /* gamedev_end1 */
+  bool egTestQuiet; /* gamedev_title1: endgame_test shows cards itself */
   void EgReset() { eg = new EgState(); egCards.Clear(); } /* gamedev_end1 */
   public string RankName => ED.RankName(Mathf.Clamp(eg.rank, 0, ED.RankCount - 1));
   public void AddRenown(int n, string why) { /* gamedev_end1: the ONLY way Renown changes */
@@ -26,7 +27,7 @@ public partial class Game {
   void EgFirstSale(int g) { string k = port + ":" + g; if (eg.firstSales.Contains(k)) return; eg.firstSales.Add(k); AddRenown(ED.RenownFirstSale, "first sale of " + S.goods[g].name + " at " + S.ports[port].name); msg = ED.FirstSale(GoodName(g, 1), ED.RenownFirstSale); } /* gamedev_end1 */
   void EgFightWon(string how) => AddRenown(ED.RenownFightWin, "fight won: " + how); /* gamedev_end1 */
   void EgUpdate() { /* gamedev_end1: from Update - show queued cards one at a time when the screen is free */
-    if (egCards.Count == 0 || onTitle || fighting || sailing || dialog != null || CardBusy) return;
+    if (egTestQuiet || egCards.Count == 0 || onTitle || fighting || sailing || dialog != null || CardBusy) return;
     var c = egCards.Dequeue(); Refresh(); /* gamedev_badge1: top-bar badge shows the new rank with its card */ StartCoroutine(Ask(c.t, c.b, (c.btn, null)));
   }
 
@@ -117,7 +118,7 @@ public partial class Game {
   IEnumerator EgSelfTest() {
     int fails = 0; void L(string s) => Debug.Log("GB EGTEST " + s); void Chk(bool ok, string what) { if (!ok) fails++; L((ok ? "PASS " : "FAIL ") + what); }
     if (!SaveDirIsolated) { L("REFUSED: needs -gbsavedir"); Application.Quit(4); yield break; }
-    yield return new WaitForSeconds(1f); onTitle = false; Init(); storyStep = StDone; coins = 3000; port = PortIdx("Gwadar"); tab = 8; Refresh(); yield return null;
+    yield return new WaitForSeconds(1f); onTitle = false; Init(); egTestQuiet = true; storyStep = StDone; coins = 3000; port = PortIdx("Gwadar"); tab = 8; Refresh(); yield return null;
     EgRefreshBoards(true); Chk(eg.board.Count == 3 && eg.board.All(b => b.kind == "delivery"), $"Deckhand boards: 1 starter delivery per port (got {eg.board.Count})");
     string bd = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(bd); /* gamedev_badge1 */
     IEnumerator Bar(string n) { tab = -1; Refresh(); yield return null; yield return null; var md = topBar ? topBar.Find("Medallion") : null; var im = md ? md.GetComponent<Image>() : null; Chk(im && im.sprite && im.sprite.name == "rank_" + eg.rank, $"top bar badge {n}: {(im && im.sprite ? im.sprite.name : "fallback/none")}"); yield return ShotCo(System.IO.Path.Combine(bd, "topbar_" + n + ".png")); yield return new WaitForSeconds(0.4f); }
