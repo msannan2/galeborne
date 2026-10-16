@@ -30,7 +30,7 @@ public partial class Game {
     if (rangeRing == null) { rangeRingMat = NewRingMat(rangeTexDashed); rangeRing = RingQuad("RangeRing", rangeRingMat, out rangeRingR);
       rangeMarkerMat = NewRingMat(RingTex("range_marker")); rangeMarker = RingQuad("RangeMarker", rangeMarkerMat, out rangeMarkerR); }
     rangeRing.gameObject.SetActive(true); rangeMarker.gameObject.SetActive(true); ringInRange = false; ringLastDist = -1; ringTrend = "Closing"; ringPlaqueN = -1; ringPulses = 0;
-    rangePlaque = Px(cui, "RangePlaque", 404, 116, 380, 76); var pi = rangePlaque.gameObject.AddComponent<Image>(); pi.sprite = Resources.Load<Sprite>("Art/FX/range_label_plaque"); pi.type = Image.Type.Sliced; pi.raycastTarget = false;
+    rangePlaque = Px(cui, "RangePlaque", 404, 116, 470, 76); var pi = rangePlaque.gameObject.AddComponent<Image>(); pi.sprite = Resources.Load<Sprite>("Art/FX/range_label_plaque"); pi.type = Image.Type.Sliced; pi.raycastTarget = false;
     rangePlaqueTxt = Txt(R(rangePlaque, "t", 0, 0, 1, 1), "", 32, "#3A2618", TextAnchor.MiddleCenter, true); rangePlaqueTxt.raycastTarget = false;
     fireRangeBorder = Px(fireButton, "rangeBorder", -8, -8, 266, 266).gameObject.AddComponent<Image>(); fireRangeBorder.sprite = Ring(0.93f); fireRangeBorder.color = RingBrass; fireRangeBorder.raycastTarget = false; fireRangeBorder.gameObject.SetActive(false);
   }
