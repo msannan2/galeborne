@@ -1,0 +1,436 @@
+{
+ "version": "slice1",
+ "sources": [
+  "design/endgame_sketch.md@4d0b0d1",
+  "design/contract_card_and_rival.md@0082a5a"
+ ],
+ "timing": {
+  "weeksPerMoon": 4,
+  "deliveryMoons": 2,
+  "rushMoons": 1,
+  "boardSize": 3,
+  "refresh": "every moon",
+  "maxActive": 2,
+  "rewardCap": {
+   "delivery": 900,
+   "rush": 1200
+  },
+  "deckhandBoard": "1 starter delivery per board",
+  "traderBoard": "full 3-card board incl. rush"
+ },
+ "renown": {
+  "delivery": 20,
+  "rush": 30,
+  "fightWin": 5,
+  "fightLoss": 0,
+  "bounty": 40,
+  "bountyNote": "Captain+ only, not in slice 1; listed for continuity",
+  "firstSaleBonus": 3,
+  "firstSaleNote": "once per good per port (max 39), none for later sales",
+  "failDelivery": -10,
+  "failRush": -15,
+  "floor": "Renown never drops below current rank threshold"
+ },
+ "ranks": [
+  {
+   "id": "deckhand",
+   "name": "Deckhand",
+   "renown": 0,
+   "unlock": "One starter contract on each board.",
+   "promo": null
+  },
+  {
+   "id": "trader",
+   "name": "Trader",
+   "renown": 100,
+   "unlock": "Full board: 3 contracts, rush jobs open.",
+   "promo": "The harbour knows your name now. Trader.",
+   "rival": "So the harbour talks about you now. Enjoy it while it lasts."
+  },
+  {
+   "id": "merchant",
+   "name": "Merchant",
+   "renown": 300,
+   "unlock": "Second cargo deck at the Shipwright. Tier 2 contracts.",
+   "promo": "Guilds open their books to you. Merchant."
+  }
+ ],
+ "strings": {
+  "accept": "Accept",
+  "notNow": "Not now",
+  "moonsLeft1": "1 moon left",
+  "moonsLeftN": "{n} moons left",
+  "lastWeek": "Last week",
+  "taken": "Taken by Rashid",
+  "cargo": "Cargo",
+  "deliverTo": "Deliver to",
+  "deadline": "Deadline",
+  "reward": "{coins} coins · +{renown} Renown",
+  "deposit": "Deposit {d} coins, returned on delivery",
+  "delivered": "Delivered. +{coins} coins, +{renown} Renown.",
+  "failed": "The buyer found another captain. {renown} Renown, deposit lost.",
+  "full": "You can hold 2 contracts.",
+  "nextRank": "Next rank: {rank}, {cur} / {need} Renown",
+  "firstSale": "First {good} sold here. +{renown} Renown.",
+  "listRow": "{type} · {dest} · {moons} · {coins} coins"
+ },
+ "contracts": {
+  "Gwadar": {
+   "voice": "Plain-spoken fishers and salt men",
+   "delivery": [
+    {
+     "id": "gw_d1",
+     "title": "Salt for Debal's pickling yards",
+     "giver": "Salt's salt. Get it there dry.",
+     "good": "salt",
+     "qty": 11,
+     "dest": "Debal",
+     "moons": 2,
+     "coins": 870,
+     "renown": 20,
+     "deposit": 130,
+     "risk": "Rain at sea can spoil an open hold.",
+     "failRenown": -10
+    },
+    {
+     "id": "gw_d2",
+     "title": "Dates for the Debal bazaar",
+     "giver": "My cousin waits. Don't make him wait long.",
+     "good": "dates",
+     "qty": 12,
+     "dest": "Debal",
+     "moons": 2,
+     "coins": 840,
+     "renown": 20,
+     "deposit": 130,
+     "risk": "Pirates watch the open water past the coast.",
+     "failRenown": -10
+    },
+    {
+     "id": "gw_d3",
+     "title": "Copper for Muscat's smiths",
+     "giver": "Heavy load. Honest pay. That's all.",
+     "good": "copper",
+     "qty": 5,
+     "dest": "Muscat",
+     "moons": 2,
+     "coins": 790,
+     "renown": 20,
+     "deposit": 120,
+     "risk": "Customs in Muscat search some ships.",
+     "failRenown": -10
+    },
+    {
+     "id": "gw_d4",
+     "title": "A pearl for a Debal jeweller",
+     "giver": "A diver bled for this one. Mind it.",
+     "good": "pearls",
+     "qty": 1,
+     "dest": "Debal",
+     "moons": 2,
+     "coins": 660,
+     "renown": 20,
+     "deposit": 100,
+     "risk": "One pearl draws pirates like gulls to bait.",
+     "failRenown": -10
+    }
+   ],
+   "rush": [
+    {
+     "id": "gw_r1",
+     "title": "Salt before the Debal feast",
+     "giver": "Feast's soon. Sail now, not tomorrow.",
+     "good": "salt",
+     "qty": 10,
+     "dest": "Debal",
+     "moons": 1,
+     "coins": 1010,
+     "renown": 30,
+     "deposit": 200,
+     "risk": "A storm could eat the days you have.",
+     "failRenown": -15
+    },
+    {
+     "id": "gw_r2",
+     "title": "Copper, fast, for Muscat",
+     "giver": "Forge is cold. They pay double, quick.",
+     "good": "copper",
+     "qty": 5,
+     "dest": "Muscat",
+     "moons": 1,
+     "coins": 1010,
+     "renown": 30,
+     "deposit": 200,
+     "risk": "Head winds can cost a week.",
+     "failRenown": -15
+    },
+    {
+     "id": "gw_r3",
+     "title": "Dates for a Debal wedding",
+     "giver": "No dates, no wedding. Hurry, friend.",
+     "good": "dates",
+     "qty": 10,
+     "dest": "Debal",
+     "moons": 1,
+     "coins": 900,
+     "renown": 30,
+     "deposit": 180,
+     "risk": "One bad storm and the wedding is over.",
+     "failRenown": -15
+    },
+    {
+     "id": "gw_r4",
+     "title": "A pearl for a Debal buyer",
+     "giver": "He sails home soon with or without it. Catch him.",
+     "good": "pearls",
+     "qty": 1,
+     "dest": "Debal",
+     "moons": 1,
+     "coins": 840,
+     "renown": 30,
+     "deposit": 170,
+     "risk": "Pirates and storms both slow a rush run.",
+     "failRenown": -15
+    }
+   ]
+  },
+  "Debal": {
+   "voice": "Fast-talking spice and cloth brokers",
+   "delivery": [
+    {
+     "id": "db_d1",
+     "title": "Pepper for Gwadar's kitchens",
+     "giver": "Finest pepper, finest price, go go!",
+     "good": "pepper",
+     "qty": 4,
+     "dest": "Gwadar",
+     "moons": 2,
+     "coins": 800,
+     "renown": 20,
+     "deposit": 120,
+     "risk": "Pirates like a hold that smells of spice.",
+     "failRenown": -10
+    },
+    {
+     "id": "db_d2",
+     "title": "Cotton for Muscat's weavers",
+     "giver": "Bolts of cloud, my friend. Muscat loves it.",
+     "good": "cotton",
+     "qty": 8,
+     "dest": "Muscat",
+     "moons": 2,
+     "coins": 840,
+     "renown": 20,
+     "deposit": 130,
+     "risk": "Customs in Muscat search some ships.",
+     "failRenown": -10
+    },
+    {
+     "id": "db_d3",
+     "title": "Indigo for a Gwadar dyer",
+     "giver": "Blue like the sea, worth more than the sea!",
+     "good": "indigo",
+     "qty": 3,
+     "dest": "Gwadar",
+     "moons": 2,
+     "coins": 740,
+     "renown": 20,
+     "deposit": 110,
+     "risk": "Rain can stain a careless cargo.",
+     "failRenown": -10
+    },
+    {
+     "id": "db_d4",
+     "title": "Tea for the Muscat court",
+     "giver": "Court tea! Court pay! You'll thank me.",
+     "good": "tea",
+     "qty": 4,
+     "dest": "Muscat",
+     "moons": 2,
+     "coins": 740,
+     "renown": 20,
+     "deposit": 110,
+     "risk": "Open water past the coast draws pirates.",
+     "failRenown": -10
+    }
+   ],
+   "rush": [
+    {
+     "id": "db_r1",
+     "title": "Pepper before the price drops",
+     "giver": "Quick, quick! The price won't wait.",
+     "good": "pepper",
+     "qty": 4,
+     "dest": "Gwadar",
+     "moons": 1,
+     "coins": 1040,
+     "renown": 30,
+     "deposit": 210,
+     "risk": "A storm could cost you the margin.",
+     "failRenown": -15
+    },
+    {
+     "id": "db_r2",
+     "title": "Cotton for a rush order",
+     "giver": "Muscat wants it yesterday. Can you?",
+     "good": "cotton",
+     "qty": 8,
+     "dest": "Muscat",
+     "moons": 1,
+     "coins": 1080,
+     "renown": 30,
+     "deposit": 220,
+     "risk": "Head winds can cost a week.",
+     "failRenown": -15
+    },
+    {
+     "id": "db_r3",
+     "title": "Tea for a waiting caravan",
+     "giver": "Caravan leaves at dawn. Be there!",
+     "good": "tea",
+     "qty": 5,
+     "dest": "Muscat",
+     "moons": 1,
+     "coins": 1180,
+     "renown": 30,
+     "deposit": 240,
+     "risk": "Storms and searches both eat time.",
+     "failRenown": -15
+    },
+    {
+     "id": "db_r4",
+     "title": "Indigo for a festival",
+     "giver": "Festival blue! Late is worthless!",
+     "good": "indigo",
+     "qty": 3,
+     "dest": "Gwadar",
+     "moons": 1,
+     "coins": 940,
+     "renown": 30,
+     "deposit": 190,
+     "risk": "One storm and the festival is gone.",
+     "failRenown": -15
+    }
+   ]
+  },
+  "Muscat": {
+   "voice": "Guarded and formal",
+   "delivery": [
+    {
+     "id": "ms_d1",
+     "title": "Incense for Debal's temples",
+     "giver": "The temples expect this. Do not fail them.",
+     "good": "incense",
+     "qty": 2,
+     "dest": "Debal",
+     "moons": 2,
+     "coins": 770,
+     "renown": 20,
+     "deposit": 120,
+     "risk": "Pirates know what incense is worth.",
+     "failRenown": -10
+    },
+    {
+     "id": "ms_d2",
+     "title": "Coffee for Gwadar's traders",
+     "giver": "A gift of good faith. Treat it so.",
+     "good": "coffee",
+     "qty": 5,
+     "dest": "Gwadar",
+     "moons": 2,
+     "coins": 880,
+     "renown": 20,
+     "deposit": 130,
+     "risk": "The coastal run is calm, but storms come.",
+     "failRenown": -10
+    },
+    {
+     "id": "ms_d3",
+     "title": "A pearl for a Debal house",
+     "giver": "A single pearl, captain. Speak of it to no one.",
+     "good": "pearls",
+     "qty": 1,
+     "dest": "Debal",
+     "moons": 2,
+     "coins": 660,
+     "renown": 20,
+     "deposit": 100,
+     "risk": "Even one pearl draws pirates on open water.",
+     "failRenown": -10
+    },
+    {
+     "id": "ms_d4",
+     "title": "Dates for Debal's poor",
+     "giver": "The Sultan's charity. Carry it well.",
+     "good": "dates",
+     "qty": 12,
+     "dest": "Debal",
+     "moons": 2,
+     "coins": 840,
+     "renown": 20,
+     "deposit": 130,
+     "risk": "Rain at sea can spoil an open hold.",
+     "failRenown": -10
+    }
+   ],
+   "rush": [
+    {
+     "id": "ms_r1",
+     "title": "Incense for a funeral",
+     "giver": "There is no second day for this. Go.",
+     "good": "incense",
+     "qty": 2,
+     "dest": "Debal",
+     "moons": 1,
+     "coins": 990,
+     "renown": 30,
+     "deposit": 200,
+     "risk": "A storm would make you late for the dead.",
+     "failRenown": -15
+    },
+    {
+     "id": "ms_r2",
+     "title": "Coffee for a guest of state",
+     "giver": "The guest arrives soon. So must you.",
+     "good": "coffee",
+     "qty": 5,
+     "dest": "Gwadar",
+     "moons": 1,
+     "coins": 1120,
+     "renown": 30,
+     "deposit": 220,
+     "risk": "Head winds can cost a week.",
+     "failRenown": -15
+    },
+    {
+     "id": "ms_r3",
+     "title": "A pearl for a betrothal",
+     "giver": "The bride's family awaits this pearl. Do not keep them.",
+     "good": "pearls",
+     "qty": 1,
+     "dest": "Debal",
+     "moons": 1,
+     "coins": 840,
+     "renown": 30,
+     "deposit": 170,
+     "risk": "Pirates and storms both slow a rush run.",
+     "failRenown": -15
+    },
+    {
+     "id": "ms_r4",
+     "title": "Dates before the fast ends",
+     "giver": "When the fast ends, they eat. Be there.",
+     "good": "dates",
+     "qty": 10,
+     "dest": "Debal",
+     "moons": 1,
+     "coins": 900,
+     "renown": 30,
+     "deposit": 180,
+     "risk": "One storm could cost the whole run.",
+     "failRenown": -15
+    }
+   ]
+  }
+ }
+}

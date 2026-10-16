@@ -358,6 +358,7 @@ public partial class Game {
       var mc = Px(m, "keep", 26, 22, 40, 48).gameObject.AddComponent<Image>(); mc.sprite = Tri(); mc.color = UITheme.C(known ? "#E6C27A" : "#C8BBA0"); mc.raycastTarget = false;
       var nb = Px(map, "plaque " + kv.Key, Mathf.Clamp(p.x - 140, 8, mapW - 288), p.y + 50, 280, 64); Box(nb, known ? "#C9A050" : "#B0A080", "#4A2A10"); var nin = Stretch(nb, "in", 5, 5, 5, 5); Box(nin, known ? "#E2BE6E" : "#CDBF9E", "#8A6224");
       Txt(R(nin, "t", 0, 0, 1, 1), kv.Key + (pi == port ? " (here)" : known ? "" : " · uncharted"), T.fontSizeSmall - 2, "#1A120A", TextAnchor.MiddleCenter, true);
+      { var fl = known ? EgMapFlag(pi) : null; if (fl != null) { var fb = Px(map, "egflag " + kv.Key, p.x - 120, p.y - 104, 240, 52); Box(fb, "#2A1E14", "#C9A050"); Txt(R(fb, "t", 0, 0, 1, 1), fl, T.fontSizeSmall - 4, "#E6C27A", TextAnchor.MiddleCenter, true); } } /* gamedev_end1: brass flag with moons left */
       if (known && pi != port) { int k = pi; foreach (var go in new[] { m.gameObject, nb.gameObject }) { var bt = go.AddComponent<Button>(); bt.onClick.AddListener(() => { chartDest = k; Refresh(); }); } } }
     /* v0.6i: you-are-here ship marker (~64px at 1080), rotated toward destination or NE */
     { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 104; /* k4: bigger you-are-here marker */

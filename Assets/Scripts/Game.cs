@@ -78,7 +78,7 @@ public partial class Game : MonoBehaviour {
   }
 
   void NewWeek() {
-    int oldMoon = Moon; week++;
+    int oldMoon = Moon; week++; EgNewWeek(); /* gamedev_end1 */
     for (int p = 0; p < S.ports.Length; p++) for (int g = 0; g < S.goods.Length; g++) {
       lastPrice[p, g] = price[p, g];
       float v = price[p, g] * (1 + Rnd.Range(-S.weeklyDriftMax, S.weeklyDriftMax));
@@ -495,7 +495,7 @@ public partial class Game : MonoBehaviour {
     NewWeek(); port = to; adsThisVisit = 0; bool atCustoms = CarriesBanned(port); /* ambush_customs_t6 */
     if (atCustoms) { PasserHide("customs"); /* gamedev_t11_passer */ if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(port); backdrop.color = Color.clear; if (pirateShip) pirateShip.gameObject.SetActive(false); /* gamedev_t7 */ string cn = S.ports[port].name; arrivalTarget = (seaMarks.TryGetValue(cn, out var clm) && clm ? clm.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * CustomsLookUp; customsFrame = true; /* gamedev_t7 */ yield return Customs(); customsFrame = false; /* gamedev_t7 */ } /* ambush_customs_t6: customs card over the port arrival view (+ shared ModalDim from Ask), not blank sand */
     ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); /* ambush_customs_t6 */
-    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
+    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); /* gamedev_end1 */ FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
     tithe = false; sailing = false; crewInjured = false; tab = -1; Refresh(); Save();
   }
   bool ff, skipVoyage; Text ffTxt; bool horizonDone; /* gamedev_t10_lateen */

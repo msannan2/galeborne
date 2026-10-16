@@ -260,6 +260,7 @@ public partial class Game {
           Label(card, a.status.ToUpper(), 720, 10, 220, 40, T.fontSizeSmall - 2, a.status == "active" ? T.gold : T.textMuted, TextAnchor.MiddleRight);
           y += 220;
         }
+        if (EgBoardOpen) Label(inner, EgJournalBlock(), 110, 1250, 780, 280, T.fontSizeSmall, T.parchment, TextAnchor.LowerLeft); /* gamedev_end1: next rank + contracts */
         Label(inner, $"Active {ActiveJobCount}/{JobCap}", 110, 1540, /* art_t11_fixes: inset clear of the left frame */ 400, 40, T.fontSizeSmall, T.textMuted);
       }
       yield return null;
