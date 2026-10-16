@@ -430,7 +430,7 @@ public partial class Game {
     bool harbour = tab == 7 && (S.ports[port].name == "Muscat" || ShipwrightMode(S.ports[port].name) == "none"); /* designer: same rule as the "Harbour Master" plaque */
     if (tab == 1 && port == Muscat) { k.name = MuscatFence; k.key = "salim"; } /* research_gp3; research_gp4: own lines */
     if (tab == 3) k.key = "priest"; else if (harbour) { k.key = "harbourmaster"; k.name = "Harbour master"; } /* own lines + optional own portrait instead of Bashir's */
-    var line = Line(k.key, keeperTrig); if (tab == 0 && S.ports[port].name != "Gwadar") { k.name = $"{S.ports[port].name} bazaar merchant"; if (line.trigger == "greet") line = new KeeperLine { trigger = line.trigger, mood = line.mood, text = "Everything except a discount!" }; } /* gamedev_t19_merchant: Jalal and his Gwadar goods cry stay in Gwadar */ int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
+    var line = Line(k.key, k.key == "salim" && openingGpSold && keeperTrig == "greet" ? "sold" : keeperTrig); /* research_gp5: Salim greets with the after-sale line from saved state (openingGpSold), on every visit and after a relaunch */ if (tab == 0 && S.ports[port].name != "Gwadar") { k.name = $"{S.ports[port].name} bazaar merchant"; if (line.trigger == "greet") line = new KeeperLine { trigger = line.trigger, mood = line.mood, text = "Everything except a discount!" }; } /* gamedev_t19_merchant: Jalal and his Gwadar goods cry stay in Gwadar */ int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
     var r = Px(content, "Keeper", 16, 172, 1048, KeeperH); Box(r, T.ledgerBg, T.frame);
     var fr = Px(r, "face", 14, 14, KeeperH - 28, KeeperH - 28); Box(fr, T.ink, T.gold);
     /* v0.6h4: ally Farida until turned in; rival portrait from FaridaState == 2 */
