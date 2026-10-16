@@ -37,7 +37,7 @@ public partial class Game {
   int EgWeeksLeft(EgContract c) => c.dueWeek - week; /* 0 = last week, <0 = failed */
   int EgMoonsLeft(EgContract c) => Mathf.Max(1, Mathf.CeilToInt((EgWeeksLeft(c) + 1) / (float)Wpm));
   string EgMoonsText(EgContract c) => c.status == "offer" ? ED.MoonsLeft(c.moons, false) : ED.MoonsLeft(EgMoonsLeft(c), EgWeeksLeft(c) <= 0);
-  string EgMoonsColor(EgContract c) => (c.status == "offer" ? c.moons : EgMoonsLeft(c)) <= 1 ? ED.RedColor : ED.AmberColor; /* amber, red on the last moon (Chief Art Designer mock note) */
+  string EgMoonsColor(EgContract c) => c.status != "offer" && EgWeeksLeft(c) <= 0 ? ED.RedColor : ED.AmberColor; /* gamedev_end1c: amber, red only in the final week of the last moon (Game Designer) - a fresh 1-moon rush is amber */
   bool IsBoardPort(int p) => p >= 0 && ED.BoardPorts.Contains(S.ports[p].name);
   void EgRefreshBoards(bool force = false) { /* gamedev_end1: new notices every moon (and at rank-up) */
     if (!force && eg.boardMoon == Moon) return; eg.boardMoon = Moon; eg.board.RemoveAll(b => b.status == "offer");
@@ -133,10 +133,22 @@ public partial class Game {
     EgRefreshBoards(); Chk(eg.board.Count(b => b.from == "Gwadar") == 3, "Trader: full 3-card board at Gwadar");
     var r = eg.board.FirstOrDefault(b => b.kind == "rush") ?? eg.board[0]; port = PortIdx(r.from); int rn = eg.renown; var held = (int[])hold.Clone(); EgAccept(r);
     for (int i = 0; i < r.moons * Wpm; i++) NewWeek(); Chk(r.status == "failed" && eg.renown == Mathf.Max(ED.RankRenown(1), rn + r.failRenown) && hold.SequenceEqual(held), $"rush {r.kind} failed after {r.moons} moon(s): renown {rn}->{eg.renown} (floor {ED.RankRenown(1)}), cargo untouched");
+    { /* gamedev_end1c checks */ EgRefreshBoards(); var rr = eg.board.FirstOrDefault(b => b.kind == "rush" && b.moons == 1);
+      if (rr != null) { Chk(EgMoonsColor(rr) == ED.AmberColor, "fresh 1-moon rush offer is amber"); var cp = new EgContract { status = "active", dueWeek = week + Wpm - 1, moons = 1 }; Chk(EgMoonsColor(cp) == ED.AmberColor, "accepted 1-moon rush, week 1 of 4: amber"); cp.dueWeek = week; Chk(EgMoonsColor(cp) == ED.RedColor && EgMoonsText(cp) == ED.MoonsLeft(1, true), $"final week: red '{EgMoonsText(cp)}'"); }
+      var b3 = eg.board.Take(3).ToList(); int acc = 0; coins += 5000; foreach (var b in b3) if (EgAccept(b)) acc++; Chk(acc == ED.MaxActive && eg.active.Count == ED.MaxActive && msg == ED.Full, $"2-active limit: accepted {acc} of {b3.Count}, msg '{msg}'");
+      var extra = eg.board.FirstOrDefault(); if (extra != null) { var dm = ModalDim("EgDim"); var cc = EgCard(extra, () => { }, () => { }); yield return null; var acB = cc.GetComponentsInChildren<Button>().First(); Chk(!acB.interactable || !acB.enabled || cc.GetComponentsInChildren<Text>().Any(t => t.text == ED.Full), "card shows the limit + Accept disabled");
+        var rt = acB.GetComponent<RectTransform>(); float bottomGap = cc.rect.height - (-rt.anchoredPosition.y + rt.rect.height); var risk = cc.GetComponentsInChildren<Text>().First(t => t.text == extra.risk).rectTransform; float aboveGap = -rt.anchoredPosition.y - (-risk.anchoredPosition.y + risk.rect.height);
+        Chk(Mathf.Abs(bottomGap - 110) < 1, $"contract card: gap under the buttons {bottomGap:0} px (spec 110), gap above the buttons {aboveGap:0} px"); yield return ShotCo(System.IO.Path.Combine(bd, "contract_card_full.png")); yield return new WaitForSeconds(0.4f); Destroy0(cc.gameObject); Destroy0(dm.gameObject); dialog = null; yield return null; }
+      foreach (var x in eg.active.ToList()) { eg.active.Remove(x); } }
     EgRefreshBoards(); var a2 = eg.board.First(); EgAccept(a2); Save(); int sr = eg.renown, sa = eg.active.Count; eg = new EgState(); Load(); Chk(eg.renown == sr && eg.active.Count == sa && eg.rank == 1, $"save/load: renown {eg.renown}, active {eg.active.Count}");
     { var rc = egCards.FirstOrDefault(x => x.t == ED.RankUpHeading(1)); Chk(rc.t != null && rc.btn == ED.RankUpButtonFor(1) && !rc.b.Contains("Enjoy it while"), $"Trader rank-up card: '{rc.t}' / '{rc.btn}', no rival line"); /* gamedev_end1b */
       if (rc.t != null) { var co = StartCoroutine(Ask(rc.t, rc.b, (rc.btn, null))); yield return null; yield return null; string d0 = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(d0); yield return ShotCo(System.IO.Path.Combine(d0, "rankup_trader.png")); yield return new WaitForSeconds(0.5f); EgTestCloseCard(); yield return null; yield return null; } }
     while (egCards.Count > 0) egCards.Dequeue();
+    { /* gamedev_end1c: Merchant rank-up card - promo line fits the body, clear of the button */ AddRenown(ED.RankRenown(2) - eg.renown, "test top-up"); var mc = egCards.FirstOrDefault(x => x.t == ED.RankUpHeading(2)); Chk(eg.rank == 2 && mc.t != null, $"rank up to Merchant: '{mc.t}'");
+      if (mc.t != null) { StartCoroutine(Ask(mc.t, mc.b, (mc.btn, null))); yield return null; yield return null; var dlg = dialog; var body = dlg.GetComponentsInChildren<Text>().First(t => t.text == mc.b); var btn = dlg.GetComponentsInChildren<Button>().Last().GetComponent<RectTransform>();
+        float bodyBottom = -body.rectTransform.anchoredPosition.y + body.preferredHeight, btnTop = -btn.anchoredPosition.y; Chk(body.preferredHeight <= body.rectTransform.rect.height + 1 && bodyBottom < btnTop, $"Merchant promo ({mc.b.Length} chars) fits: text h {body.preferredHeight:0} in box {body.rectTransform.rect.height:0}, bottom {bodyBottom:0} < button top {btnTop:0}");
+        yield return ShotCo(System.IO.Path.Combine(bd, "rankup_merchant.png")); yield return new WaitForSeconds(0.4f); EgTestCloseCard(); yield return null; yield return null; }
+      while (egCards.Count > 0) egCards.Dequeue(); }
     var lt = ED.Templates.OrderByDescending(t => t.giver.Length).First(); L($"longest giver line {lt.giver.Length} chars ({lt.id}): {lt.giver}");
     var shot = new EgContract { title = lt.title, giver = lt.giver, risk = lt.risk, kind = lt.kind, to = lt.dest, good = G(lt.good), qty = lt.qty, pay = Mathf.Min(lt.coins, ED.Cap(lt.kind)), renown = lt.renown, deposit = lt.deposit, moons = lt.moons, status = "offer" };
     var dim = ModalDim("EgDim"); var card = EgCard(shot, () => { }, () => { }); yield return null; yield return null;
