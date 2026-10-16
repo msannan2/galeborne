@@ -540,8 +540,8 @@ public partial class Game : MonoBehaviour {
   }
   /// blockade_polish (Game Tester): a greyed card option drew the 9-slice teak frame (~110 px borders) squeezed into an 84 px button, which smeared over its label.
   /// Greyed options get a flat dim panel instead, and the label is re-parented last so it always renders above the button art, in readable muted ink.
-  public const string GreyLabelHex = "#3A2618"; public const float GreyPlateAlpha = 0.5f, GreyLabelAlpha = 0.7f; /* Chief Art Designer: plate at 50%, label teak #3A2618 at 70% on top, no grey overlay */
-  void GreyOption(Button b) { var im = b.GetComponent<Image>(); if (im) { im.sprite = Panel(UITheme.C(T.button), UITheme.C(T.brass)); im.type = Image.Type.Sliced; im.color = new Color(1, 1, 1, GreyPlateAlpha); }
+  public const string GreyLabelHex = "#3A2618", GreyPlateHex = "#D9C08A", GreyOutlineHex = "#3A2618"; public const float GreyPlateAlpha = 0.85f, GreyLabelAlpha = 0.75f; /* Chief Art Designer r4: parchment plate 85% with a 1 px teak outline, teak label 75% on top, no grey overlay */
+  void GreyOption(Button b) { var im = b.GetComponent<Image>(); if (im) { im.sprite = Panel(UITheme.C(GreyPlateHex), UITheme.C(GreyOutlineHex)); im.type = Image.Type.Sliced; im.pixelsPerUnitMultiplier = Mathf.Max(1, T.borderPx) / 2f; /* outline = 2 canvas units = 1 px at 540 wide */ im.color = new Color(1, 1, 1, GreyPlateAlpha); }
     b.transition = Selectable.Transition.None; /* no disabled colour-tint overlay */
     var lt = b.transform.Find("L"); if (lt) { lt.SetAsLastSibling(); var tx = lt.GetComponent<Text>(); if (tx) { var lc = UITheme.C(GreyLabelHex); lc.a = GreyLabelAlpha; tx.color = lc; tx.raycastTarget = false; } } b.gameObject.name = "Btn " + (lt ? lt.GetComponent<Text>()?.text : "") ; }
   int modalDepth; /* final ask_modal: >0 while any Ask/AskCard card is up; HUD taps are ignored */
