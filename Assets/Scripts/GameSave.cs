@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,7 @@ using UnityEngine.UI;
   public int[] hold, rep; public float[] price, lastPrice, basePrice; public List<Ban> bans; public Warehouse[] wh; public List<string> news, charms; public string msg;
   public List<Game.SavedJob> journal; public List<Game.SavedDecl> declined; public List<string> oneShotUsed, cursorKeys; public List<int> cursorVals;
   public EgState eg; /* gamedev_end1 */
+  public int customsPending = -1; /* gamedev_customs_save: arrival port whose customs card was still open at save time */
 }
 
 public partial class Game {
@@ -26,7 +28,7 @@ public partial class Game {
   public void Save() {
     if (shotMode || onTitle || S == null || price == null) return;
     var d = new SaveData { difficulty = difficulty, fame = fame, bankCoins = bankCoins, bankPort = bankPort, loanOwed = loanOwed, loanDueWeek = loanDueWeek, loanCap = loanCap, fightsFought = fightsFought, loanRate = loanRate, shipTier = shipTier, papersGiven = papersGiven, storyStep = storyStep, rumorHeard = rumorHeard, gpBanStart = gpBanStart, jackpotStartCoins = jackpotStartCoins, firstRun = firstRun, fallbackFired = fallbackFired, storyAmbushDone = storyAmbushDone, qarinLetter = qarinLetter, boardedStoryPirate = boardedStoryPirate, hullNow = hullNow, sailsNow = sailsNow, lastAmbush = lastAmbush, honor = honor, fear = fear, faridaState = faridaState, yusufSeal = yusufSeal, openingGpSold = openingGpSold, harbourDebt = harbourDebt, sultanStanding = sultanStanding, harbourDebtDueWeek = harbourDebtDueWeek, duelsFought = duelsFought, coins = coins, week = week, port = port, sails = sails, safeUntilSail = safeUntilSail, crate = crate, tithe = tithe, crewInjured = crewInjured,
-      hold = hold, avgCost = AvgCost, rep = rep, price = Flat(price), lastPrice = Flat(lastPrice), basePrice = Flat(basePrice), bans = bans, wh = wh, news = news, charms = charms, msg = msg, journal = JournalToSave(), declined = DeclToSave(), oneShotUsed = oneShotUsed.ToList(), cursorKeys = offerCursor.Keys.ToList(), cursorVals = offerCursor.Values.ToList(), eg = eg /* gamedev_end1 */ };
+      hold = hold, avgCost = AvgCost, rep = rep, price = Flat(price), lastPrice = Flat(lastPrice), basePrice = Flat(basePrice), bans = bans, wh = wh, news = news, charms = charms, msg = msg, journal = JournalToSave(), declined = DeclToSave(), oneShotUsed = oneShotUsed.ToList(), cursorKeys = offerCursor.Keys.ToList(), cursorVals = offerCursor.Values.ToList(), eg = eg /* gamedev_end1 */, customsPending = customsPending };
     if (saveSeq == 0) foreach (var sp in new[] { SavePath, SavePathB, VoyageBackup }) try { if (File.Exists(sp)) saveSeq = Math.Max(saveSeq, JsonUtility.FromJson<SaveData>(File.ReadAllText(sp))?.seq ?? 0); } catch { } /* continue numbering past any older game on disk */
     d.seq = ++saveSeq; string target = saveSeq % 2 == 1 ? SavePath : SavePathB; /* two rotating autosave slots: each save overwrites the older one */
     try { var tmp = target + ".tmp"; File.WriteAllText(tmp, JsonUtility.ToJson(d)); if (File.Exists(target)) File.Delete(target); File.Move(tmp, target); } catch (Exception e) { Debug.LogWarning("Save failed: " + e.Message); }
@@ -35,7 +37,7 @@ public partial class Game {
     try {
       if (d == null || d.hold == null || d.hold.Length != S.goods.Length) throw new Exception("save shape mismatch");
       difficulty = d.difficulty; fame = d.fame; bankCoins = d.bankCoins; bankPort = d.bankPort; loanOwed = d.loanOwed; loanDueWeek = d.loanDueWeek; loanCap = d.loanCap; fightsFought = d.fightsFought; loanRate = d.loanRate; papersGiven = d.papersGiven; storyStep = d.storyStep; rumorHeard = d.rumorHeard; gpBanStart = d.gpBanStart; jackpotStartCoins = d.jackpotStartCoins; firstRun = d.firstRun; fallbackFired = d.fallbackFired; storyAmbushDone = d.storyAmbushDone; qarinLetter = d.qarinLetter; boardedStoryPirate = d.boardedStoryPirate; hullNow = d.hullNow; sailsNow = d.sailsNow; lastAmbush = d.lastAmbush ?? "";
-      eg = d.eg ?? new EgState(); /* gamedev_end1: older saves start at 0 Renown */
+      eg = d.eg ?? new EgState(); /* gamedev_end1: older saves start at 0 Renown */ customsPending = d.customsPending; /* gamedev_customs_save */
       KeepBases(); shipTier = d.shipTier != null && d.shipTier.Length == 4 ? d.shipTier : new int[4]; ApplyShipTiers(); tab = -1;
       honor = d.honor; fear = d.fear; faridaState = d.faridaState; yusufSeal = d.yusufSeal; openingGpSold = d.openingGpSold; harbourDebt = d.harbourDebt; sultanStanding = d.sultanStanding; harbourDebtDueWeek = d.harbourDebtDueWeek; duelsFought = d.duelsFought; coins = d.coins; week = d.week; port = d.port; sails = d.sails; safeUntilSail = d.safeUntilSail; crate = d.crate; tithe = d.tithe; crewInjured = d.crewInjured;
       hold = d.hold; avgCost = d.avgCost; rep = d.rep; Unflat(d.price, price); Unflat(d.lastPrice, lastPrice); Unflat(d.basePrice, basePrice);
@@ -57,6 +59,10 @@ public partial class Game {
   void OnApplicationPause(bool paused) { NotePause(paused); if (paused && (!sailing || dockedSave)) Save(); if (!paused && wasPaused) { wasPaused = false; ShowPauseCard(); } }
   void OnApplicationQuit() { if (!sailing || dockedSave) Save(); } /* gamedev_continue: docked-but-cards-open counts as in port */
 
+  public int customsPending = -1; /* gamedev_customs_save */
+  /// gamedev_customs_save: Continue after a quit on the customs card: already at the arrival port (coins/cargo as at arrival), the inspection is replayed so a quit never skips customs
+  public IEnumerator ResumeCustoms() { sailing = true; dockedSave = true; yield return Customs(); customsPending = -1; OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); FallbackCheck(); Save();
+    tithe = false; sailing = false; dockedSave = false; crewInjured = false; tab = -1; Refresh(); Save(); }
   void ShowTitle() {
     onTitle = true; Clear(content);
     var tex = Resources.Load<Texture2D>("Art/port_muscat"); if (tex) backdrop.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(.5f, .5f)); backdrop.color = Color.white;
@@ -66,7 +72,7 @@ public partial class Game {
     Label(pnl, "Trade, smuggle and fight across the monsoon seas", 40, 186, 720, 60, T.fontSizeSmall, T.textMuted, TextAnchor.MiddleCenter);
     bool has = HasSave; float y = 280;
     if (saveBroken) { has = false; Label(pnl, "Both voyage logs are damaged. Start a new voyage, or wait until we can mend them.", 40, 250, 720, 80, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 80; }
-    if (has) { Btn(pnl, "Continue", 120, y, 560, 110, () => { if (!Load()) { saveBroken = true; ShowTitle(); return; } onTitle = false; Refresh(); }, true, true); y += 140; }
+    if (has) { Btn(pnl, "Continue", 120, y, 560, 110, () => { if (!Load()) { saveBroken = true; ShowTitle(); return; } onTitle = false; Refresh(); if (customsPending >= 0 && customsPending == port) StartCoroutine(ResumeCustoms()); /* gamedev_customs_save */ }, true, true); y += 140; }
     Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); difficulty = 1; Save(); /* back_market_t6: old save overwritten at once with the fresh Captain game, so a quit before the difficulty card cannot Continue on Hard */ /* final ask_modal: new game defaults to Captain (middle) even if the difficulty card is never answered */ prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
       ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }, true, !has);
     float cy = y + 130; Btn(pnl, "Credits", 250, cy, 300, 62, () => ShowCredits()); /* art_t5_fixes: 20 px under New Game */
