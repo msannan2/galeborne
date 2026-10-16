@@ -285,8 +285,9 @@ public partial class Game {
     if (clangSrc == null) clangSrc = gameObject.AddComponent<AudioSource>();
     clangSrc.PlayOneShot(clangClip, 0.8f); Debug.Log("GB DUEL clang");
   }
+  const float DuelMinWindowSec = 0.5f; /* gamedev_duel1: minimum STRIKE window in repel/board duels */
   IEnumerator Duel(bool attacking) {
-    var c = S.combat; float zone = core.DuelZone(); int need = c.duelRounds / 2 + 1, won = 0, lost = 0;
+    var c = S.combat; float zone = core.DuelZone(), zoneBase = zone; /* gamedev_duel1: zoneBase = un-widened zone */ int need = c.duelRounds / 2 + 1, won = 0, lost = 0;
     var pnl = Px(root, "Duel", 30, 1540, 1020, 720) /* art_t12_cards: 60 px taller, grown upward (bottom stays at 2260) */; Box(pnl, T.panel, T.gold);
     Label(pnl, attacking ? "Boarding: blade to blade" : "Repel boarders!", 130, 40, 760, 52, /* art_t12_cards: off the top rail, between the corner brackets */ T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
     Box(Px(pnl, "rule", 130, 100, 760, 2), T.brass); /* art_t12_cards: rule under title */ var score = Label(pnl, "", 130, 110, 760, 44, /* art_t12_cards: was 24,70 */ T.fontSize, T.text);
@@ -302,6 +303,7 @@ public partial class Game {
     for (int round = 0; won < need && lost < need; round++) {
       score.text = $"Round {round + 1}   You {won} – {lost} Pirate"; tapped = false; res.text = ""; float hitAt = -1;
       float ringSec = (paced && round == 0) ? Mathf.Max(c.ringSeconds, 2.0f) : c.ringSeconds; /* gamedev_t13_duelpace: gentler round 1 only; json value untouched */
+      if (paced) { zone = Mathf.Max(zoneBase, DuelMinWindowSec / ringSec); goldR.sprite = Ring((0.5f - zone / 2) / (0.5f + zone / 2), 1); goldR.rectTransform.localScale = Vector3.one * (0.5f + zone / 2); } /* gamedev_duel1: repel/board rounds get at least a 0.5 s tap window (was zone*ringSec = 0.25*1.4 = 0.35 s in later rounds); gold ring redrawn to match */
       if (paced) { closing.rectTransform.localScale = Vector3.one; if (round == 0) { res.text = "En garde!"; yield return new WaitForSeconds(1.0f); } else yield return new WaitForSeconds(0.6f); res.text = ""; tapped = false; Debug.Log($"GB DUEL pace round={round + 1} ringSec={ringSec:0.0} lead={(round == 0 ? 1.0f : 0.6f):0.0}"); } /* gamedev_t13_duelpace: early taps during the beat are discarded */
       for (float t = 0; t < 1f; t += Time.deltaTime / ringSec) {
         if (duelFreeze >= 0) t = duelFreeze;
@@ -314,7 +316,7 @@ public partial class Game {
       if (!attacking && hit && (forcedParry || Rnd.value < c.pirateDuelHit * 0.5f)) { hit = false; parried = true; } // a defending crew is pressed harder (Jeff t10: kept, but shown as a visible parry)
       if (!hit && duelsFought == 0) { hit = true; parried = false; hitAt = 0.5f; } // prologue duel: Hasan's crew rallies, it can't be lost
       if (parried) PlayClang(); /* gamedev_t10_duel */
-      Debug.Log($"GB DUEL round={round + 1} tap={hitAt:0.000} band=[{0.5f - zone / 2:0.000},{0.5f + zone / 2:0.000}] hit={hit} parried={parried}" + (forcedParry ? " forced" : "")); /* gamedev_t10_duel: ring outer radius = 1-tap; gold ring spans the same [lo,hi] radii */
+      Debug.Log($"GB DUEL round={round + 1} tap={hitAt:0.000} band=[{0.5f - zone / 2:0.000},{0.5f + zone / 2:0.000}] hit={hit} parried={parried} window={zone * ringSec:0.000}s fights={duelsFought}" + (forcedParry ? " forced" : "")); /* gamedev_duel1: effective window (s) + duels fought so far */ /* gamedev_t10_duel: ring outer radius = 1-tap; gold ring spans the same [lo,hi] radii */
       if (hit) won++; else lost++; res.text = hit ? "Hit!" : parried ? "Good strike, but the pirate parried!" /* gamedev_t10_duel */ : hitAt < 0 ? "Too slow — parried" : hitAt < 0.5f - zone / 2 ? "Too early — parried" : "Too late — parried";
       score.text = $"You {won} – {lost} Pirate"; if (gbDuelShotDir != null) { yield return new WaitForSeconds(0.2f); yield return ShotCo(System.IO.Path.Combine(gbDuelShotDir, $"gbduel_{(attacking ? "board" : "repel")}_r{round + 1}_{(hit ? "hit" : parried ? "parried" : "miss")}.png")); } yield return new WaitForSeconds(0.9f); }
     duelWon = won >= need; duelsFought++; Destroy0(pnl.gameObject);
