@@ -136,7 +136,10 @@ public partial class Game {
   IEnumerator FleeWin() { var c = S.combat; string pg = S.goods[pirateGood].name; EgFightWon("fled");
     int q = AddCargo(pirateGood, Mathf.RoundToInt(pirateQty * c.sinkCargoPct * 0.5f)); int cw = Rnd.Range((int)c.sinkCoinsMin, (int)c.sinkCoinsMax + 1) / 2; coins += cw;
     fameHalf++; bool up = fameHalf >= 2; if (up) { fameHalf -= 2; fame++; } Debug.Log($"GB FIGHT fled: half loot {q}x{pg} {cw} coins, half fame (fame {fame}, half {fameHalf})");
-    yield return Ask("She flees", $"{FleeCardText}\n\nHalf loot: {q} {pg} and {cw} coins.\nHalf fame: +½" + (up ? " (with your last flee, +1 fame)" : ""), ("Continue", null)); }
+    yield return Ask("She flees", FleeBody(q, pg, cw, up), ("Continue", null)); }
+  /// gamedev_final_strings: zero loot entries are dropped; the fame line shows only when this flee completes a whole point
+  public static string FleeBody(int q, string pg, int cw, bool up) { var parts = new List<string>(); if (q > 0) parts.Add($"{q} {pg}"); if (cw > 0) parts.Add($"{cw} coins");
+    string s = FleeCardText; if (parts.Count > 0) s += "\n\nHalf loot: " + string.Join(" and ", parts) + "."; if (up) s += (parts.Count > 0 ? "\n" : "\n\n") + "+1 fame"; return s; }
   /// gamedev_timeout (Game Designer): the story fog fight ran out of time - the player pays the pirates a toll (coins), cargo kept. Not a win: no loot, no fame.
   public int StoryTollCoins() => Mathf.Min(coins, Mathf.Max(20, Mathf.RoundToInt(coins * 0.1f)));
   IEnumerator StoryCapToll() { int toll = StoryTollCoins(); coins -= toll; storyAmbushDone = true; Debug.Log($"GB AMBUSH timeout toll {toll} coins"); if (playthrough) PLog2("pirate toll", $"fight cap: player pays {toll} coins");
