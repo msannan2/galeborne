@@ -242,7 +242,7 @@ public partial class Game {
         dialog = R(root, "Journal", 0, 0, 1, 1); dialog.offsetMin = new Vector2(20, 40); dialog.offsetMax = new Vector2(-20, -40);
         Box(dialog, T.panel, T.gold);
         var inner = Stretch(dialog, "in", 28, 28, 28, 28);
-        Label(inner, "Journal", 100, 14, 600, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
+        Label(inner, "Journal" + (EgBoardOpen ? $"  <size={T.fontSizeSmall}>{RankName} · {eg.renown:N0} Renown</size>" : "") /* gamedev_badge1 */, 100, 14, 600, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
         JTab(Btn(inner, "Active", 110, 100, 220, 70, /* art_t9_journal: inset below/right of top-left bracket */ () => { journalTab = 0; shownTab = -1; }, true, journalTab == 0), journalTab == 0); /* art_t10_fixes: selected tab no longer drawn disabled (#5A4F44, ~2.3:1) */
         JTab(Btn(inner, "Done", 350, 100, 220, 70, /* art_t9_journal: shifted with Active, clear of Close (660) */ () => { journalTab = 1; shownTab = -1; }, true, journalTab == 1), journalTab == 1);
         Btn(inner, "Close", 660, 10, 220, 70, /* art_t8_brackets: clear of the top-right bracket */ () => { done = true; });
