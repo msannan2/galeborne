@@ -214,9 +214,9 @@ public partial class Game {
     "Sail to Debal with your cargo.",
     "Sell all your dates and salt in Debal.",
     "Visit the Debal tavern and listen for news.",
-    "Buy gunpowder from Farida in Debal's Back Alley, then sail for Muscat.",
-    "Sail to Muscat with the gunpowder. Keep it from customs.",
-    "Sell the gunpowder in Muscat's Back Alley, not the market.",
+    GpBuyGoal, /* research_gp3: ruled text, 1 line */
+    GpSellGoal, /* research_gp3 */
+    GpSellGoal, /* research_gp3 */
     "Stop at a tavern. Someone has a letter for you." }; /* gamedev_t8 */
   const string JournalSealLine = "Earn Yusuf's seal in Muscat."; /* gamedev_t8 */
   /* gamedev_t10_next: Next = the MEDIUM goal for this storyStep (never the following step; never names the gunpowder ban before the Debal tavern rumour, step 4+) */
@@ -225,12 +225,11 @@ public partial class Game {
     "Turn a profit on your first run to Debal.",
     "Turn a profit on your first run to Debal.",
     "Find your next trade in Debal.",
-    "Make a fortune running gunpowder to Muscat.",
-    "Make a fortune running gunpowder to Muscat.",
-    "Make a fortune running gunpowder to Muscat.",
+    MediumGpRuled, MediumGpRuled, MediumGpRuled, /* research_gp3 */
     "Find out who wrote to you." };
-  public string OpeningMediumGoalAt(int st) => OpeningMediumGoals[Mathf.Clamp(st, 0, OpeningMediumGoals.Length - 1)]; /* gamedev_t10_next */
-  public string OpeningGoalLine() => OpeningGoalLineAt(storyStep); public string OpeningGoalLineAt(int st) => JournalOpeningGoals[Mathf.Clamp(st, 0, JournalOpeningGoals.Length - 1)]; /* gamedev_t9 */ /* gamedev_t8: ONE shared step line - Journal + Next hints */
+  const string MediumGpRuled = "Get gunpowder from Debal to Muscat's Back Alley."; /* research_gp3 */
+  public string OpeningMediumGoalAt(int st) => st >= 4 && st <= 6 ? A1s("goalMediumOpening", MediumGpRuled) : OpeningMediumGoals[Mathf.Clamp(st, 0, OpeningMediumGoals.Length - 1)]; /* gamedev_t10_next */
+  public string OpeningGoalLine() => OpeningGoalLineAt(storyStep); public string OpeningGoalLineAt(int st) => st >= 4 && st <= 6 && !fallbackFired && Gp >= 0 ? (hold[Gp] > 0 ? GpSellGoal : st == 4 ? GpBuyGoal : JournalOpeningGoals[Mathf.Clamp(st, 0, JournalOpeningGoals.Length - 1)]) /* research_gp3: buy line until kegs aboard, then sell line */ : JournalOpeningGoals[Mathf.Clamp(st, 0, JournalOpeningGoals.Length - 1)]; /* gamedev_t9 */ /* gamedev_t8: ONE shared step line - Journal + Next hints */
   string JournalOpeningGoal => OpeningGoalLine() + (openingGpSold && !yusufSeal ? "\n" + JournalSealLine : ""); /* gamedev_t8 */
   string JournalActiveLine() => EgBoardOpen ? $"Active {eg.active.Count}/{EndgameData.MaxActive}" + (ActiveJobCount > 0 ? $"   ·   Jobs {ActiveJobCount}/{JobCap}" : "") : $"Active {ActiveJobCount}/{JobCap}"; /* gamedev_egfix2 */
   void OpenJournal() { StartCoroutine(JournalCo()); }
