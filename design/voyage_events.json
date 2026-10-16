@@ -1,0 +1,453 @@
+{
+ "existing": {
+  "horizon": {
+   "code": "Game.cs:572 VoyageDecision kind 0",
+   "variants": [
+    {
+     "title": "Sail on the horizon",
+     "body": "A lateen shows against the haze, holding a parallel course. No colours you know.",
+     "options": [
+      "Hail her",
+      "Hold your course"
+     ],
+     "hold": "You keep the wind and leave her astern."
+    },
+    {
+     "title": "A distant lateen",
+     "body": "A dhow keeps pace off your beam, too far to read her flag.",
+     "options": [
+      "Hail her",
+      "Hold your course"
+     ],
+     "hold": "You keep your course. She falls astern."
+    },
+    {
+     "title": "Sail off the beam",
+     "body": "The lookout points: a sail, matching you tack for tack.",
+     "options": [
+      "Hail her",
+      "Hold your course"
+     ],
+     "hold": "You let her be. The haze takes her."
+    }
+   ]
+  },
+  "storm": {
+   "code": "Game.cs:579-583 kind 1",
+   "variants": [
+    {
+     "title": "Storm front",
+     "body": "A black wall of rain marches across the Gulf. The mate waits on your word.",
+     "options": [
+      "Reef sails",
+      "Press on"
+     ],
+     "reef": "You take in canvas and ride it out.",
+     "pressSafe": "You punch through the squall.",
+     "pressLoss": "A wave takes {lost}.",
+     "result": "Lost: {lost}.",
+     "resultSafe": "You ride it out."
+    },
+    {
+     "title": "Weather ahead",
+     "body": "Thunderheads stack up to the west. The crew watch you, not the sky.",
+     "options": [
+      "Reef sails",
+      "Press on"
+     ],
+     "reef": "Canvas in, heads down. The storm rolls past.",
+     "pressSafe": "The dhow shudders through and comes out whole.",
+     "pressLoss": "A green sea sweeps {lost} away.",
+     "result": "Lost: {lost}.",
+     "resultSafe": "The storm passes. All is well."
+    },
+    {
+     "title": "The sky turns",
+     "body": "The sea goes flat and copper-coloured. A storm is coming fast.",
+     "options": [
+      "Reef sails",
+      "Press on"
+     ],
+     "reef": "You shorten sail and let it blow over.",
+     "pressSafe": "You drive through the rain and out the far side.",
+     "pressLoss": "The storm claims {lost}.",
+     "result": "Lost: {lost}.",
+     "resultSafe": "Wet decks, nothing lost."
+    }
+   ]
+  },
+  "wreckage": {
+   "code": "Game.cs:585-588 kind 2",
+   "rule": "Hold full: grey out Salvage with label 'Hold full' (or skip the event)",
+   "variants": [
+    {
+     "title": "Wreckage",
+     "body": "Casks and splintered planks drift on the swell. You could fish up {goods}.",
+     "bodyFull": "Casks drift by, but your hold is full.",
+     "options": [
+      "Salvage",
+      "Sail on"
+     ],
+     "optionFull": "Hold full",
+     "salvaged": "Salvaged {goods}.",
+     "sailOn": "You leave the wreckage to the gulls."
+    },
+    {
+     "title": "Flotsam",
+     "body": "A smashed hull lies awash. {goods} still bob among the spars.",
+     "bodyFull": "A smashed hull lies awash. No room aboard for more.",
+     "options": [
+      "Salvage",
+      "Sail on"
+     ],
+     "optionFull": "Hold full",
+     "salvaged": "Hauled aboard: {goods}.",
+     "sailOn": "You give the wreck a wide berth."
+    },
+    {
+     "title": "Drifting cargo",
+     "body": "Lashed crates float past, their ship long gone. {goods} within reach.",
+     "bodyFull": "Lashed crates float past, but your hold is packed.",
+     "options": [
+      "Salvage",
+      "Sail on"
+     ],
+     "optionFull": "Hold full",
+     "salvaged": "Fished up {goods}.",
+     "sailOn": "You let the sea keep them."
+    }
+   ]
+  },
+  "wreckAdrift": {
+   "code": "Game.cs:598-601 Encounter wreck",
+   "variants": [
+    {
+     "title": "Wreckage adrift",
+     "body": "Splintered timbers and {n} sealed bales of {good}.",
+     "bodyFull": "Splintered timbers, but your hold is full.",
+     "options": [
+      "Haul it aboard"
+     ],
+     "optionFull": "Hold full"
+    },
+    {
+     "title": "A lost cargo",
+     "body": "{n} sealed bales of {good} ride the swell among broken spars.",
+     "bodyFull": "Sealed bales ride the swell. No room aboard.",
+     "options": [
+      "Haul it aboard"
+     ],
+     "optionFull": "Hold full"
+    }
+   ]
+  },
+  "merchant": {
+   "code": "Game.cs:602-607 Encounter merchant",
+   "note": "drop the false 'cheaper than any quay' claim",
+   "variants": [
+    {
+     "title": "A merchant hails",
+     "body": "A fat baghlah offers {goods} at {unit} each.",
+     "options": [
+      "Buy ({cost})",
+      "Decline"
+     ],
+     "bought": "Bought {goods} at sea.",
+     "declined": "You wave the merchant on."
+    },
+    {
+     "title": "Trade at sea",
+     "body": "A baghlah heaves to. Her captain offers {goods} at {unit} a piece.",
+     "options": [
+      "Buy ({cost})",
+      "Decline"
+     ],
+     "bought": "Coins across, cargo over: {goods}.",
+     "declined": "You thank him and sail on."
+    },
+    {
+     "title": "Baghlah alongside",
+     "body": "A deep-laden baghlah wants to lighten her hold: {goods}, {unit} each.",
+     "options": [
+      "Buy ({cost})",
+      "Decline"
+     ],
+     "bought": "{goods} stowed below.",
+     "declined": "Not today. She bears away."
+    }
+   ]
+  },
+  "squall": {
+   "code": "Game.cs:608-610 Encounter squall",
+   "variants": [
+    {
+     "title": "Squall",
+     "bodyLoss": "A black squall heels the dhow over. {lost} wash overboard.",
+     "bodySafe": "A black squall heels the dhow over. The crew lash the cargo down.",
+     "bodyEmpty": "A black squall heels the dhow over, but your empty hold rides it out.",
+     "options": [
+      "Continue"
+     ]
+    },
+    {
+     "title": "Sudden squall",
+     "bodyLoss": "Wind and rain hit at once. {lost} go over the side.",
+     "bodySafe": "Wind and rain hit at once. Every lashing holds.",
+     "bodyEmpty": "Wind and rain hit at once. With an empty hold, she rides high and safe.",
+     "options": [
+      "Continue"
+     ]
+    }
+   ]
+  },
+  "rumor": {
+   "code": "Game.cs:611-613 Encounter rumour",
+   "variants": [
+    {
+     "title": "Rumor on the wind",
+     "body": "A fisherman swears {port} is starved for {good}. Prices there have jumped.",
+     "options": [
+      "Noted"
+     ]
+    },
+    {
+     "title": "Talk from a fisher",
+     "body": "A fishing boat calls across: {port} can't get enough {good}.",
+     "options": [
+      "Noted"
+     ]
+    },
+    {
+     "title": "News on the water",
+     "body": "A passing crew shout that {good} is dear in {port} this week.",
+     "options": [
+      "Noted"
+     ]
+    }
+   ]
+  }
+ },
+ "hailPayoffs": {
+  "code": "replace Game.cs:573-576 Hail outcome; always show an outcome card",
+  "weights": {
+   "rumour": 50,
+   "trade": 30,
+   "warning": 20
+  },
+  "rumour": {
+   "mechanic": "pick port p + good g from p.want (shortage, price[p,g]*=rumorSpike) or p.cheap (glut, existing glut effect); add to news",
+   "variants": [
+    {
+     "title": "News from her deck",
+     "bodyShort": "Her captain calls: {port} is short of {good}. They pay well.",
+     "bodyGlut": "Her captain calls: {port} is drowning in {good}. Buy it cheap there."
+    },
+    {
+     "title": "A friendly hail",
+     "bodyShort": "\"Take {good} to {port},\" her nakhuda shouts. \"They're begging for it.\"",
+     "bodyGlut": "\"{port} has {good} piled on the quay,\" he shouts. \"Cheap as sand.\""
+    }
+   ]
+  },
+  "trade": {
+   "mechanic": "same as merchant offer: good from the hailing ship's home port cheap list, unit=basePrice[dest,g]*0.8, q<=min(4, free hold, coins cap); Decline always allowed",
+   "variants": [
+    {
+     "title": "She offers trade",
+     "body": "She comes alongside with {goods} to spare, {unit} each.",
+     "options": [
+      "Buy ({cost})",
+      "Decline"
+     ]
+    },
+    {
+     "title": "Goods to spare",
+     "body": "Her hold is overfull. {goods} for you at {unit} a piece.",
+     "options": [
+      "Buy ({cost})",
+      "Decline"
+     ]
+    }
+   ]
+  },
+  "warning": {
+   "mechanic": "lower this voyage's ambush chance by half ('you steer wide'); text names the real danger",
+   "variants": [
+    {
+     "title": "A warning",
+     "body": "\"Black sails off {port}!\" they shout. You steer wide of the spot."
+    },
+    {
+     "title": "Word of danger",
+     "body": "Her crew warn of raiders near {port}. You change course in time."
+    }
+   ]
+  },
+  "options": [
+   "Continue"
+  ]
+ },
+ "new": [
+  {
+   "id": "pearlDiver",
+   "title": "Diver in trouble",
+   "when": "any voyage touching Gwadar or Muscat (pearl ports)",
+   "variants": [
+    {
+     "body": "A pearl diver clings to a broken float, waving. His boat is gone."
+    },
+    {
+     "body": "A diver drifts on a spar, shouting for help. A pouch hangs from his neck."
+    }
+   ],
+   "options": [
+    {
+     "label": "Haul him aboard",
+     "cost": "+1 week",
+     "gain": "1 pearl (if hold has room, else +60 coins)",
+     "out": "He presses a pearl into your hand. A week lost."
+    },
+    {
+     "label": "Toss him a float",
+     "cost": "10 coins",
+     "gain": "rumour: pearls dear in Debal",
+     "out": "He shouts thanks: Debal pays well for pearls."
+    },
+    {
+     "label": "Sail on",
+     "safe": true,
+     "out": "You leave him to the next boat."
+    }
+   ]
+  },
+  {
+   "id": "leakyDhow",
+   "title": "Leaky date dhow",
+   "when": "route to/from Gwadar or Muscat (date ports)",
+   "variants": [
+    {
+     "body": "A sinking dhow full of dates. Her nakhuda sells cheap before she goes."
+    },
+    {
+     "body": "A dhow lists hard, bailing. 'Dates, half price, take them!'"
+    }
+   ],
+   "options": [
+    {
+     "label": "Buy {n} dates ({cost})",
+     "greyWhenFull": "Hold full",
+     "cost": "coins (0.5 x Gwadar date price)",
+     "gain": "up to 5 dates",
+     "out": "Bought {goods} as she settles."
+    },
+    {
+     "label": "Take her crew off",
+     "cost": "+1 week",
+     "gain": "rumour: salt dear in Debal",
+     "out": "Her crew tell you salt sells high in Debal. A week lost."
+    },
+    {
+     "label": "Sail on",
+     "safe": true,
+     "out": "You leave them bailing."
+    }
+   ]
+  },
+  {
+   "id": "customsLaunch",
+   "title": "Customs launch",
+   "when": "only when destination is Muscat",
+   "variants": [
+    {
+     "body": "A Muscat customs launch signals you to heave to for search."
+    },
+    {
+     "body": "The Sultan's launch closes in, a clerk waving his ledger."
+    }
+   ],
+   "options": [
+    {
+     "label": "Heave to",
+     "safe": true,
+     "cost": "+1 week; banned non-story goods seized (LosableGoods, never story cargo)",
+     "out": "They search, stamp, and wave you on."
+    },
+    {
+     "label": "Pay the fee",
+     "cost": "5% of coins, min 20, max 150",
+     "out": "The clerk pockets {fee} coins and looks away."
+    },
+    {
+     "label": "Run for it",
+     "cost": "55%: nothing; 45%: hull -10 and fee x2",
+     "out": "You outrun her.",
+     "outFail": "A shot holes your hull. They fine you {fee}."
+    }
+   ]
+  },
+  {
+   "id": "squallLine",
+   "title": "Monsoon squall line",
+   "when": "any; more likely moons 6-9 (monsoon) if a season exists, else flat weight",
+   "variants": [
+    {
+     "body": "A long grey line of squalls lies across your course."
+    },
+    {
+     "body": "The monsoon throws a wall of cloud across the horizon."
+    }
+   ],
+   "options": [
+    {
+     "label": "Sail around it",
+     "safe": true,
+     "cost": "+1 week",
+     "out": "A long detour, but dry decks."
+    },
+    {
+     "label": "Cut through",
+     "cost": "40%: lose 1-2 losable goods",
+     "out": "Soaked but whole.",
+     "outFail": "The squalls take {lost}."
+    },
+    {
+     "label": "Heave to",
+     "cost": "hull -5",
+     "out": "You wait it out. The rigging groans."
+    }
+   ]
+  },
+  {
+   "id": "lighthouse",
+   "title": "Lighthouse keeper",
+   "when": "route via Ras al Hadd (Gwadar-Muscat, Debal-Muscat)",
+   "variants": [
+    {
+     "body": "The keeper at Ras al Hadd waves a lamp. He trades news for supplies."
+    },
+    {
+     "body": "A lone keeper rows out from his tower. 'News for coin, captain?'"
+    }
+   ],
+   "options": [
+    {
+     "label": "Buy news (15)",
+     "cost": "15 coins",
+     "gain": "real rumour (shortage at a want port)",
+     "out": "He says {port} is short of {good}."
+    },
+    {
+     "label": "Give him supplies",
+     "cost": "1 losable good of your choice (cheapest)",
+     "gain": "pirate warning: next voyage ambush chance halved",
+     "out": "He warns you where the raiders wait."
+    },
+    {
+     "label": "Sail by",
+     "safe": true,
+     "out": "You dip your flag and sail past."
+    }
+   ]
+  }
+ ]
+}
