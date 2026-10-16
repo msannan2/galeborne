@@ -242,7 +242,7 @@ public partial class Game {
       if (dialog) Destroy0(dialog.gameObject);
       /* v0.6k: ink panel sized to cards; title fully inside with headroom */
       int n = Mathf.Max(1, offers.Count); float pad = 24f;
-      float panelH = Mathf.Clamp(160 + n * 316 + 110, 400, 1500);
+      float panelH = Mathf.Clamp(160 + n * 368 + 110, 400, 1700); /* k4: taller offer cards */
       float panelW = 940f; float left = (1080f - panelW) * 0.5f;
       float top = 100f; /* fully cover keeper "Innkeeper of the Salt &…" title */
       var dimQ = R(root, "QuestDim", 0, 0, 1, 1); var di = dimQ.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.72f); di.raycastTarget = true;
@@ -257,16 +257,17 @@ public partial class Game {
       for (int i = 0; i < offers.Count; i++) {
         var j = offers[i]; int pay = j.coins;
         if (j.contraband && honor >= highHonorThreshold && j.highHonorModifiers != null) pay = Mathf.RoundToInt(pay * Design.F(JGet(j.highHonorModifiers, "coinsMult", 1.25f), 1.25f));
-        var row = Px(dialog, "off" + i, pad, y, iw, 300); Box(row, T.panelAlt, T.brass);
+        var row = Px(dialog, "off" + i, pad, y, iw, 352); Box(row, T.panelAlt, T.brass);
         Label(row, j.title, 16, 8, iw - 32, 44, T.fontSizeTitle - 6, T.parchment, TextAnchor.MiddleLeft, true);
         Label(row, j.summary, 16, 52, iw - 32, 64, T.fontSizeSmall, T.text);
-        Label(row, $"Reward: {(pay != j.coins ? pay + " coins" : j.reward)}" + (string.IsNullOrEmpty(j.risk) ? "" : $"  ·  {j.risk}"), 16, 118, iw - 32, 40, T.fontSizeSmall, T.gold);
+        Label(row, $"Reward: {(pay != j.coins ? pay + " coins" : j.reward)}", 16, 118, iw - 32, 40, T.fontSizeSmall, T.gold); FitLine(row);
+        if (!string.IsNullOrEmpty(j.risk)) { Label(row, $"Risk: {j.risk}", 16, 158, iw - 32, 40, T.fontSizeSmall, T.down); FitLine(row); } /* k4: risk/ambush on its own line, never over the deadline */
         string dl = !string.IsNullOrEmpty(j.deadline) ? j.deadline : (j.deadlineMoons > 0 ? $"Within {j.deadlineMoons} moon{(j.deadlineMoons > 1 ? "s" : "")}" : "No deadline");
-        Label(row, dl, 16, 158, iw - 32, 34, T.fontSizeSmall - 2, T.textMuted);
+        Label(row, dl, 16, 202, iw - 32, 40, T.fontSizeSmall - 2, T.textMuted); FitLine(row);
         bool full = ActiveJobCount >= JobCap; var jj = j;
-        Btn(row, "Accept", 16, 200, (iw - 48) * 0.5f, 84, () => { if (!full) { AcceptJob(jj); closed = true; } }, !full, true);
-        Btn(row, "Decline", 16 + (iw - 48) * 0.5f + 16, 200, (iw - 48) * 0.5f, 84, () => { DeclineJob(jj); closed = true; });
-        y += 316;
+        Btn(row, "Accept", 16, 252, (iw - 48) * 0.5f, 84, () => { if (!full) { AcceptJob(jj); closed = true; } }, !full, true);
+        Btn(row, "Decline", 16 + (iw - 48) * 0.5f + 16, 252, (iw - 48) * 0.5f, 84, () => { DeclineJob(jj); closed = true; });
+        y += 368;
       }
       Btn(dialog, "Leave", pad, panelH - 96, iw, 80, () => { closed = true; });
       while (dialog != null && !closed) yield return null;
@@ -274,6 +275,9 @@ public partial class Game {
     if (dialog) { Destroy0(dialog.gameObject); dialog = null; }
     Refresh();
   }
+
+  /// k4: last label added to row stays on one line, shrinking (min 18) instead of spilling into the next line
+  static void FitLine(RectTransform row) { var t = row.GetChild(row.childCount - 1).GetComponent<Text>(); if (!t) return; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate; t.resizeTextForBestFit = true; t.resizeTextMinSize = 18; t.resizeTextMaxSize = t.fontSize; }
 
   void QuestBtn(RectTransform led, string building, string keeperName, float y = 1320) {
     Btn(led, "Ask about work", 26, y, 980, 110, () => StartCoroutine(QuestMenu(building, keeperName)), true, true);
@@ -287,8 +291,8 @@ public partial class Game {
   }
   /// Muscat: shipwright plaque opens harbour master
   void HarbourScreen(RectTransform led) {
-    LedgerHeader(led, "Harbour Master · dock patch");
-    Label(led, $"Hull {HullCur:0}/{HullMax:0}. Muscat has no shipyard — only dock patches.", 26, 80, 980, 80, T.fontSize, T.text);
+    LedgerHeader(led, "Muscat Harbour");
+    Label(led, $"No shipwright here. The dock can patch your hull. Hull {HullCur:0}/{HullMax:0}.", 26, 80, 980, 80, T.fontSize, T.text);
     float y = 180;
     int toPaid = Mathf.CeilToInt(HullMax * patchPaidPct); int toFree = Mathf.CeilToInt(HullMax * patchFreePct);
     if (HullCur < toPaid) {

@@ -265,9 +265,10 @@ public partial class Game {
   public int quality = -1; static readonly string[] QNames = { "Low", "Medium", "High" };
   public void ApplyQuality(int q) {
     quality = q; PlayerPrefs.SetInt("gbQuality", q);
+    QualitySettings.SetQualityLevel(Mathf.Clamp(q, 0, QualitySettings.names.Length - 1), true); /* k4: switch level FIRST, then edit the active URP asset */
     var urp = UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline as UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset;
     if (urp) { urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; urp.msaaSampleCount = q == 0 ? 1 : q == 1 ? 2 : 4; urp.shadowDistance = q == 0 ? 0 : q == 1 ? 40 : 70; }
-    QualitySettings.SetQualityLevel(Mathf.Clamp(q, 0, QualitySettings.names.Length - 1), true); QualitySettings.shadows = q == 0 ? ShadowQuality.Disable : ShadowQuality.All; if (urp) urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; Application.targetFrameRate = q == 2 ? 60 : 30; msg = $"Graphics: {QNames[q]}."; Debug.Log($"GB QUALITY {q} renderScale {(urp ? urp.renderScale : -1)} shadows {QualitySettings.shadows}"); if (town3D) { var h = town3D.Find("Hills"); if (h) h.gameObject.SetActive(q > 0); foreach (var f in folk) if (f.t) f.t.gameObject.SetActive(q > 0 || f.idx % 2 == 0); } }
+    QualitySettings.shadows = q == 0 ? ShadowQuality.Disable : ShadowQuality.All; if (urp) urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; Application.targetFrameRate = q == 2 ? 60 : 30; if (cam) { cam.allowMSAA = q > 0; var cd = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(); if (cd) { cd.renderShadows = q > 0; cd.renderPostProcessing = q == 2; } } msg = $"Graphics: {QNames[q]}."; Debug.Log($"GB QUALITY {q} renderScale {(urp ? urp.renderScale : -1)} shadows {QualitySettings.shadows}"); if (town3D) { var h = town3D.Find("Hills"); if (h) h.gameObject.SetActive(q > 0); foreach (var f in folk) if (f.t) f.t.gameObject.SetActive(q > 0 || f.idx % 2 == 0); } }
   int DefaultQuality() => SystemInfo.systemMemorySize < 3000 ? 0 : SystemInfo.systemMemorySize < 6000 ? 1 : 2;
   void OptionsMenu() { StartCoroutine(Ask("Options", $"Difficulty: {S.combat.difficulties[difficulty].name}\nGraphics: {QNames[Mathf.Max(0, quality)]}", ("Difficulty", () => OptionsDialog()), ("Graphics", () => StartCoroutine(Ask("Graphics quality", "High: full resolution, shadows, 60 fps.\nMedium: 85% resolution, short shadows.\nLow: 70% resolution, no shadows, fewer townsfolk.",
       ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits()), ("Close", null))); }
@@ -320,7 +321,7 @@ public partial class Game {
       Txt(R(nin, "t", 0, 0, 1, 1), kv.Key + (pi == port ? " (here)" : known ? "" : " · uncharted"), T.fontSizeSmall - 2, "#1A120A", TextAnchor.MiddleCenter, true);
       if (known && pi != port) { int k = pi; foreach (var go in new[] { m.gameObject, nb.gameObject }) { var bt = go.AddComponent<Button>(); bt.onClick.AddListener(() => { chartDest = k; Refresh(); }); } } }
     /* v0.6i: you-are-here ship marker (~64px at 1080), rotated toward destination or NE */
-    { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 72;
+    { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 104; /* k4: bigger you-are-here marker */
       var mr = Px(map, "ShipHere", here.x - ms / 2, here.y - ms / 2, ms, ms);
       if (mtex) { var mri = mr.gameObject.AddComponent<RawImage>(); mri.texture = mtex; mri.raycastTarget = false; }
       else { var mi = mr.gameObject.AddComponent<Image>(); mi.sprite = Tri(); mi.color = UITheme.C(T.gold); mi.raycastTarget = false; }

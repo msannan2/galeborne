@@ -36,16 +36,18 @@ public partial class Game : MonoBehaviour {
 #if UNITY_STANDALONE || UNITY_EDITOR
     Application.runInBackground = true; /* desktop only: a bare Xvfb has no window manager: without focus the player loop paused at the title screen */
 #endif
-    shotMode = Array.IndexOf(Environment.GetCommandLineArgs(), "-gbshots") >= 0; { var ga = Environment.GetCommandLineArgs(); int fi = Array.IndexOf(ga, "-gbforce"); if (fi >= 0 && fi + 1 < ga.Length) gbForce = ga[fi + 1].ToLower(); if (gbForce.Contains("customs_caught")) ptForceCustoms = 1; if (gbForce.Contains("customs_pass")) ptForceCustoms = 0; if (gbForce != "") Debug.Log("GB FORCE " + gbForce); } Init(); BuildWorld(); BuildUI();
+    shotMode = Array.IndexOf(Environment.GetCommandLineArgs(), "-gbshots") >= 0; { var ga = Environment.GetCommandLineArgs(); int fi = Array.IndexOf(ga, "-gbforce"); if (fi >= 0 && fi + 1 < ga.Length) gbForce = ga[fi + 1].ToLower(); if (gbForce.Contains("customs_caught")) ptForceCustoms = 1; if (gbForce.Contains("customs_pass")) ptForceCustoms = 0; if (gbForce != "") Debug.Log("GB FORCE " + gbForce); } Init(); BuildWorld(); BuildUI(); { var qa = Environment.GetCommandLineArgs(); int qi = Array.IndexOf(qa, "-gbquality"); int q0 = qi >= 0 && qi + 1 < qa.Length && int.TryParse(qa[qi + 1], out int qv) ? qv : PlayerPrefs.GetInt("gbQuality", DefaultQuality()); string m0 = msg; ApplyQuality(Mathf.Clamp(q0, 0, 2)); msg = m0; } /* k4: saved graphics level applied at boot */
     { var ga2 = Environment.GetCommandLineArgs(); int di = Array.IndexOf(ga2, "-gbdueltest"); if (di >= 0 && di + 1 < ga2.Length) { duelTest = true; duelTestDir = ga2[di + 1]; System.IO.Directory.CreateDirectory(duelTestDir); Init(); onTitle = false; StartCoroutine(Prologue()); return; }
       if (Array.IndexOf(ga2, "-gbsavetest") >= 0) { StartCoroutine(SaveTestIfAsked()); return; }
       if (Array.IndexOf(ga2, "-gblandmarks") >= 0) { StartCoroutine(LandmarkShotsIfAsked()); return; } }
     if (shotMode) { Refresh(); StartCoroutine(ShotModeIfAsked()); } else { ShowTitle(); StartCoroutine(PlaythroughIfAsked()); } }
 
+  /* debug: -gbcoins N (tests only) */
+  public void GbCoins(string when) { var ga = Environment.GetCommandLineArgs(); int i = Array.IndexOf(ga, "-gbcoins"); if (i >= 0 && i + 1 < ga.Length && int.TryParse(ga[i + 1], out int n)) { coins = n; Debug.Log("GB COINS " + n + " (" + when + ")"); } }
   public void Init() {
     S = GameSettings.Load(); T = UITheme.Load(); ApplyDesign(); Act1Init();
     int ng = S.goods.Length, np = S.ports.Length;
-    coins = S.startCoins; hold = new int[ng]; rep = new int[np]; wh = new Warehouse[np];
+    coins = S.startCoins; GbCoins("new game"); hold = new int[ng]; rep = new int[np]; wh = new Warehouse[np];
     for (int p = 0; p < np; p++) wh[p] = new Warehouse();
     price = new float[np, ng]; lastPrice = new float[np, ng]; basePrice = new float[np, ng];
     for (int g = 0; g < ng; g++) {
@@ -172,6 +174,8 @@ public partial class Game : MonoBehaviour {
       float near = sailing ? 1f : 0f;
       cam.transform.position = Vector3.Lerp(new Vector3(-18f, 10f, -30f), new Vector3(-9f, 6.2f, -14f), near) + new Vector3(Mathf.Sin(t * 0.2f) * 0.6f, Mathf.Sin(t * 0.5f) * 0.15f, 0);
       cam.transform.LookAt(new Vector3(0, sailing ? 3.2f : 4.5f, 1f));
+      if (arrivalPanT0 >= 0 && (Input.GetMouseButtonDown(0) || Input.touchCount > 0)) { arrivalPanT0 = -1; Debug.Log("GB ARRIVAL pan skipped by tap"); } /* k4merge2: tap skips, camera returns at once */
+      if (arrivalPanT0 >= 0) { float u = (Time.time - arrivalPanT0) / ArrivalPanDur; if (u >= 1f) arrivalPanT0 = -1; else { float k = Mathf.SmoothStep(0, 1, Mathf.Clamp01(u / 0.4f)) * (1f - Mathf.SmoothStep(0, 1, Mathf.Clamp01((u - 0.6f) / 0.4f))); var look = Quaternion.LookRotation(arrivalTarget - cam.transform.position); cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, look, k); } } /* k4merge2: arrival pan toward shore landmark, eased out and back */
       if (passShip != null && passShip.gameObject.activeInHierarchy) { passShip.position += new Vector3(Time.deltaTime * 4.5f, 0, Time.deltaTime * 1.2f); if (passShip.position.x > 80) passShip.gameObject.SetActive(false); } }
   }
 
@@ -188,7 +192,9 @@ public partial class Game : MonoBehaviour {
   static RectTransform R(Transform p, string n, float x0, float y0, float x1, float y1) {
     var g = new GameObject(n, typeof(RectTransform)); var r = (RectTransform)g.transform; r.SetParent(p, false);
     r.anchorMin = new Vector2(x0, y0); r.anchorMax = new Vector2(x1, y1); r.offsetMin = r.offsetMax = Vector2.zero; return r; }
+  static Transform contentRoot; public const float TopBarH = 64f, TopGapK4 = 84f; /* k4merge: screens laid out from y172 now start at 88 (bar 12..76 + 12) */
   static RectTransform Px(Transform p, string n, float x, float yTop, float w, float h) { // pixel rect from parent's top-left
+    if (p != null && p == contentRoot && yTop >= 150 && yTop < 1600) yTop -= TopGapK4; /* k4merge: one shared top offset under the 64px bar */
     var r = R(p, n, 0, 1, 0, 1); r.pivot = new Vector2(0, 1); r.anchoredPosition = new Vector2(x, -yTop); r.sizeDelta = new Vector2(w, h); return r; }
   bool parch; /* while drawing on parchment, dark-theme fills and light inks map to their ledger equivalents */
   string PF(string c) => !parch ? c : c == T.rowShade || c == T.panel || c == T.panelAlt ? T.ledgerRowAlt : c == T.ink ? T.ledgerRule : c == T.brass ? T.ledgerRule : c;
@@ -219,7 +225,7 @@ public partial class Game : MonoBehaviour {
     var f = bd.gameObject.AddComponent<AspectRatioFitter>(); f.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent; f.aspectRatio = 1080f / 1920f;
     dimmer = R(canvasRoot, "Dim", 0, 0, 1, 1); dimmer.gameObject.AddComponent<Image>().color = new Color(0.08f, 0.06f, 0.04f, 0.55f); dimmer.GetComponent<Image>().raycastTarget = false;
     root = R(canvasRoot, "SafeArea", 0, 0, 1, 1); ApplySafeArea();
-    content = R(root, "Content", 0.5f, 0, 0.5f, 1); content.sizeDelta = new Vector2(1080, 0); fx = R(root, "FX", 0, 0, 1, 1);
+    content = R(root, "Content", 0.5f, 0, 0.5f, 1); content.sizeDelta = new Vector2(1080, 0); contentRoot = content; fx = R(root, "FX", 0, 0, 1, 1);
   }
   /// Screen.safeArea, or a simulated camera-hole/gesture inset passed as -gbsafe top,bottom (pixels).
   Rect SafeRect() {
@@ -241,18 +247,20 @@ public partial class Game : MonoBehaviour {
 
   void Clear(Transform t) { for (int i = t.childCount - 1; i >= 0; i--) Destroy0(t.GetChild(i).gameObject); }
 
-  void TopBar() {
-    topBar = Px(content, "Top", 16, 12, 1048, 150); Box(topBar, T.panel, T.brass);
-    var por = Px(topBar, "Portrait", 12, 12, 126, 126); Box(por, T.ink, T.gold);
-    var pi = Px(por, "img", 3, 3, 120, 120).gameObject.AddComponent<Image>(); var tex = Resources.Load<Texture2D>("Art/hasan_portrait");
-    if (tex) pi.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(.5f, .5f));
-    /* v0.6i: town name large at the top of every town / port screen */
-    Label(topBar, sailing ? $"At sea → {S.ports[dest].name}" : S.ports[port].name, 156, 8, 480, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
-    { var tl = Label(topBar, $"Captain {S.captain} · {DateStr}", 156, 58, 560, 36, T.fontSizeSmall - 6, T.textMuted); tl.horizontalOverflow = HorizontalWrapMode.Overflow; tl.resizeTextForBestFit = true; tl.resizeTextMinSize = 14; tl.resizeTextMaxSize = T.fontSizeSmall - 4; }
-    Label(topBar, sailing ? "Fair winds" : $"Standing {rep[port]:+0;-0;0}", 156, 96, 480, 42, T.fontSizeSmall - 2, T.text);
-    coinText = Label(topBar, $"{coins:N0} coins", 640, 12, 392, 48, T.fontSizeTitle - 6, T.gold, TextAnchor.MiddleRight, true);
-    Label(topBar, $"Hold {HoldUsed}/{S.holdSize}", 640, 62, 392, 38, T.fontSizeSmall - 2, T.text, TextAnchor.MiddleRight);
-    Label(topBar, $"Hull {HullCur:0}/{HullMax:0}" + (SailsCur < SailsMax ? $" · Sails {SailsCur:0}/{SailsMax:0}" : "") + (papersGiven ? " · Papers" : crate ? " · Faker's Crate" : "") + (tithe ? " · Tithe paid" : ""), 520, 100, 512, 38, T.fontSizeSmall - 4, HullCur < HullMax * 0.6f ? T.down : T.textMuted, TextAnchor.MiddleRight);
+  void TopBar() { /* k4: exactly one line "{town} · {coins} coins · Hull {hull}% · Moon {moon}" (+ debt while active) */
+    topBar = Px(content, "Top", 16, 12, 1048, 64); Box(topBar, T.panel, T.brass);
+    bool overdue = harbourDebt > 0 && harbourDebtDueWeek >= 0 && week > harbourDebtDueWeek;
+    string debt = harbourDebt <= 0 ? "" : $" · Debt {harbourDebt}" + (harbourDebtDueWeek < 0 ? "" : overdue ? " OVERDUE" : $" due moon {harbourDebtDueWeek / Mathf.Max(1, S.weeksPerMoon) + 1}");
+    string town = sailing ? $"At sea → {S.ports[dest].name}" : tab == 4 ? S.ports[port].name : ""; /* in town the town title shows the name */
+    string rest = $" · {coins:N0} coins · Hull {(HullMax > 0 ? HullCur / HullMax * 100f : 100f):0}% · Moon {Moon % S.moonsPerYear + 1}";
+    int over = town.Length + rest.Length + debt.Length - 43; /* ~43 chars fit at 540px wide in the inset rect: shorten the town name first, coins/hull stay whole */
+    if (over > 0 && sailing) { town = $"→ {S.ports[dest].name}"; over = town.Length + rest.Length + debt.Length - 43; } /* sea: keep the destination, drop "At sea" first */
+    if (over > 0 && town.Length > 4) town = town.Substring(0, Mathf.Max(3, town.Length - over - 1)) + "…";
+    string debtTxt = debt.Length == 0 ? "" : $"<color={(overdue ? T.down : "#E8A33A")}>{debt}</color>"; /* amber open, red overdue */
+    coinText = Label(topBar, (town.Length > 0 ? town : rest.Substring(3)) + (town.Length > 0 ? rest : "") + debtTxt, 76, 6, 952, 52, /* 64px left inset reserved for the 56px Hasan medallion (merge) */ T.fontSizeSmall, T.parchment, TextAnchor.MiddleCenter);
+    { var mt = Resources.Load<Texture2D>("Art/ui_hasan_medallion"); if (mt) { var mr = Px(topBar, "Medallion", 10, 4, 56, 56); var mi = mr.gameObject.AddComponent<RawImage>(); mi.texture = mt; mi.raycastTarget = true; /* k4merge: Hasan medallion, opens Journal */
+      var mb = mr.gameObject.AddComponent<Button>(); mb.targetGraphic = mi; var cb = mb.colors; cb.normalColor = Color.white; cb.highlightedColor = Color.white; cb.selectedColor = Color.white; cb.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f); mb.colors = cb; mb.onClick.AddListener(() => { if (!fighting && dialog == null) OpenJournal(); }); } }
+    coinText.supportRichText = true; coinText.horizontalOverflow = HorizontalWrapMode.Wrap; coinText.resizeTextForBestFit = true; coinText.resizeTextMinSize = 14; coinText.resizeTextMaxSize = T.fontSizeSmall; /* shrinks instead of wrapping */
   }
   void Banner() {
     var tex = Resources.Load<Texture2D>("Art/" + S.ports[port].art); var r = Px(content, "Banner", 16, 172, 1048, 280); Box(r, T.ink, T.brass);
@@ -388,7 +396,7 @@ public partial class Game : MonoBehaviour {
       Label(row, S.goods[g].name, 16, 0, 280, 96, T.fontSize + 8, T.text); priceTexts[g] = Label(row, SellPrice(g).ToString(), 286, 0, 200, 96, T.fontSize + 8, T.gold, TextAnchor.MiddleLeft, true);
       Label(row, hold[g].ToString(), 600, 0, 80, 96, T.fontSize + 8, T.text);
       Btn(row, "Sell 1", 700, 8, 140, 80, () => DoSellAlley(gg, row), hold[g] > 0); Btn(row, "Sell all", 850, 8, 140, 80, () => { int got = 0, v = 0; while (hold[gg] > 0) { int pv = SellPrice(gg); if (!Sell(gg)) break; got++; v += pv; } if (got > 0) { msg = $"A quiet buyer takes {got} {S.goods[gg].name} for {v:N0} coins."; var at = priceTexts[gg].rectTransform.position; Refresh(); SaleFx(at); } }, hold[g] > 0); y += 104; }
-    if (!any) { Label(led, $"Nothing is banned in {S.ports[port].name} this week. The alley is quiet.", 26, y, 980, 70, T.fontSize + 8, T.textMuted); y += 80; }
+    if (!any) { Label(led, $"Nothing is banned in {S.ports[port].name} this week. The alley is quiet.", 26, y + 8, 980, 110, T.fontSize + 8, T.textMuted, TextAnchor.UpperLeft); y += 126; } /* k4art: top-anchored, 8px under headings — 2-line wrap no longer rides up into GOOD/PRICE/HELD */
     y += 20; Label(led, "Current bans", 26, y, 600, 60, T.fontSize + 8, T.parchment, TextAnchor.MiddleLeft, true); y += 66;
     foreach (var b in bans) { string when = b.end >= int.MaxValue / 4 ? "banned for good" : week < b.start ? "from next week" : $"until moon {b.end / S.weeksPerMoon + 1}";
       Label(led, $"·  {S.goods[b.good].name} banned in {S.ports[b.port].name}, {when}  (sells ×{S.contraband.bannedSellMult:0.#} there)", 26, y, 980, 60, T.fontSizeSmall + 6, T.text, TextAnchor.UpperLeft); y += 4 + Flow(led.GetChild(led.childCount - 1).GetComponentInChildren<Text>(), 60); }
@@ -457,7 +465,7 @@ public partial class Game : MonoBehaviour {
     if (sailing) yield break; if (!CanLeavePort(out var hullWhy)) { msg = hullWhy; sailing = false; Refresh(); yield break; } if (town3D) town3D.gameObject.SetActive(false); RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f); RenderSettings.fogColor = UITheme.C(T.skyHorizon); RenderSettings.fogEndDistance = 210; SaveVoyageBackup(); sailing = true; dest = to; sails++; backdrop.color = Color.clear; sea3D.gameObject.SetActive(true); BuildLandmarksV06k(); HideAllSeaLandmarks(); EnsureKenneyDhowOnShip(); Refresh(); /* v0.6k3: no landmarks mid-ocean */
     float dur = Rnd.Range(S.sailSecondsMin, S.sailSecondsMax) / ((S.debugFast || Array.IndexOf(Environment.GetCommandLineArgs(), "-fast") >= 0) ? S.debugFastMultiplier : 1) / Mathf.Max(0.35f, LimpSailMult);
     bool free = sails <= S.pirateFreeSails || sails < safeUntilSail; int firstAmb = OpenInt("firstAmbushOnSailing", 3); bool storyFog = InOpening && !storyAmbushDone && to == Muscat && hold[G("gunpowder")] > 0 && sails + 1 >= firstAmb; /* fog on voyage 3, after two calm voyages */
-    float ap = free ? 0 : AmbushChanceFor(to); bool fAmb = gbForce.Contains("ambush"), fSq = gbForce.Contains("squall") && !storyFog; bool ambush = storyFog || fAmb || (!fSq && Rnd.value < ap); bool encountered = ambush || fSq || Rnd.value < S.encounterChance; /* -gbforce ambush|squall|customs_caught for tests */ RectTransform fill = null;
+    float ap = free ? 0 : AmbushChanceFor(to); bool fAmb = gbForce.Contains("ambush"), fSq = gbForce.Contains("squall") && !storyFog; bool fMer = gbForce.Contains("merchant") && !storyFog; if (fMer) fAmb = false; bool ambush = storyFog || fAmb || (!fSq && !fMer && Rnd.value < ap); bool encountered = ambush || fSq || fMer || Rnd.value < S.encounterChance; /* -gbforce ambush|squall|customs_caught for tests */ RectTransform fill = null;
     if (storyFog && sails < firstAmb) { /* Debal->Muscat in the opening is two legs: a calm one to Ras al Hadd, then the fog. The fog lands on real sailing 3 */
       var f0 = VoyageBar(to); for (float t = 0; t < dur * 0.5f && !skipVoyage; t += Time.deltaTime * (ff ? 2f : 1f)) { f0.sizeDelta = new Vector2(1000 * Mathf.Clamp01(t / (dur * 0.5f)), 12); yield return null; }
       if (playthrough) PLog2("calm leg", $"sailing {sails} ends calm at Ras al Hadd"); yield return Ask("Ras al Hadd", "A calm passage. You put in at Ras al Hadd for water and set out again before dawn, bound for Muscat.", ("Sail on", null)); sails++; skipVoyage = false; }
@@ -465,15 +473,20 @@ public partial class Game : MonoBehaviour {
     ff = false;
     skipVoyage = false;
     /* v0.6i: 1–2 short decision events per voyage (horizon sail / storm front / wreckage), plus a passer on the beam */
-    int decisionsLeft = Rnd.Range(1, 3); float nextDec = dur * Rnd.Range(0.18f, 0.32f); bool passerOut = false;
+    bool arrivalShown = false; int decisionsLeft = Rnd.Range(1, 3); float nextDec = dur * Rnd.Range(0.18f, 0.32f); bool passerOut = false;
     for (float t = 0; t < dur; t += Time.deltaTime * (ff ? 2f : 1f)) { if (skipVoyage) t = dur;
       if (fill == null) fill = VoyageBar(to);
       fill.sizeDelta = new Vector2(1000 * Mathf.Clamp01(t / dur), 12);
       if (!passerOut && t > dur * 0.2f && passShip != null) { passerOut = true; passShip.gameObject.SetActive(true); passShip.position = new Vector3(-40f, 0.2f, 18f); passShip.rotation = Quaternion.Euler(0, 110, 0); }
       if (decisionsLeft > 0 && t >= nextDec && dialog == null && !skipVoyage) { decisionsLeft--; nextDec = t + dur * Rnd.Range(0.28f, 0.4f); yield return VoyageDecision(); fill = null; backdrop.color = Color.clear; }
       if (encountered && t > dur * 0.45f) { encountered = false; yield return Encounter(ambush, storyFog); fill = null; backdrop.color = Color.clear; }
+      if (!arrivalShown && t > dur * 0.8f && dialog == null && !fighting) { arrivalShown = true; ShowSeaLandmark(to); Debug.Log("GB ARRIVAL landmark " + S.ports[to].name); } // k4merge: arrival landmark ShowSeaLandmark(portIndex) /* k4merge: arrival landmark, last 20% only */
       yield return null; }
     if (passShip) passShip.gameObject.SetActive(false);
+    if (!arrivalShown && !fighting) { arrivalShown = true; if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(to); Debug.Log("GB ARRIVAL landmark " + S.ports[to].name + " (late: card/fight covered the window)"); } // k4merge: arrival landmark ShowSeaLandmark(portIndex)
+    if (arrivalShown && !fighting) { string an = S.ports[to].name; arrivalTarget = (seaMarks.TryGetValue(an, out var lmg) && lmg ? lmg.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * 5f; arrivalPanT0 = Time.time; /* k4merge2 */
+      yield return new WaitForSeconds(ArrivalPanDur * 0.5f); if (playthrough) yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{week}.png"));
+      float pe = Time.time + ArrivalPanDur; while (arrivalPanT0 >= 0 && Time.time < pe) yield return null; arrivalPanT0 = -1; }
     NewWeek(); port = to; ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); adsThisVisit = 0;
     if (CarriesBanned(port)) yield return Customs(); else msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
     tithe = false; sailing = false; crewInjured = false; tab = -1; Refresh(); Save();
@@ -488,19 +501,18 @@ public partial class Game : MonoBehaviour {
   void UpdateFF() { if (ffTxt) { ffTxt.text = ff ? "▶▶ 2× on" : "▶▶ 2×"; ffTxt.color = UITheme.C(ff ? T.gold : T.buttonText); } }
   IEnumerator Ask(string title, string body, params (string, Action)[] opts) {
     /* v0.6k3: panel height fits title+body+buttons (no half-empty storm/voyage card) */
-    int bodyLines = Mathf.Max(1, 1 + (body ?? "").Length / 52 + (body ?? "").Split('\n').Length - 1);
-    float bodyH = Mathf.Clamp(bodyLines * (T.fontSize + 6), 52f, 220f);
-    if (title == "Credits") bodyH = Mathf.Max(bodyH, (bodyLines + 3) * (T.fontSize + 6)); /* v0.6k3.1: Credits Close sits below the thank-you line */
-    float y = 96 + bodyH + 12;
+    float bodyH = CardBodyH(body); /* k4art: measured wrap height, no 220 cap → text never under buttons */
+    float y = 92 + bodyH + 20; /* k4art: 8px pad rule→body and body→buttons */
     float panelH = y + 84 + 20; /* tight to buttons — no half-empty card */
     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
-    var dlg = Px(root, "Dialog", 90, top, 900, panelH); dialog = dlg; Box(dialog, T.panel, T.gold); bool done = false; /* v0.6k3.1: own panel ref, so a nested Ask (Options -> Credits) cannot orphan this one */
-    Label(dialog, title, 30, 16, 840, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(dialog, "rule", 30, 72, 840, 2), T.brass);
-    Label(dialog, body, 30, 84, 840, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft);
-    y = 84 + bodyH + 12; float w = (840f - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length);
-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(dialog, o.Item1, 30 + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
-    while (!done) yield return null; if (dlg) Destroy0(dlg.gameObject); if (dialog == dlg) dialog = null;
+    var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+    Label(my, title, 30, 16, 840, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass);
+    Label(my, body, 30, 92, 840, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft);
+    y = 92 + bodyH + 20; float w = (840f - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length);
+    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, 30 + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+    while (!done) yield return null; Destroy0(my.gameObject); if (dialog == my) dialog = null;
   }
+  float arrivalPanT0 = -1f; Vector3 arrivalTarget; const float ArrivalPanDur = 1.0f; /* k4merge2: arrival pan */
   public float lastVoyageAmbushChance;
   /// v0.6i soft mid-voyage choices (not ambushes): sail on horizon, storm front, wreckage
   IEnumerator VoyageDecision() {
@@ -527,7 +539,7 @@ public partial class Game : MonoBehaviour {
   }
   IEnumerator Encounter(bool pirate, bool forcedFog) {
     var wgt = S.weights; float tot = wgt.pirate + wgt.wreck + wgt.merchant + wgt.squall + wgt.rumor, r = Rnd.value * tot;
-    if (!pirate) r = gbForce.Contains("squall") ? wgt.pirate + wgt.wreck + wgt.merchant + wgt.squall * 0.5f : wgt.pirate + Rnd.value * (tot - wgt.pirate); else r = 0; /* the ambush roll (AmbushChanceFor) decides pirates; other events share the rest */
+    if (!pirate && gbForce.Contains("merchant")) { r = wgt.pirate + wgt.wreck + wgt.merchant * 0.5f; Debug.Log("GB FORCE merchant: event forced"); } else if (!pirate) r = gbForce.Contains("squall") ? wgt.pirate + wgt.wreck + wgt.merchant + wgt.squall * 0.5f : wgt.pirate + Rnd.value * (tot - wgt.pirate); else r = 0; /* the ambush roll (AmbushChanceFor) decides pirates; other events share the rest */
     int any = Enumerable.Range(0, hold.Length).FirstOrDefault(g => hold[g] > 0);
     if ((r -= wgt.pirate) < 0) {
       yield return AmbushEncounter(forcedFog ? "fog" : PickAmbushType());
@@ -538,6 +550,7 @@ public partial class Game : MonoBehaviour {
     } else if ((r -= wgt.merchant) < 0) {
       int g = Rnd.Range(0, S.goods.Length); if (S.goods[g].contraband) g = 0; int unit = Mathf.Max(1, Mathf.RoundToInt(basePrice[dest, g] * 0.7f)), q = Mathf.Min(5, S.holdSize - HoldUsed);
       q = Mathf.Min(q, Mathf.FloorToInt(coins * seaMerchantMaxFrac / unit)); /* offer capped at design frac of coins */
+      Debug.Log($"GB MERCHANT coins {coins} unit {unit} cap {seaMerchantMaxFrac:0.##} -> q {q} cost {unit * Mathf.Max(q,0)} " + (q >= 1 ? "OFFER SHOWN" : "OFFER HIDDEN (smallest lot unaffordable)"));
       if (q >= 1) yield return Ask("A merchant hails you", $"A fat baghlah offers {q} {S.goods[g].name} at {unit} each, cheaper than any quay.",
         ($"Buy ({unit * q})", () => { if (coins >= unit * q) { coins -= unit * q; hold[g] += q; msg = $"Bought {q} {S.goods[g].name} at sea."; } else msg = "You can't afford it."; }), ("Decline", () => msg = "You wave the merchant on."));
     } else if ((r -= wgt.squall) < 0) {

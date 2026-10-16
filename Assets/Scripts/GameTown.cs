@@ -34,7 +34,7 @@ public partial class Game {
         case TCell.Stone: { int row = (int)(v * 6); float off = row % 2 * 0.5f; bool joint = (v * 6 % 1) < 0.07f || ((u * 3 + off) % 1) < 0.04f; c = Color.Lerp(H("#C29A66"), H("#E2C08C"), N(u * 9 + row, v * 9)); if (joint) c = H("#8A6844"); break; }
         case TCell.Plaster: { c = Color.Lerp(H("#D9B886"), H("#F0DDB6"), N(u * 5, v * 5) * 0.8f + N(u * 23, v * 23) * 0.2f); float grime = Mathf.Clamp01(0.35f - v) * 0.9f * (0.6f + 0.4f * N(u * 14, 3)); c = Color.Lerp(c, H("#9C7A52"), grime); if (N(u * 40, v * 40) > 0.78f) c *= 0.93f; break; }
         case TCell.Roof: { bool g = (v * 8 % 1) < 0.15f; c = Color.Lerp(H("#9C4A2C"), H("#C0663E"), N(u * 12, v * 4)); if (g) c *= 0.7f; break; }
-        case TCell.AwnRed: c = ((int)(u * 8) % 2 == 0 ? H("#B8352B") : H("#EFE2C4")) * (0.9f + 0.1f * N(u * 20, v * 20)); break;
+        case TCell.AwnRed: c = H("#D9CDB0") * (0.9f + 0.1f * N(u * 20, v * 20)); break; /* k4: plain canvas, no stripes; ApplyKeeperSkinK4 tints it per town (#3E4A6E / #D08A2E / #8FAE8C) */
         case TCell.AwnTeal: c = ((int)(u * 8) % 2 == 0 ? H("#2A8F8A") : H("#EFE2C4")) * (0.9f + 0.1f * N(u * 20, v * 20)); break;
         case TCell.Gold: c = Color.Lerp(H("#B8862E"), H("#F2CC6A"), Mathf.Pow(N(u * 4, v * 4), 0.7f)); break;
         case TCell.Rock: c = Color.Lerp(H("#8A6A48"), H("#C7A27A"), N(u * 5, v * 5) * 0.7f + N(u * 17, v * 17) * 0.3f); break;
@@ -81,13 +81,10 @@ public partial class Game {
       for (int r = 0; r <= 5; r++) { float y = RowY(r), z = RowZ(r);
         mb.Box(new Vector3(0, y - 1.6f, z + 1), new Vector3(24, 3.2f + 0.1f, 9.6f), TU((int)TCell.Paving));                      // terrace floor
         mb.Box(new Vector3(0, y - 1.6f, z - 3.7f), new Vector3(24.2f, 3.3f, 0.6f), TU((int)TCell.Stone)); }                        // retaining wall
-      /* v0.6k3: low upper-town clusters only — no giant flat slabs (landmarks carry the skyline) */
-      for (int i = 0; i < 6; i++) {
-        float x = -12 + i * 5f; float y = RowY(6) + 1.5f + (i % 2) * 0.8f; float z = RowZ(6) + 4;
-        mb.Box(new Vector3(x, y, z), new Vector3(3.2f, 3.5f + (i % 3) * 0.8f, 3.5f), Quaternion.Euler(0, i * 12, 0), TU((int)(i % 2 == 0 ? TCell.Ochre : TCell.Plaster)));
-        mb.Box(new Vector3(x, y + 2.0f + (i % 3) * 0.4f, z), new Vector3(3.4f, 0.25f, 3.7f), TU((int)TCell.Roof));
-      }
-      mb.Box(new Vector3(-13, 3, 22), new Vector3(4, 14, 40), TU((int)TCell.Rock)); mb.Box(new Vector3(13, 3, 22), new Vector3(4, 14, 40), TU((int)TCell.Rock));
+      { var bb = new MeshB(); /* k4: shared back blocks + side rock walls in their own object so TownLayoutsK4 can hide them per port */
+      for (int i = 0; i < 9; i++) bb.Box(new Vector3(-16 + i * 4f, RowY(6) + 4 + (i % 3) * 3, RowZ(6) + 6), new Vector3(7, 16 + (i % 4) * 4, 8), Quaternion.Euler(0, i * 17, (i % 2) * 6), TU((int)(i % 2 == 0 ? TCell.Ochre : TCell.Plaster))); /* upper town in ochre/sandstone plaster, not grey */
+      bb.Box(new Vector3(-13, 3, 22), new Vector3(4, 14, 40), TU((int)TCell.Rock)); bb.Box(new Vector3(13, 3, 22), new Vector3(4, 14, 40), TU((int)TCell.Rock));
+        MeshObj(TownLayoutsK4.SharedBackName, bb, Vector3.zero, false); }
       // stairs between terraces
       for (int r = 0; r < 5; r++) for (int k = 0; k < 6; k++) mb.Box(new Vector3(0, RowY(r) + k * 0.53f + 0.27f, RowZ(r) + 4.0f + k * 0.85f), new Vector3(2.6f, 0.54f, 0.85f), TU((int)TCell.Paving));
       // quay and pier

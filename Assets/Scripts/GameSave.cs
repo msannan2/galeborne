@@ -19,7 +19,7 @@ public partial class Game {
   static string SavePathB => Path.Combine(SaveDir, "galeborne_save_b.json");
   static string VoyageBackup => Path.Combine(SaveDir, "galeborne_save_voyage.json");
   public static bool HasSave => File.Exists(SavePath) || File.Exists(SavePathB) || File.Exists(VoyageBackup);
-  public long saveSeq; public bool saveBroken; public string lastLoadedFrom = "";
+  static bool welcomedThisSession; public long saveSeq; public bool saveBroken; public string lastLoadedFrom = "";
   float[] Flat(float[,] a) { int np = a.GetLength(0), ng = a.GetLength(1); var f = new float[np * ng]; for (int p = 0; p < np; p++) for (int g = 0; g < ng; g++) f[p * ng + g] = a[p, g]; return f; }
   void Unflat(float[] f, float[,] a) { int np = a.GetLength(0), ng = a.GetLength(1); if (f == null || f.Length != np * ng) return; for (int p = 0; p < np; p++) for (int g = 0; g < ng; g++) a[p, g] = f[p * ng + g]; }
   public void Save() {
@@ -39,7 +39,7 @@ public partial class Game {
       hold = d.hold; avgCost = d.avgCost; rep = d.rep; Unflat(d.price, price); Unflat(d.lastPrice, lastPrice); Unflat(d.basePrice, basePrice);
       bans = d.bans ?? new List<Ban>(); EnsureDesignBans(); if (d.wh != null && d.wh.Length == wh.Length) wh = d.wh; news = d.news ?? new List<string>(); charms = d.charms ?? new List<string>();
       JournalFromSave(d.journal, d.declined, d.oneShotUsed, d.cursorKeys, d.cursorVals);
-      var dm = d.msg ?? ""; while (dm.StartsWith("Welcome back, Captain. ")) dm = dm.Substring(23); msg = "Welcome back, Captain. " + dm; return true;
+      var dm = (d.msg ?? "").Replace("Welcome back, Captain.", "").Trim(); msg = (welcomedThisSession ? "" : "Welcome back, Captain. ") + dm; welcomedThisSession = true; return true; /* k4: greeting once per session, never re-saved into msg */
     } catch (Exception e) { Debug.LogWarning("Load failed: " + e.Message); return false; } }
   /// newest slot first, then the older slot, then the voyage-start backup; only if all fail does the title offer New Game alone
   public bool Load() {
@@ -47,7 +47,7 @@ public partial class Game {
     foreach (var p in new[] { SavePath, SavePathB, VoyageBackup }) { if (!File.Exists(p)) continue; SaveData d = null; try { d = JsonUtility.FromJson<SaveData>(File.ReadAllText(p)); } catch (Exception e) { Debug.LogWarning($"Save {Path.GetFileName(p)} unreadable: {e.Message}"); }
       cands.Add((p, d)); }
     foreach (var c in cands.OrderByDescending(c => c.d == null ? long.MinValue : c.path == VoyageBackup ? c.d.seq - 1 : c.d.seq)) {
-      if (c.d != null && Apply(c.d)) { saveSeq = Math.Max(c.d.seq, cands.Where(x => x.d != null).Select(x => x.d.seq).DefaultIfEmpty(0).Max()); lastLoadedFrom = Path.GetFileName(c.path); Debug.Log("GB SAVE loaded " + lastLoadedFrom + " seq " + c.d.seq); return true; }
+      if (c.d != null && Apply(c.d)) { saveSeq = Math.Max(c.d.seq, cands.Where(x => x.d != null).Select(x => x.d.seq).DefaultIfEmpty(0).Max()); lastLoadedFrom = Path.GetFileName(c.path); Debug.Log("GB SAVE loaded " + lastLoadedFrom + " seq " + c.d.seq); GbCoins("after load"); return true; }
       try { File.Copy(c.path, c.path + ".corrupt-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"), true); File.Delete(c.path); } catch { } /* broken slot set aside */ }
     lastLoadedFrom = ""; return false; }
   /// a copy of the current save at the start of every voyage
