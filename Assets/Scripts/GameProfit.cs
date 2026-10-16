@@ -40,7 +40,7 @@ public partial class Game {
     if (!firstProfitDone) { firstProfitDone = true; fame++; Debug.Log($"GB PROFIT first profit: +1 fame (fame {fame})"); ShowToast(FirstProfitToast); Save(); }
   }
   IEnumerator FloatText(Text t, float d) { var r = t.rectTransform; var p0 = r.anchoredPosition; var c0 = t.color;
-    for (float x = 0; x < d && t; x += Time.deltaTime) { float k = x / d; r.anchoredPosition = p0 + new Vector2(0, 60 * k); t.color = new Color(c0.r, c0.g, c0.b, c0.a * (k < 0.7f ? 1 : 1 - (k - 0.7f) / 0.3f)); yield return null; }
+    for (float x = 0; x < d && t; x += Time.deltaTime) { float k = x / d; r.anchoredPosition = p0 + new Vector2(0, 40 * k); /* Chief Art Designer: 40 px rise clears the Bought at line */ t.color = new Color(c0.r, c0.g, c0.b, c0.a * (k < 0.7f ? 1 : 1 - (k - 0.7f) / 0.3f)); yield return null; }
     if (t) Destroy(t.gameObject); }
   IEnumerator FlyCoin(RectTransform c, float delay, bool clink) {
     yield return new WaitForSeconds(delay); if (!c) yield break; Vector3 p0 = c.position; var off = new Vector3(Rnd.Range(-80f, 80f), Rnd.Range(80f, 160f), 0) * root.localScale.x; float spin = Rnd.Range(-360f, 360f);
