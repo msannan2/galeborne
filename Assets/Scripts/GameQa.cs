@@ -127,6 +127,7 @@ public partial class Game {
       { int ab0 = tab; port = Muscat; tab = 1; keeperTrig = "greet"; Refresh(); yield return null; yield return null;
         var tx = FindObjectsByType<Text>(FindObjectsSortMode.None).Select(t => t.text).ToList();
         Chk(MuscatFence == "Salim the fence" && tx.Any(t => t.Contains(MuscatFence)) && !tx.Any(t => t.Contains("Farida of the back alley")), "Muscat Back Alley keeper is Salim the fence, not Farida");
+        Chk(Line("salim", "greet").text == "Powder? Quietly, captain. The garrison pays well." && Line("salim", "sold").text == "Pleasure doing business. Forget my face." && tx.Any(t => t.Contains("Powder? Quietly")) && !tx.Any(t => t.Contains("customs man")), "Salim speaks his own lines in Muscat's alley, not Farida's"); /* research_gp4 */
         tab = ab0; Refresh(); yield return null; }
       openingGpSold = false; fallbackFired = false; hold[Gp] = 0;
       Chk(OpeningGoalLineAt(4) == GpBuyGoal, $"opening step 4 goal before buying ({OpeningGoalLineAt(4)})");
