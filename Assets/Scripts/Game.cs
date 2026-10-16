@@ -469,7 +469,7 @@ public partial class Game : MonoBehaviour {
   }
 
   // ---------------- voyage ----------------
-  string dockSeizeMsg; bool sailing, dockedSave; int dest; RectTransform dialog;
+  bool sailing, dockedSave; int dest; RectTransform dialog;
   IEnumerator Voyage(int to) {
     if (sailing) yield break; if (!CanLeavePort(out var hullWhy)) { msg = hullWhy; sailing = false; Refresh(); yield break; } if (town3D) town3D.gameObject.SetActive(false); RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f); RenderSettings.fogColor = UITheme.C(T.skyHorizon); RenderSettings.fogEndDistance = 210; SaveVoyageBackup(); sailing = true; dest = to; sails++; backdrop.color = Color.clear; sea3D.gameObject.SetActive(true); BuildLandmarksV06k(); HideAllSeaLandmarks(); EnsureKenneyDhowOnShip(); Refresh(); /* v0.6k3: no landmarks mid-ocean */
     float dur = Rnd.Range(S.sailSecondsMin, S.sailSecondsMax) / ((S.debugFast || Array.IndexOf(Environment.GetCommandLineArgs(), "-fast") >= 0) ? S.debugFastMultiplier : 1) / Mathf.Max(0.35f, LimpSailMult);
@@ -498,7 +498,7 @@ public partial class Game : MonoBehaviour {
     NewWeek(); port = to; adsThisVisit = 0; bool atCustoms = CarriesBanned(port); /* ambush_customs_t6 */ customsPending = atCustoms ? port : -1; dockedSave = true; Save(); /* gamedev_customs_save: the port change is on disk with this leg's costs before the customs card, so a quit there Continues at the arrival port (customs replayed), never back at the departure port with the toll spent */
     if (atCustoms) { PasserHide("customs"); /* gamedev_t11_passer */ if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(port); backdrop.color = Color.clear; if (pirateShip) pirateShip.gameObject.SetActive(false); /* gamedev_t7 */ string cn = S.ports[port].name; arrivalTarget = (seaMarks.TryGetValue(cn, out var clm) && clm ? clm.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * CustomsLookUp; customsFrame = true; /* gamedev_t7 */ yield return Customs(); customsPending = -1; /* gamedev_customs_save */ customsFrame = false; /* gamedev_t7 */ } /* ambush_customs_t6: customs card over the port arrival view (+ shared ModalDim from Ask), not blank sand */
     ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); /* ambush_customs_t6 */
-    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); /* gamedev_end1 */ FallbackCheck(); dockedSave = true; Save(); /* gamedev_continue: the arrival is on disk before any arrival card, so a quit on the gift/contract cards still Continues at this port */ if (dockSeizeMsg != null) { string sm = dockSeizeMsg; dockSeizeMsg = null; yield return Ask($"Blockade at {S.ports[port].name}", sm, ("Continue", null)); msg = sm; } if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
+    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); /* gamedev_end1 */ FallbackCheck(); dockedSave = true; Save(); /* gamedev_continue: the arrival is on disk before any arrival card, so a quit on the gift/contract cards still Continues at this port */ if (blockPending == port) yield return BlockadeCard(); /* gamedev_blockade_warning: replaces the seizure card; saved before the card, replayed on Continue */ if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
     tithe = false; sailing = false; dockedSave = false; crewInjured = false; tab = -1; Refresh(); Save();
   }
   bool ff, skipVoyage; Text ffTxt; bool horizonDone; /* gamedev_t10_lateen */
@@ -531,7 +531,7 @@ public partial class Game : MonoBehaviour {
     Label(my, body, 130, 132 + tf.extra /* gamedev_title1 */, 640, bodyH, /* art_t10_fixes */ /* art_t5_fixes: x 100–800, clear of both side bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
     y = 132 + tf.extra + bodyH + 20; /* gamedev_title1 */ float bx = wide ? 120f : 100f /* art_t5_fixes */, w = ((wide ? 660f : 700f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
     Debug.Log("GB CARD show " + title); /* gamedev_t9 */
-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, bx + i * (w + 16), y, w, 84, () => { Debug.Log("GB CARD choose " + title + " " + o.Item1); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, true, i == 0); }
+    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; bool oen = !o.Item1.StartsWith(AskOff); string olb = oen ? o.Item1 : o.Item1.Substring(AskOff.Length); /* gamedev_blockade_warning: "~off~" prefix = greyed option */ Btn(my, olb, bx + i * (w + 16), y, w, 84, () => { Debug.Log("GB CARD choose " + title + " " + olb); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, oen, i == 0 && oen); }
     try { while (!done) yield return null; }
     finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
   }
@@ -570,7 +570,7 @@ public partial class Game : MonoBehaviour {
     if (kind == 0) {
       bool close = false; PasserShow("horizon"); /* gamedev_t11_passer */
       yield return Ask("Sail on the horizon", "A lateen shows against the haze, holding a parallel course. She flies no colours you know.",
-        ("Hail her", () => { close = true; msg = "They wave a friendly pennant and sheer off."; }),
+        ("Hail her", () => { close = true; msg = "They wave a friendly pennant and sheer off."; if (BlkHailReveal()) close = false; /* gamedev_blockade_warning: Hail warning outcome */ }),
         ("Hold your course", () => msg = "You keep the wind and leave her astern."));
       horizonDone = true; PasserHide("horizon_closed"); /* gamedev_t11_passer */ /* gamedev_t10_lateen: the lateen leaves with the card (Hail or Hold), not behind the next card */
       if (close && Rnd.value < 0.35f) { int g = Rnd.Range(0, S.goods.Length); if (!S.goods[g].contraband) { int q = Mathf.Min(2, S.holdSize - HoldUsed); if (q > 0) { hold[g] += q; msg = $"They toss you {GoodCount(g, q)} for goodwill."; } } }

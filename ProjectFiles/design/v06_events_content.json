@@ -15,7 +15,10 @@
   {"source":"tavern","type":"pirates","text":"Black sails seen off {port}. Rich holds make tempting targets."},
   {"source":"astrologer","type":"weather","text":"The stars warn of a storm on the road to {port}. Sail slow, or sail brave."},
   {"source":"astrologer","type":"adversary","text":"A scorched seal crosses your path near {port}. Qarin's agents are close."},
-  {"source":"astrologer","type":"caravan","text":"The charm caravan turns toward {port} with the new moon."}
+  {"source":"astrologer","type":"caravan","text":"The charm caravan turns toward {port} with the new moon."},
+  {"source":"tavern","type":"blockade","port":"Muscat","good":"copper","condition":"blockadeActive:Muscat","shownIn":"departurePort","guaranteed":true,"alwaysShow":true,"text":"Sultan's soldiers are searching every hold at Muscat. Copper is being seized."},
+  {"source":"tavern","type":"blockade","port":"Muscat","good":"copper","condition":"blockadeActive:Muscat","shownIn":"departurePort","guaranteed":true,"alwaysShow":true,"text":"Soldiers board every dhow at Muscat. Any copper aboard is taken."},
+  {"source":"tavern","type":"blockade","port":"Muscat","good":"copper","condition":"blockadeActive:Muscat","shownIn":"departurePort","guaranteed":true,"alwaysShow":true,"text":"Muscat's quay is crawling with soldiers. They seize copper from every hold."}
  ],
  "ambushCards": [
   {"type":"fog","mood":"cold grey","warning":"The fog is too thick, and too quiet.","reveal":"Black sails loom out of the mist, close enough to hear their oars!","options":["fight","run","payToll","bluff","dumpCargo"]},

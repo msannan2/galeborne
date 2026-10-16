@@ -1,0 +1,14 @@
+{
+  "rumourKeys": "rumors[type=blockade] in ProjectFiles/design/v06_events_content.json (3 variants, guaranteed)",
+  "rule": {"condition":"blockadeActive:Muscat","shownIn":"departurePort","guaranteed":true,"alwaysShow":true,"varies":"wording only","leadVoyages":1},
+  "hailWarning": {"outcome":"warning","bodyShort":"Soldiers search copper at Muscat"},
+  "seaMap": {"icon":"crossedSpears","port":"Muscat","plaque":"Blockade: copper seized"},
+  "routePreview": {"condition":"hold copper > 0 && destination == Muscat","colour":"amber","text":"Blockade at Muscat: your copper will be seized."},
+  "arrivalCard": {
+    "title":"Blockade at Muscat",
+    "body":"Soldiers board to seize your copper.",
+    "options":{"pay":"Pay them off ({fee} coins)","surrender":"Let them take it"},
+    "payDisabled":"Not enough coins",
+    "fee":{"pctOfCopperValue":0.30,"formula":"ceil(0.30 * copperQty * price[Muscat,copper])"}
+  }
+}
