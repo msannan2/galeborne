@@ -540,7 +540,7 @@ public partial class Game : MonoBehaviour {
   }
   /// blockade_polish (Game Tester): a greyed card option drew the 9-slice teak frame (~110 px borders) squeezed into an 84 px button, which smeared over its label.
   /// Greyed options get a flat dim panel instead, and the label is re-parented last so it always renders above the button art, in readable muted ink.
-  public const string GreyLabelHex = "#D9C08A", GreyPlateHex = "#6B5A40", GreyOutlineHex = "#6B5A40"; public const float GreyPlateAlpha = 1f, GreyLabelAlpha = 0.6f; /* Chief Art Designer r5: dim plate #6B5A40, no outline, parchment label at 60% */ /* Chief Art Designer r4: parchment plate 85% with a 1 px teak outline, teak label 75% on top, no grey overlay */
+  public const string GreyLabelHex = "#D9C08A", GreyPlateHex = "#6B5A40", GreyOutlineHex = "#6B5A40"; public const float GreyPlateAlpha = 1f, GreyLabelAlpha = 0.8f; /* Chief Art Designer r6: dim plate #6B5A40, no outline, parchment label at 80% */ /* Chief Art Designer r4: parchment plate 85% with a 1 px teak outline, teak label 75% on top, no grey overlay */
   public const float OptionLabelPad = 14f; /* gamedev_final_strings: card option labels shrink to fit inside the plate with padding */
   void FitOptionLabel(Button b) { var lt = b.transform.Find("L") as RectTransform; var tx = lt ? lt.GetComponent<Text>() : null; if (!tx) return; lt.offsetMin = new Vector2(OptionLabelPad, 4); lt.offsetMax = new Vector2(-OptionLabelPad, -4);
     tx.horizontalOverflow = HorizontalWrapMode.Overflow; tx.resizeTextForBestFit = false; float avail = ((RectTransform)b.transform).rect.width - 2 * OptionLabelPad; /* one line, shrunk until it fits (best fit would wrap it into two tiny lines) */
