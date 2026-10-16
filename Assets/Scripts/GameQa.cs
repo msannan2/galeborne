@@ -403,6 +403,46 @@ yield return Shot("polish_blk_greyed_button"); }
       // persisted through save/load
       steerHintSeen = true; var sd = JsonUtility.FromJson<SaveData>(JsonUtility.ToJson(new SaveData { steerHintSeen = true })); Chk(sd.steerHintSeen && JsonUtility.ToJson(new SaveData()).Contains("\"steerHintSeen\":false"), "gamedev_rudder: the hint flag is a save field");
       ambushForced = af0; storyAmbushDone = sad0; boardedStoryPirate = bsp0; steerHintSeen = shs0; if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
+    { /* research_profit: first profitable sale — real taps on the market row, the quantity slider and the sheet's Buy / Sell buttons */
+      void QClick(Component b) => UnityEngine.EventSystems.ExecuteEvents.Execute(b.gameObject, new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current), UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
+      var hold0 = (int[])hold.Clone(); var avg0 = (float[])AvgCost.Clone(); int c0 = coins, f0 = fame, p0 = port; bool fp0 = firstProfitDone; var pr0 = (float[,])price.Clone();
+      port = PortIdx("Gwadar"); for (int i = 0; i < hold.Length; i++) { hold[i] = 0; AvgCost[i] = 0; } coins = 3000; firstProfitDone = false; int fa = fame;
+      int pg = Enumerable.Range(0, S.goods.Length).First(x => x != Gp && !Banned(x, port) && !RugsBanSale(x) && StockOf(x) >= 6);
+      IEnumerator QTrade(int n, bool sell) { tab = 0; Refresh(); yield return null; var row = FindObjectsByType<Button>(FindObjectsSortMode.None).FirstOrDefault(b => b.name == "row " + S.goods[pg].id); if (row) QClick(row); yield return null;
+        if (qty) qty.value = n; yield return null; if (sheet) QClick(sell ? sSellBtn : sBuyBtn); yield return null; float t0 = Time.realtimeSinceStartup; while (busy && Time.realtimeSinceStartup - t0 < 10) yield return null; }
+      // mixed-price cargo: 2 at one price, then 1 after the price jumps
+      price[port, pg] = 20; int cA = coins; yield return QTrade(2, false); int spentA = cA - coins; CloseSheet(); price[port, pg] = 41.5f; int cB = coins; yield return QTrade(1, false); int spentB = cB - coins; CloseSheet();
+      float wantAvg = (spentA + spentB) / 3f; bool avgOk = hold[pg] == 3 && Mathf.Abs(AvgCost[pg] - wantAvg) < 0.01f && spentB * 2 > spentA;
+      Chk(avgOk, $"research_profit: mixed-price cargo tracks the weighted avg buy price ({spentA}+{spentB} coins for 3 → avg {AvgCost[pg]:0.00}, want {wantAvg:0.00})");
+      // profitable sale of 2
+      price[port, pg] = 90; int rev = RevenueOf(pg, 2); int wantN = Mathf.RoundToInt(rev - 2 * wantAvg); int cS = coins; int clink0 = clinkCount; lastProfitText = null; lastToast = null;
+      yield return QTrade(2, true); yield return null; var pt = lastProfitText; var ol = pt ? pt.GetComponents<Outline>() : new Outline[0];
+      int flying = FindObjectsByType<Image>(FindObjectsSortMode.None).Count(i => i.name == "profit_coin_fly" && i.sprite && i.sprite.name == "profit_coin"); float sz = FindObjectsByType<Image>(FindObjectsSortMode.None).Where(i => i.name == "profit_coin_fly").Select(i => i.rectTransform.sizeDelta.x).DefaultIfEmpty(0).Max();
+      bool ticking = coinShown >= 0 && coinShown < coins;
+      yield return new WaitForSeconds(0.25f); yield return Shot("profit_sale"); 
+      Chk(pt && pt.name == "ProfitText" && pt.text == $"+{wantN:N0} profit" && lastProfitN == wantN && wantN > 0 && coins == cS + rev, $"research_profit: sale of 2 at {rev} vs avg {wantAvg:0.00} shows '{pt?.text}' (want '+{wantN:N0} profit')");
+      Chk(pt && Mathf.Abs(pt.color.r - UITheme.C(ProfitHex).r) < 0.01f && Mathf.Abs(pt.color.g - UITheme.C(ProfitHex).g) < 0.01f && ol.Length == 2 && ol.All(o => o.effectColor == UITheme.C(ProfitOutlineHex) && Mathf.Abs(Mathf.Abs(o.effectDistance.x) - 2) < 0.01f), "research_profit: profit text #E0B85A with a 2 px #3A2618 outline");
+      Chk(flying >= 5 && flying <= 8 && sz >= 24 && sz <= 32 && ticking, $"research_profit: {flying} profit_coin sprites (≤{sz:0} px) fly to the HUD while the counter ticks (shown {coinShown})");
+      Chk(lastToast && lastToast.text == FirstProfitToast && fame == fa + 1 && firstProfitDone, $"research_profit: first profit toast '{lastToast?.text}' and +1 fame ({fa} → {fame})");
+      yield return new WaitForSeconds(1.0f); yield return Shot("profit_first_toast_after");
+      Chk(coinShown == -1 && coinText && coinText.text.Contains($"{coins:N0} coins") && clinkCount > clink0, $"research_profit: HUD counter ends at {coins:N0} coins, clink played");
+      CloseSheet(); tab = -1; Refresh(); yield return new WaitForSeconds(2.5f);
+      // second profit: no toast, no fame
+      lastToast = null; int fb = fame; yield return QTrade(1, true); yield return new WaitForSeconds(0.2f);
+      Chk(lastProfitN > 0 && lastToast == null && fame == fb, $"research_profit: a second profitable sale shows +{lastProfitN} profit but no toast and no fame");
+      CloseSheet(); yield return new WaitForSeconds(1f);
+      // save / reload keeps the flag
+      Save(); firstProfitDone = false; bool ld = Load(); bool kept = ld && firstProfitDone; var old = JsonUtility.FromJson<SaveData>("{\"version\":1}");
+      tab = -1; Refresh(); price[port, pg] = 20; yield return QTrade(1, false); CloseSheet(); price[port, pg] = 90; lastToast = null; int fc = fame; yield return QTrade(1, true); yield return new WaitForSeconds(0.2f); CloseSheet();
+      Chk(kept && !old.firstProfitDone && lastProfitN > 0 && lastToast == null && fame == fc, $"research_profit: first-profit flag survives save/reload (load {ld}); no toast after reload; old saves read false");
+      yield return new WaitForSeconds(1f);
+      // loss: buy dear, sell cheap
+      price[port, pg] = 80; yield return QTrade(2, false); CloseSheet(); float la = AvgCost[pg]; price[port, pg] = 30; int lrev = RevenueOf(pg, 2); int wantL = Mathf.RoundToInt(lrev - 2 * la); int clinkL = clinkCount, cl = coins, fl = fame;
+      yield return QTrade(2, true); yield return null; var lt = lastProfitText; var lo = lt ? lt.GetComponents<Outline>() : new Outline[0]; float lA = lt ? lt.color.a : 0, lR = lt ? lt.color.r : 0; bool lOk = lt && lt.name == "LossText"; string lTxt = lt ? lt.text : null; int lfly = FindObjectsByType<Image>(FindObjectsSortMode.None).Count(i => i.name == "profit_coin_fly");
+      yield return new WaitForSeconds(0.25f); yield return Shot("profit_loss"); yield return new WaitForSeconds(0.8f);
+      Chk(lOk && lTxt == $"−{-wantL:N0}" && wantL < 0 && Mathf.Abs(lR - UITheme.C(LossHex).r) < 0.01f && Mathf.Abs(lA - LossAlpha) < 0.01f && lo.Length == 2 && lo.All(o => o.effectColor == UITheme.C(ProfitOutlineHex)) && lfly == 0 && clinkCount == clinkL && fame == fl && coins == cl + lrev && coinText.text.Contains($"{coins:N0} coins"),
+        $"research_profit: a loss shows '{lTxt}' (want '−{-wantL}') in #A8584A at 85% (a {lA:0.00}) with the outline ({lo.Length}), no coins ({lfly}), no clink ({clinkCount - clinkL}), fame {fame - fl}, coins +{coins - cl} (want +{lrev}), HUD at {coins:N0} [{coinText?.text}]");
+      CloseSheet(); for (int i = 0; i < hold.Length; i++) hold[i] = hold0[i]; avgCost = avg0; coins = c0; fame = f0; port = p0; firstProfitDone = fp0; price = pr0; tab = -1; Refresh(); yield return null; }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);
