@@ -61,13 +61,13 @@ public partial class Game {
     StoreDamageFromFight(o); yield return Resolve(o);
     if (o == Outcome.Sunk || o == Outcome.Surrender || o == Outcome.TollPaid || ((o == Outcome.BoardReady || o == Outcome.HasanBoarded || o == Outcome.Disabled) && duelWon)) fame++;
     { var st = canvasRoot ? canvasRoot.Find("CombatSkyStrip") : null; if (st) Destroy0(st.gameObject); }
-    Destroy0(cui.gameObject); cui = null; pirateShip.gameObject.SetActive(false); if (ship && combatShipScale0 != Vector3.zero) ship.localScale = combatShipScale0; waterMat.SetFloat("_Speed", 3); waterMat.SetVector("_Offset", Vector4.zero); backdrop.color = Color.clear;
+    HideRangeRing(); /* gamedev_ring */ Destroy0(cui.gameObject); cui = null; pirateShip.gameObject.SetActive(false); if (ship && combatShipScale0 != Vector3.zero) ship.localScale = combatShipScale0; waterMat.SetFloat("_Speed", 3); waterMat.SetVector("_Offset", Vector4.zero); backdrop.color = Color.clear;
     fighting = false; Refresh();
   }
   int crateBonus;
   /// short sinking cinematic: she rolls and settles while the camera eases round; a ship sunk through her glowing breach spills crates you sail through
   IEnumerator SinkCinematic(bool breach) {
-    inCinematic = true; foreach (var b in shipBars) b.gameObject.SetActive(false); aimGlow.gameObject.SetActive(false); breachGlow.gameObject.SetActive(false); crateBonus = 0; var crates = new List<Transform>(); var mat = Resources.Load<Material>("Mats/ShipPirate");
+    inCinematic = true; HideRangeRing(); /* gamedev_ring */ foreach (var b in shipBars) b.gameObject.SetActive(false); aimGlow.gameObject.SetActive(false); breachGlow.gameObject.SetActive(false); crateBonus = 0; var crates = new List<Transform>(); var mat = Resources.Load<Material>("Mats/ShipPirate");
     hudMsg.text = breach ? "Through the breach! She's going down — sail through the floating crates." : "She's going down!";
     Vector3 p0 = pirateShip.position; var r0 = pirateShip.rotation; Vector3 c0 = cam.transform.position;
     for (float t = 0; t < 3.2f; t += Time.deltaTime) { float k = t / 3.2f;
@@ -86,7 +86,7 @@ public partial class Game {
   string FireBlockReason() {
     var H = core.H; var P = core.P; if (H.reloadT > 0) return "Reloading…"; if (H.gunHp <= 0) return "Your guns are wrecked.";
     if (H.ammo == 3 && H.fireLeft <= 0) return "No fire shot left.";
-    if (!core.InArc(H, P)) return "Not in arc: turn to bring them abeam (within 50°)."; return $"Out of range for {S.combat.ammo[H.ammo].name} ({S.combat.ammo[H.ammo].range:0} m)."; }
+    if (!core.InArc(H, P)) return "Not in arc: turn to bring them abeam (within 50°)."; return $"Out of range for {S.combat.ammo[H.ammo].name} ({core.FireRange(H):0} m)."; } /* gamedev_ring: same source as the ring */
 
   IEnumerator Resolve(Outcome o) {
     var c = S.combat; string pg = S.goods[pirateGood].name;
@@ -180,6 +180,7 @@ public partial class Game {
     reloadRing = Px(fr, "ring", 0, 0, 250, 250).gameObject.AddComponent<Image>(); reloadRing.sprite = Ring(0.86f); reloadRing.type = Image.Type.Filled; reloadRing.fillMethod = Image.FillMethod.Radial360; reloadRing.color = UITheme.C(T.gold);
     fireTxt = Txt(R(fr, "t", 0, 0, 1, 1), "FIRE", T.fontSizeTitle, T.parchment, TextAnchor.MiddleCenter, true); fr.gameObject.AddComponent<Button>().onClick.AddListener(() => firePressed = true);
     boardBtn = Btn(cb, "BOARD!", 330, 1236, 420, 130, () => boardPressed = true, true, true);
+    BuildRangeRing(fr); /* gamedev_ring */
   }
   RectTransform[] shipBars; RectTransform aimGlow;
   static readonly string[] BarCols = { "#C0503A", "#E8DCC0", "#C9A44C", "#2BB0A8" }; // hull, sails, guns, crew
@@ -245,6 +246,7 @@ public partial class Game {
         if (sp.z > 0) { RectTransformUtility.ScreenPointToLocalPointInRectangle(cui, sp, null, out var lp); breachGlow.anchoredPosition = lp - cui.rect.min; float k = 0.5f + 0.5f * Mathf.Sin(Time.time * 9); breachGlow.GetComponent<Image>().color = new Color(1f, 0.85f + 0.15f * k, 0.75f + 0.25f * k, 1);
           for (int i = 0; i < breachSparks.Count; i++) { float ph = (Time.time * 1.6f + i * 0.37f) % 1f; float ang = (i * 53 + Mathf.Floor(Time.time * 1.6f + i * 0.37f) * 97) % 360 * Mathf.Deg2Rad; var spk = breachSparks[i];
             spk.anchoredPosition = new Vector2(65 + Mathf.Cos(ang) * ph * 70, -46 + Mathf.Abs(Mathf.Sin(ang)) * ph * 60 - ph * ph * 30) - new Vector2(4.5f, -4.5f); spk.GetComponent<Image>().color = new Color(1, 0.75f + 0.25f * (1 - ph), 0.3f, 1 - ph); } } } }
+    UpdateRangeRing(); /* gamedev_ring */
     PlaceBars(shipBars[0], ship.position + Vector3.up * 13f, H); PlaceBars(shipBars[1], pirateShip.position + Vector3.up * 13f, P);
     { Vector3 off = H.aim == Part.Sails ? new Vector3(0, 7, 0) : H.aim == Part.Crew ? new Vector3(0, 2.6f, 0) : H.aim == Part.Guns ? new Vector3(0, 1.8f, 0) + pirateShip.right * 1.6f : new Vector3(0, 0.6f, 0);
       var sp = cam.WorldToScreenPoint(pirateShip.position + off); bool vis = sp.z > 0; aimGlow.gameObject.SetActive(vis);

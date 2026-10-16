@@ -123,6 +123,39 @@ public partial class Game {
       Chk(openingGpSold && Goals3().Item1 != GpSellGoal && msg == GpSoldLine, $"gunpowder goal clears on the Muscat sale (Now: {Goals3().Item1}; msg: {msg})");
       Chk(GpMapFlag(Muscat) == null, "Muscat gunpowder flag gone after the sale"); Chk(!AlleySells(Debal).Contains(S.goods[Gp].id), "Farida stops selling gunpowder after the Muscat sale"); Chk(Goals3().Item1 != GpBuyGoal, "no gunpowder buy goal after the sale"); /* research_gp2 */
       storyStep = ss0; hold[Gp] = gp0; coins = c0; port = pt0; openingGpSold = sold0; fallbackFired = fb0; firstRun = fr0; price[Muscat, Gp] = pr0; msg = ""; eg.renown = rn0; eg.rank = rk0; eg.firstSales.Clear(); eg.firstSales.AddRange(fs0); if (news.Count > 0 && news[0] == GpSoldLine) news.RemoveAt(0); Refresh(); yield return null; }
+    // ---- gamedev_ring: naval range ring (radius = fire range, state flips at the threshold, plaque = fire-check distance, under the hulls) ----
+    { tab = -1; dialog = null; Refresh(); yield return null; bool town0 = town3D && town3D.gameObject.activeSelf; if (town3D) town3D.gameObject.SetActive(false); var amb0 = RenderSettings.ambientLight; RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f); /* at sea, as Voyage() sets it */ StartCoroutine(Fight(true)); for (int k = 0; k < 6; k++) yield return null; combatPaused = true;
+      var H = core.H; var P = core.P; H.heading = 0; H.rudder = 0; H.reloadT = 0; H.ammo = 0; P.heading = 180;
+      IEnumerator At(float d) { P.x = H.x + d; P.z = H.z; for (int k = 0; k < 3; k++) yield return null; }
+      bool radiusOk = true, flipOk = true, plaqueOk = true; string why = "";
+      for (int a = 0; a < 4; a++) { H.ammo = a; float rg = core.FireRange(H);
+        yield return At(rg + 25f); float sideR = rangeRing.localScale.x * RingStrokePx / RingSpritePx;
+        if (Mathf.Abs(ringRadiusM - rg) > 1e-4f || Mathf.Abs(ringRadiusWorld - rg * K) > 1e-3f || Mathf.Abs(sideR - rg * K) > 1e-3f || Mathf.Abs((rangeMarker.position - new Vector3(rangeRing.position.x, rangeMarker.position.y, rangeRing.position.z)).magnitude - rg * K) > 1e-2f) { radiusOk = false; why += $" r{a}:{ringRadiusM}/{rg}"; }
+        yield return At(rg + 0.02f); bool o1 = !ringInRange && !core.InFireRange(H, P); int pl = ringPlaqueN; bool pt = rangePlaqueTxt.text.StartsWith($"Range {Mathf.CeilToInt(core.FireDist(H, P))} m · ");
+        if (pl != Mathf.CeilToInt(core.FireDist(H, P)) || !pt || pl <= Mathf.FloorToInt(rg) && rg == Mathf.Floor(rg)) { plaqueOk = false; why += $" p{a}:{rangePlaqueTxt.text}/{core.FireDist(H, P):0.00}"; }
+        if ((H.ammo != 3 || H.fireLeft > 0) && core.InArc(H, P) && H.gunHp > 0) { var fbr = FireBlockReason(); if (fbr != $"Out of range for {S.combat.ammo[a].name} ({rg:0} m).") { plaqueOk = false; why += $" msg{a}:{fbr}"; } }
+        int pulses0 = ringPulses; yield return At(rg - 0.02f); bool i1 = ringInRange && core.InFireRange(H, P) && rangePlaqueTxt.text == "In range" && ringPulses == pulses0 + 1 && fireRangeBorder.gameObject.activeSelf;
+        yield return At(rg - 5f); bool i2 = ringInRange && ringPulses == pulses0 + 1; /* one pulse per entry */
+        if (!(o1 && i1 && i2)) { flipOk = false; why += $" f{a}:{o1}/{i1}/{i2}"; } L($"ring ammo {S.combat.ammo[a].name}: range {rg} m, world radius {rg * K:0.00}"); }
+      H.ammo = 0; float r0 = core.FireRange(H);
+      Chk(radiusOk, "range ring radius (ring, sprite stroke, marker) equals the loaded shot's fire range, all 4 shots" + why);
+      Chk(flipOk, "range ring flips dashed->solid exactly at the fire-range threshold (+/-0.02 m), one pulse per entry, FIRE border in range");
+      Chk(plaqueOk, "plaque number = ceil(fire-check distance), same range figure as 'Out of range for X (N m)'");
+      yield return At(r0 + 60f); yield return At(r0 + 50f); bool cl = rangePlaqueTxt.text.EndsWith("Closing"); yield return At(r0 + 55f); bool op = rangePlaqueTxt.text.EndsWith("Opening");
+      Chk(cl && op, $"plaque reads Closing when the gap shrinks and Opening when it grows ({rangePlaqueTxt.text})");
+      // under the hulls: ring passes right under Hasan; pixels covered by either hull must not change when the ring is drawn
+      yield return At(r0); { int w = Screen.width / 2, h = Screen.height / 2; var rt = new RenderTexture(w, h, 24); var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
+        Color32[] Grab() { var pt = cam.targetTexture; cam.targetTexture = rt; cam.Render(); cam.targetTexture = pt; var pa = RenderTexture.active; RenderTexture.active = rt; tex.ReadPixels(new Rect(0, 0, w, h), 0, 0); tex.Apply(); RenderTexture.active = pa; return tex.GetPixels32(); }
+        var A = Grab(); rangeRingR.enabled = rangeMarkerR.enabled = false; var B = Grab(); ship.gameObject.SetActive(false); pirateShip.gameObject.SetActive(false); var D = Grab(); ship.gameObject.SetActive(true); pirateShip.gameObject.SetActive(true); rangeRingR.enabled = rangeMarkerR.enabled = true;
+        bool Df(Color32 x, Color32 y) => Mathf.Abs(x.r - y.r) + Mathf.Abs(x.g - y.g) + Mathf.Abs(x.b - y.b) > 6;
+        int hullPx = 0, bad = 0, ringPx = 0; for (int i = 0; i < A.Length; i++) { bool hull = Df(B[i], D[i]); if (hull) { hullPx++; if (Df(A[i], B[i])) bad++; } else if (Df(A[i], B[i])) ringPx++; }
+        rt.Release(); Destroy(rt); Destroy(tex);
+        L($"ring vs hull pixels: hull {hullPx}, hull pixels changed by the ring {bad}, ring pixels on open water {ringPx}, ring queue {rangeRingMat.renderQueue}");
+        Chk(hullPx > 200 && ringPx > 200 && bad <= hullPx / 200 && rangeRingMat.renderQueue > 2000 && rangeRingMat.renderQueue < 3000, $"range ring renders on the water below both hulls (hull px {hullPx}, changed {bad}, ring px {ringPx})"); }
+      // daytime screenshots for review
+      yield return At(r0 + 30f); yield return new WaitForSeconds(0.4f); yield return Shot("ring_out_of_range"); yield return At(r0 + 8f); yield return new WaitForSeconds(0.2f); yield return Shot("ring_out_of_range_near"); yield return At(r0 - 20f); yield return new WaitForSeconds(0.1f); yield return Shot("ring_entering_pulse"); yield return new WaitForSeconds(0.6f); yield return Shot("ring_in_range");
+      P.hull = 0; combatPaused = false; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      Chk(!fighting && (rangeRing == null || !rangeRing.gameObject.activeSelf), "after the fight the range ring is hidden"); if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);
