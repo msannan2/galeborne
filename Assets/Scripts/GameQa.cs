@@ -119,11 +119,11 @@ public partial class Game {
     // ---- gamedev_customs_save: coins paid on the leg, quit on the customs card at Muscat, Continue -> Muscat with the coins after the toll, customs replayed ----
     { tab = -1; dialog = null; int mu = PortIdx("Muscat"), gp = G("gunpowder"); port = PortIdx("Debal"); hold[gp] = Mathf.Max(hold[gp], 2); storyAmbushDone = true; safeUntilSail = sails + 100; customsPending = -1; var qaBan = new Ban { good = gp, port = mu, start = 0, end = int.MaxValue / 2 }; bans.Add(qaBan); Refresh(); yield return null;
       Chk(CarriesBanned(mu), "customs check: gunpowder in the hold is banned at Muscat");
-      StartCoroutine(Voyage(mu)); yield return null; int c0 = coins; coins -= 88; Save(); /* the toll paid mid-leg, saved like the pirate-toll outcome (port still Debal) */ int cAfter = coins; bool cc = false; float tq = Time.realtimeSinceStartup;
+      string vf0 = veForce; veForce = "merchant"; /* gamedev_qa_pin: qa-only pin so a random squall can never change this leg */ StartCoroutine(Voyage(mu)); yield return null; int c0 = coins; coins -= 88; Save(); /* the toll paid mid-leg, saved like the pirate-toll outcome (port still Debal) */ int cAfter = coins; bool cc = false; float tq = Time.realtimeSinceStartup;
       while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true;
         if (dialog != null) { if (dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("Customs at"))) { cc = true; break; } EgTestCloseCard(); }
         yield return null; }
-      Chk(cc && sailing && port == mu, $"voyage Debal->Muscat reaches the customs card (port {S.ports[port].name}, coins {coins})");
+      veForce = vf0; Chk(cc && sailing && port == mu, $"voyage Debal->Muscat reaches the customs card (port {S.ports[port].name}, coins {coins})");
       OnApplicationQuit(); /* the real quit path, customs card still open */
       port = PortIdx("Debal"); coins = c0; customsPending = -1; saveSeq = 0; bool ok = Load();
       Chk(ok && port == mu && coins == cAfter && customsPending == mu, $"Continue after quitting on the customs card resumes at Muscat with coins after the toll {cAfter} (loaded {lastLoadedFrom}: {S.ports[port].name}, coins {coins}, customsPending {customsPending})");
@@ -233,6 +233,15 @@ yield return Shot("polish_blk_greyed_button"); }
         $"gamedev_voyage_events2: weights Debal-Muscat: pirate {S.weights.pirate} wreck {wDM[0]} merchant {wDM[1]} squall {wDM[2]} rumor {wDM[3]} | pearl {wDM[4]} leaky {wDM[5]} customs {wDM[6]} lighthouse {wDM[8]} squallLine {wDM[7]}");
       Chk(wDG[6] == 0 && wDG[8] == 0 && wGM[6] > 0 && wGM[8] > 0 && wDG[4] > 0, $"gamedev_voyage_events2: customs only on Muscat legs (Debal-Gwadar {wDG[6]}, Gwadar-Muscat {wGM[6]:0.00}); lighthouse only via Ras al Hadd legs");
       Chk(mon7 && Near(wMon[7], 10), $"gamedev_voyage_events2: monsoon (moon {moonN}) raises squallLine 4 -> {wMon[7]} (x2.5)");
+      { /* gamedev_ve_pool: the NORMAL (non-qa) path: fresh loader + the same EncWeights the Voyage roll uses */ var vr0 = veRoot; veRoot = null; int nEx = VeIds.Count, nNw = VE.TryGetValue("new", out var nn) && nn is System.Collections.Generic.List<object> nl ? nl.Count : 0; veRoot = vr0;
+        int dbx = PortIdx("Debal"), mux = PortIdx("Muscat"), w0x = week; week = S.weeksPerMoon * 1; /* moon 2 */ var pw = VePoolWeights(dbx, mux); var pwDG = VePoolWeights(dbx, PortIdx("Gwadar"));
+        float[] exp = { 35, 20, 20, 15, 10, 6, 6, 6, 4, 6 }; bool wOk = MoonOfYear == 2 && pw.Length == 10 && Enumerable.Range(0, 10).All(i => Near(pw[i], exp[i])) && pwDG[7] == 0;
+        Debug.Log(VeWeightLog(dbx, mux, 0, true));
+        Chk(nEx + nNw >= 10 && VePoolIds.Length == 10 && pw.Count(x => x > 0) == 10 && wOk, $"gamedev_ve_pool: normal loader has {nEx} existing + {nNw} new texts; Debal->Muscat moon {MoonOfYear} pool {pw.Count(x => x > 0)}/10: " + string.Join(" ", Enumerable.Range(0, pw.Length).Select(i => $"{VePoolIds[i]} {pw[i]:0.#}")) + $" (customsLaunch on Debal->Gwadar {pwDG[7]})");
+        string lf1 = lastFamily; var vcnt = new int[9]; var ew = EncWeights(dbx, mux); for (int k = 0; k < 2000; k++) { lastFamily = ""; vcnt[VePickEncounter(ew)]++; } lastFamily = lf1; float tw = ew.Sum(); var badR = new System.Collections.Generic.List<string>(); string rates = "";
+        for (int i = 0; i < 9; i++) { float e = ew[i] / tw, o2 = vcnt[i] / 2000f, sd = Mathf.Sqrt(e * (1 - e) / 2000f); rates += $"{EncIds[i]} {o2:P1}/{e:P1} "; if (Mathf.Abs(o2 - e) > 4 * sd + 0.005f) badR.Add(EncIds[i]); }
+        Chk(badR.Count == 0 && Enumerable.Range(4, 5).All(i => vcnt[i] > 0), $"gamedev_ve_pool: 2000 normal-path draws Debal->Muscat moon 2, observed/expected (pirate is the separate ambush roll): {rates}" + (badR.Count > 0 ? " OFF: " + string.Join(",", badR) : ""));
+        week = w0x; }
       int cust = 0, wthr = 0; for (int k = 0; k < 400; k++) { lastFamily = ""; if (EncIds[VePickEncounter(wDG)] == "customsLaunch") cust++; lastFamily = "weather"; var id = EncIds[VePickEncounter(wDM)]; if (id == "squall" || id == "squallLine") wthr++; }
       Chk(cust == 0 && wthr == 0 && VeFamily("squallLine") == "weather", $"gamedev_voyage_events2: 400 Debal-Gwadar draws gave {cust} customs; after a weather card, {wthr} squall/squallLine draws (shared 'weather' family)");
       var bad = new System.Collections.Generic.List<string>(); void Ok(bool c, string what) { if (!c) bad.Add(what + $" [{qvCard} => {qvOut}]"); }
@@ -251,7 +260,7 @@ yield return Shot("polish_blk_greyed_button"); }
       coins = 100; yield return QaVe("customsLaunch", 1); Ok(coins == 80, "customs fee min 20"); coins = 9000; yield return QaVe("customsLaunch", 1); Ok(coins == 8850, "customs fee max 150");
       coins = 1000; veRoll = 0.1f; yield return QaVe("customsLaunch", 2); Ok(coins == 1000 && qvOut.Contains("outrun"), "customs run escapes");
       hullNow = -1; float hc = HullCur; veRoll = 0.9f; yield return QaVe("customsLaunch", 2); Ok(coins == 900 && Near(HullCur, hc - 10) && qvOut.Contains("100"), "customs run caught: hull -10, fee x2"); veRoll = -1; bans.Clear(); bans.AddRange(ban0);
-      System.Array.Clear(hold, 0, hold.Length); hold[cu] = 5; wB = week; yield return QaVe("squallLine", 0, "ve2_squalline"); Ok(week == wB + 1 && hold[cu] == 5, "squallLine around: +1 week");
+      { bool sold1 = openingGpSold; openingGpSold = false; System.Array.Clear(hold, 0, hold.Length); hold[Gp] = 3; lastFamily = ""; veForce = "squall"; StartCoroutine(Encounter(false, false)); yield return null; yield return null; EgTestCloseCard(); yield return null; yield return null; int gA = hold[Gp]; veForce = ""; veRoll = 0.1f; yield return QaVe("squallLine", 1); veRoll = -1; Chk(gA == 3 && hold[Gp] == 3, $"gamedev_squall_storysafe: squall and squallLine before openingGpSold keep the opening gunpowder (after squall {gA}, after squallLine {hold[Gp]})"); openingGpSold = sold1; } System.Array.Clear(hold, 0, hold.Length); hold[cu] = 5; wB = week; yield return QaVe("squallLine", 0, "ve2_squalline"); Ok(week == wB + 1 && hold[cu] == 5, "squallLine around: +1 week");
       veRoll = 0.1f; yield return QaVe("squallLine", 1); int lostS = 5 - hold[cu]; Ok(lostS >= 1 && lostS <= 2 && qvOut.Contains(GoodCount(cu, lostS)), "squallLine cut: lose 1-2");
       hold[cu] = 5; veRoll = 0.9f; yield return QaVe("squallLine", 1); Ok(hold[cu] == 5 && qvOut.Contains("Soaked"), "squallLine cut: safe"); veRoll = -1;
       hullNow = -1; hc = HullCur; yield return QaVe("squallLine", 2); Ok(Near(HullCur, hc - 5), "squallLine heave to: hull -5"); hullNow = hn0;

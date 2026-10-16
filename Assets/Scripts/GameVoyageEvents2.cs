@@ -55,7 +55,7 @@ public partial class Game {
     } else if (id == "squallLine") {
       yield return Ask(title, body,
         (L(0), () => { LoseWeek(); outT = O(0); }),
-        (L(1), () => { var held = LosableGoods(); if (held.Count > 0 && VeR() < CutLossChance) { int g = held[Rnd.Range(0, held.Count)], lost = Mathf.Min(hold[g], Rnd.Range(1, 3)); hold[g] -= lost; outT = VeFill(O(1, "outFail"), ("lost", GoodCount(g, lost))); } else outT = O(1); }),
+        (L(1), () => { var held = SquallLosableGoods(); /* gamedev_squall_storysafe */ if (held.Count == 0 && HoldUsed > 0 && VeR() < CutLossChance) { HullHit(SquallStoryHullLoss); outT = O(1); } else if (held.Count > 0 && VeR() < CutLossChance) { int g = held[Rnd.Range(0, held.Count)], lost = Mathf.Min(hold[g], Rnd.Range(1, 3)); hold[g] -= lost; outT = VeFill(O(1, "outFail"), ("lost", GoodCount(g, lost))); } else outT = O(1); }),
         (L(2), () => { HullHit(HeaveHullLoss); outT = O(2); }));
     } else if (id == "lighthouse") { var held = LosableGoods(); int cg = held.Count > 0 ? held.OrderBy(g => price[port, g]).First() : -1;
       yield return Ask(title, body,

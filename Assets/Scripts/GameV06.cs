@@ -155,6 +155,8 @@ public partial class Game {
     foreach (var a in journal) { if (a.status != "active" || a.objective == null) continue; foreach (var k in new[] { "good", "goodId", "cargo" }) if (JGet(a.objective, k) is string gid) { int g = G(gid); if (g >= 0) r.Add(g); } } /* gamedev_t7 */
     return r; } /* gamedev_t7 */
   List<int> LosableGoods() { var sg = StoryGoods(); return Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !sg.Contains(g)).ToList(); } /* gamedev_t15_storysafe */
+  List<int> SquallLosableGoods() { int og = G(Design.Path0(DZ, "opening.good", "gunpowder")); var l = LosableGoods(); if (!openingGpSold && og >= 0) l.Remove(og); return l; } /* gamedev_squall_storysafe: until openingGpSold, squalls never take the opening gunpowder (or other story cargo); trade goods or hull instead */
+  public const float SquallStoryHullLoss = 5f; /* gamedev_squall_storysafe */
   float BaitableValue { get { return LosableGoods().Sum(/* gamedev_t15_storysafe */ g => hold[g] * price[port, g]); } } /* gamedev_t7 */
   void DumpForBait(int worth) { int gp = G("gunpowder"); var sg = StoryGoods(); /* gamedev_t7 */ while (worth > 0 && HoldUsed > 0) { var held = LosableGoods().Where(g => !(spareGunpowder && g == gp)) /* gamedev_t15_storysafe */.OrderBy(g => price[port, g]).ToList(); if (held.Count == 0) break; hold[held[0]]--; worth -= Mathf.CeilToInt(price[port, held[0]]); } }
 
