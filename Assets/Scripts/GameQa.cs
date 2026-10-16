@@ -337,7 +337,7 @@ public partial class Game {
           yield return Place(90, rg * 1.6f, 3); Chk(arcActiveSide == -1 && Near(ArcEdgeSample(0).a, ArcEdgeAlpha), "art_arc_restyle: abeam but out of range: no boost"); }
         yield return Place(70, rg * 0.5f, 3); yield return Shot("rudder_3_wedges_in_arc");
         { /* gamedev_msgprio: 137 m bow-on (out of arc AND out of range): the range message wins */ yield return Place(0, 137f, 2); QaTapFire(); yield return null; yield return null; string m137 = hudMsg.text;
-          Chk(!core.InArc(H, P) && m137 == $"Out of range: 137 m, {S.combat.ammo[0].name} reaches {core.FireRange(H):0} m", $"gamedev_msgprio: out of range and out of arc at 137 m shows the range message first ('{m137}')"); }
+          Chk(!core.InArc(H, P) && System.Text.RegularExpressions.Regex.IsMatch(m137, "^Out of range: 13[78] m, " + S.combat.ammo[0].name + " reaches " + core.FireRange(H).ToString("0") + " m$") /* she drifts a fraction of a metre between placement and the tap */, $"gamedev_msgprio: out of range and out of arc at 137 m shows the range message first ('{m137}')"); }
         { /* gamedev_board: story boarding gate at 75% pirate hull */ var cc0 = S.combat; CombatCore Bq(bool story, float frac) { var q = new CombatCore(cc0, 5, false, 0, difficulty); if (story) { q.SetupStoryApproach(cc0.storyStartRange); q.ApplyStoryBalance(); } q.H.x = q.H.z = 0; q.P.x = cc0.boardRange * 0.5f; q.P.z = 0; q.P.sails = cc0.disableSails; q.P.hull = q.P.hull0 * frac; return q; }
           var b80 = Bq(true, 0.80f); var b75 = Bq(true, 0.75f); var n80 = Bq(false, 0.80f);
           Chk(!b80.BoardAllowed(b80.H, b80.P) && !b80.BoardAllowed(b80.P, b80.H), "gamedev_board: story fight: no boarding either way while the pirate hull is above 75% (80%)");
