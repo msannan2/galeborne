@@ -512,10 +512,10 @@ yield return Shot("polish_blk_greyed_button"); }
         pg = pgS; }
       // loss: buy dear, sell cheap
       price[port, pg] = 80; yield return QTrade(2, false); CloseSheet(); float la = AvgCost[pg]; price[port, pg] = 30; int lrev = RevenueOf(pg, 2); int wantL = Mathf.RoundToInt(lrev - 2 * la); int clinkL = clinkCount, cl = coins, fl = fame;
-      yield return QTrade(2, true); yield return null; var lt = lastProfitText; var lo = lt ? lt.GetComponents<Outline>() : new Outline[0]; float lA = lt ? lt.color.a : 0, lR = lt ? lt.color.r : 0; bool lOk = lt && lt.name == "LossText"; string lTxt = lt ? lt.text : null; int lfly = FindObjectsByType<Image>(FindObjectsSortMode.None).Count(i => i.name == "profit_coin_fly");
+      yield return QTrade(2, true); yield return null; var lt = lastProfitText; var lo = lt ? lt.GetComponents<Outline>() : new Outline[0]; float lA = lt ? lt.color.a : 0, lR = lt ? lt.color.r : 0; Color lC = lt ? lt.color : Color.clear; bool lOk = lt && lt.name == "LossText"; string lTxt = lt ? lt.text : null; int lfly = FindObjectsByType<Image>(FindObjectsSortMode.None).Count(i => i.name == "profit_coin_fly");
       yield return new WaitForSeconds(0.25f); yield return Shot("profit_4_loss"); yield return new WaitForSeconds(0.8f);
-      Chk(lOk && lTxt == $"−{-wantL:N0}" && wantL < 0 && Mathf.Abs(lR - UITheme.C(LossHex).r) < 0.01f && Mathf.Abs(lA - LossAlpha) < 0.01f && lo.Length == 2 && lo.All(o => o.effectColor == UITheme.C(ProfitOutlineHex)) && lfly == 0 && clinkCount == clinkL && fame == fl && coins == cl + lrev && coinText.text.Contains($"{coins:N0} coins"),
-        $"research_profit: a loss shows '{lTxt}' (want '−{-wantL}') in #A8584A at 85% (a {lA:0.00}) with the outline ({lo.Length}), no coins ({lfly}), no clink ({clinkCount - clinkL}), fame {fame - fl}, coins +{coins - cl} (want +{lrev}), HUD at {coins:N0} [{coinText?.text}]");
+      Chk(lOk && lTxt == $"−{-wantL:N0} loss" && wantL < 0 && Mathf.Abs(lC.r - UITheme.C("#C0685A").r) < 0.01f && Mathf.Abs(lC.g - UITheme.C("#C0685A").g) < 0.01f && Mathf.Abs(lC.b - UITheme.C("#C0685A").b) < 0.01f && lA > 0.99f && lo.Length == 2 && lo.All(o => o.effectColor == UITheme.C(ProfitOutlineHex)) && lfly == 0 && clinkCount == clinkL && fame == fl && coins == cl + lrev && coinText.text.Contains($"{coins:N0} coins"),
+        $"research_profit: a loss shows '{lTxt}' (want '−{-wantL:N0} loss') in #C0685A at full opacity (rgb {ColorUtility.ToHtmlStringRGB(lC)}, a {lA:0.00}) with the outline ({lo.Length}), no coins ({lfly}), no clink ({clinkCount - clinkL}), fame {fame - fl}, coins +{coins - cl} (want +{lrev}), HUD at {coins:N0} [{coinText?.text}]");
       CloseSheet(); for (int i = 0; i < hold.Length; i++) hold[i] = hold0[i]; avgCost = avg0; coins = c0; fame = f0; port = p0; firstProfitDone = fp0; price = pr0; tab = -1; Refresh(); yield return null; }
     { /* research_qty: quantity slider clamps and defaults — real taps on the market row, slider, Buy / Sell */
       void QC(Component b) => UnityEngine.EventSystems.ExecuteEvents.Execute(b.gameObject, new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current), UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler);
@@ -544,7 +544,7 @@ yield return Shot("polish_blk_greyed_button"); }
       // loss font size = profit font size
       yield return QOpen(cg); price[port, cg] = 10; UpdateSheet(true); yield return null; yield return QTap(sSellBtn); var lt = lastProfitText; int lfs = lt ? lt.fontSize : -2; string ltx = lt ? lt.text : ""; bool isLoss = lt && lt.name == "LossText";
       yield return new WaitForSeconds(0.2f); yield return Shot("qty_loss_popup");
-      Chk(isLoss && pfs > 0 && lfs == pfs && ltx.StartsWith("−"), $"research_qty: loss '{ltx}' font size {lfs} equals the profit font size {pfs}");
+      Chk(isLoss && pfs > 0 && lfs == pfs && ltx == $"−{-lastProfitN:N0} loss" && lastProfitN < 0, $"research_qty: loss '{ltx}' (want '−{-lastProfitN:N0} loss') font size {lfs} equals the profit font size {pfs}");
       CloseSheet(); for (int i = 0; i < hold.Length; i++) hold[i] = hold0[i]; avgCost = avg0; coins = c0; fame = f0; port = p0; price = pr0; lastBuyQty = lb0; if (st0 != null) stock = st0; tab = -1; Refresh(); yield return new WaitForSeconds(1.5f); }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----

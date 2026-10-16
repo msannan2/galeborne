@@ -9,8 +9,8 @@ using Rnd = UnityEngine.Random;
    Profit: '+N profit' in gold over the market, 5-8 brass coins arc into the HUD counter while it ticks up over ~0.6 s, with a clink.
    First profit in a save: one-time toast + 1 fame, flag saved (firstProfitDone). Loss: '−N' muted red, no coins, no sound. */
 public partial class Game {
-  public const string ProfitHex = "#E0B85A", LossHex = "#A8584A", ProfitOutlineHex = "#3A2618", FirstProfitToast = "First profit! The trade winds favour you.";
-  public const float LossAlpha = 0.85f, ProfitOutlinePx = 2f, CoinFlySec = 0.6f, CoinStagger = 0.05f, CounterTickSec = 0.6f;
+  public const string ProfitHex = "#E0B85A", LossHex = "#C0685A" /* Chief Art Designer r2: full opacity */, ProfitOutlineHex = "#3A2618", FirstProfitToast = "First profit! The trade winds favour you.";
+  public const float LossAlpha = 1f, ProfitOutlinePx = 2f, CoinFlySec = 0.6f, CoinStagger = 0.05f, CounterTickSec = 0.6f;
   public bool firstProfitDone; /* saved */
   float saleRev, saleCost; int saleUnits; /* the open sale transaction */
   public int coinShown = -1; /* >= 0 while the HUD counter is ticking */
@@ -25,7 +25,7 @@ public partial class Game {
     Debug.Log($"GB PROFIT sale rev {rev} profit {n}");
     if (n == 0) return; /* break-even: no popup */
     bool up = n > 0; var col = UITheme.C(up ? ProfitHex : LossHex); if (!up) col.a = LossAlpha;
-    var t = Label(fx, up ? $"+{n:N0} profit" : $"−{-n:N0}", 0, 0, 520, 80, T.fontSizeTitle + 6, up ? ProfitHex : LossHex, TextAnchor.MiddleCenter, true);
+    var t = Label(fx, up ? $"+{n:N0} profit" : $"−{-n:N0} loss", 0, 0, 520, 80, T.fontSizeTitle + 6, up ? ProfitHex : LossHex, TextAnchor.MiddleCenter, true);
     t.name = up ? "ProfitText" : "LossText"; t.color = col; t.raycastTarget = false; t.horizontalOverflow = HorizontalWrapMode.Overflow;
     var o = t.gameObject.AddComponent<Outline>(); o.effectColor = UITheme.C(ProfitOutlineHex); o.effectDistance = new Vector2(ProfitOutlinePx, -ProfitOutlinePx);
     var o2 = t.gameObject.AddComponent<Outline>(); o2.effectColor = UITheme.C(ProfitOutlineHex); o2.effectDistance = new Vector2(-ProfitOutlinePx, ProfitOutlinePx);
