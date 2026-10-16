@@ -65,7 +65,7 @@ Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of carg
 | Salt for Debal's pickling yards | *Salt's salt. Get it there dry.* | 11 salt | Debal | 870 | +20 | 130 | Rain at sea can spoil an open hold. |
 | Dates for the Debal bazaar | *My cousin waits. Don't make him wait long.* | 12 dates | Debal | 840 | +20 | 130 | Pirates watch the open water past the coast. |
 | Copper for Muscat's smiths | *Heavy load. Honest pay. That's all.* | 5 copper | Muscat | 790 | +20 | 120 | Customs in Muscat search some ships. |
-| Pearls for a Debal jeweller | *Divers bled for these. Mind them.* | 1 pearls | Debal | 660 | +20 | 100 | Pearls draw pirates like gulls to bait. |
+| A pearl for a Debal jeweller | *A diver bled for this one. Mind it.* | 1 pearls | Debal | 660 | +20 | 100 | One pearl draws pirates like gulls to bait. |
 
 ### Rush (1 moon)
 | Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
@@ -73,7 +73,7 @@ Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of carg
 | Salt before the Debal feast | *Feast's soon. Sail now, not tomorrow.* | 10 salt | Debal | 1,010 | +30 | 200 | A storm could eat the days you have. |
 | Copper, fast, for Muscat | *Forge is cold. They pay double, quick.* | 5 copper | Muscat | 1,010 | +30 | 200 | Head winds can cost a week. |
 | Dates for a Debal wedding | *No dates, no wedding. Hurry, friend.* | 10 dates | Debal | 900 | +30 | 180 | One bad storm and the wedding is over. |
-| Pearls for a Debal buyer | *He sails home soon. Catch him.* | 1 pearls | Debal | 840 | +30 | 170 | Pirates and storms both slow a rush run. |
+| A pearl for a Debal buyer | *He sails home soon with or without it. Catch him.* | 1 pearls | Debal | 840 | +30 | 170 | Pirates and storms both slow a rush run. |
 
 ## Debal — Fast-talking spice and cloth brokers
 
@@ -100,7 +100,7 @@ Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of carg
 |---|---|---|---|---|---|---|---|
 | Incense for Debal's temples | *The temples expect this. Do not fail them.* | 2 incense | Debal | 770 | +20 | 120 | Pirates know what incense is worth. |
 | Coffee for Gwadar's traders | *A gift of good faith. Treat it so.* | 5 coffee | Gwadar | 880 | +20 | 130 | The coastal run is calm, but storms come. |
-| Pearls for a Debal house | *Discretion, captain. Speak of this to no one.* | 1 pearls | Debal | 660 | +20 | 100 | Pearls draw pirates on open water. |
+| A pearl for a Debal house | *A single pearl, captain. Speak of it to no one.* | 1 pearls | Debal | 660 | +20 | 100 | Even one pearl draws pirates on open water. |
 | Dates for Debal's poor | *The Sultan's charity. Carry it well.* | 12 dates | Debal | 840 | +20 | 130 | Rain at sea can spoil an open hold. |
 
 ### Rush (1 moon)
@@ -108,5 +108,5 @@ Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of carg
 |---|---|---|---|---|---|---|---|
 | Incense for a funeral | *There is no second day for this. Go.* | 2 incense | Debal | 990 | +30 | 200 | A storm would make you late for the dead. |
 | Coffee for a guest of state | *The guest arrives soon. So must you.* | 5 coffee | Gwadar | 1,120 | +30 | 220 | Head winds can cost a week. |
-| Pearls for a betrothal | *The family is waiting. Do not keep them.* | 1 pearls | Debal | 840 | +30 | 170 | Pirates and storms both slow a rush run. |
+| A pearl for a betrothal | *The bride's family awaits this pearl. Do not keep them.* | 1 pearls | Debal | 840 | +30 | 170 | Pirates and storms both slow a rush run. |
 | Dates before the fast ends | *When the fast ends, they eat. Be there.* | 10 dates | Debal | 900 | +30 | 180 | One storm could cost the whole run. |

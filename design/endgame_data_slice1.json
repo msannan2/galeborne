@@ -122,8 +122,8 @@
     },
     {
      "id": "gw_d4",
-     "title": "Pearls for a Debal jeweller",
-     "giver": "Divers bled for these. Mind them.",
+     "title": "A pearl for a Debal jeweller",
+     "giver": "A diver bled for this one. Mind it.",
      "good": "pearls",
      "qty": 1,
      "dest": "Debal",
@@ -131,7 +131,7 @@
      "coins": 660,
      "renown": 20,
      "deposit": 100,
-     "risk": "Pearls draw pirates like gulls to bait.",
+     "risk": "One pearl draws pirates like gulls to bait.",
      "failRenown": -10
     }
    ],
@@ -180,8 +180,8 @@
     },
     {
      "id": "gw_r4",
-     "title": "Pearls for a Debal buyer",
-     "giver": "He sails home soon. Catch him.",
+     "title": "A pearl for a Debal buyer",
+     "giver": "He sails home soon with or without it. Catch him.",
      "good": "pearls",
      "qty": 1,
      "dest": "Debal",
@@ -346,8 +346,8 @@
     },
     {
      "id": "ms_d3",
-     "title": "Pearls for a Debal house",
-     "giver": "Discretion, captain. Speak of this to no one.",
+     "title": "A pearl for a Debal house",
+     "giver": "A single pearl, captain. Speak of it to no one.",
      "good": "pearls",
      "qty": 1,
      "dest": "Debal",
@@ -355,7 +355,7 @@
      "coins": 660,
      "renown": 20,
      "deposit": 100,
-     "risk": "Pearls draw pirates on open water.",
+     "risk": "Even one pearl draws pirates on open water.",
      "failRenown": -10
     },
     {
@@ -404,8 +404,8 @@
     },
     {
      "id": "ms_r3",
-     "title": "Pearls for a betrothal",
-     "giver": "The family is waiting. Do not keep them.",
+     "title": "A pearl for a betrothal",
+     "giver": "The bride's family awaits this pearl. Do not keep them.",
      "good": "pearls",
      "qty": 1,
      "dest": "Debal",
