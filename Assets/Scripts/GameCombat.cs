@@ -29,7 +29,7 @@ public partial class Game {
   int AddCargo(int g, int q) { q = Mathf.Min(q, S.holdSize - HoldUsed); if (q > 0) hold[g] += q; return Mathf.Max(0, q); }
 
   public IEnumerator Fight(bool scripted = false) {
-    fighting = true; core = new CombatCore(S.combat, Rnd.Range(0, int.MaxValue), crewInjured, PirateTierNow, difficulty); ApplyDamageToFight(); fightsFought++; if (duelsFought < S.combat.noviceDuels) core.noviceZoneBonus = S.combat.noviceDuelBonus;
+    storyCapHit = false; fighting = true; core = new CombatCore(S.combat, Rnd.Range(0, int.MaxValue), crewInjured, PirateTierNow, difficulty); ApplyDamageToFight(); fightsFought++; if (duelsFought < S.combat.noviceDuels) core.noviceZoneBonus = S.combat.noviceDuelBonus;
     core.OnBroadside += (a, b, shots, hits) => { Puffs(a == core.H ? ship : pirateShip, b == core.H ? ship : pirateShip, hits); if (a == core.H) hudMsg.text = hits > 0 ? $"Broadside! {hits} of {shots} shots hit their {PartNames[(int)a.aim].ToLower()}." : "Broadside falls short."; else hudMsg.text = hits > 0 ? $"The pirate hits you {hits} times!" : "Their broadside splashes wide."; };
     pirateGood = Rnd.Range(0, S.goods.Length); pirateQty = Rnd.Range(6, 13); pirateGood2 = Rnd.Range(0, S.goods.Length); pirateQty2 = Rnd.Range(0, 6);
     if (pirateShip == null) pirateShip = Dhow.Build(sea3D, T, true, "PirateDhow"); pirateShip.gameObject.SetActive(true);
@@ -52,11 +52,11 @@ public partial class Game {
       if (ShowSteerHint(true)) { steerHint.SetActive(true); steerHintSeen = true; Debug.Log("GB RUDDER steer hint shown"); } /* gamedev_rudder: once per save */
       Debug.Log($"GB AMBUSH start range={core.Range:0.0} idleToll={core.idleTollSeconds:0} cap={capS:0}"); } /* gamedev_ambush: Game Designer ruling (140 m start, 30 s idle toll, the 60 s cap no longer ends the story fight) */
     while (o == Outcome.None) {
-      fightT += Time.deltaTime; if (capS > 0 && fightT > capS) { o = capFog ? Outcome.HasanStruck : Outcome.Escaped; if (playthrough) PLog2("fight cap", $"{capS:0} s reached: auto-resolved to " + (capFog ? "the pirate toll" : "the pirate breaking off")); break; } /* the unlosable opening fight never drags on */
+      fightT += Time.deltaTime; if (capS > 0 && fightT > capS) { o = capFog || ambushForced ? Outcome.HasanStruck : Outcome.Escaped; if (ambushForced) storyCapHit = true; /* gamedev_timeout: the wall-clock safety cap in the story fight is a player toll too */ if (playthrough) PLog2("fight cap", $"{capS:0} s reached: auto-resolved to " + (capFog ? "the pirate toll" : "the pirate breaking off")); break; } /* the unlosable opening fight never drags on */
       if (!combatPaused) {
         ReadSteer(); core.H.ammo = Mathf.Clamp(core.H.ammo, 0, 3);
         if (firePressed) { firePressed = false; if (!core.FireTap()) hudMsg.text = FireBlockReason(); /* gamedev_toll_fix: CombatCore.FireTap resets the idle clock on any in-range tap and on every shot */ }
-        float dt = Mathf.Min(Time.deltaTime, 0.1f); o = core.Step(dt); if (o == Outcome.HasanStruck && core.idleTollFired) { if (!capFog) o = Outcome.Escaped; Debug.Log($"GB AMBUSH idle toll after {core.idleT:0.0} s idle (fight {core.t:0.0} s)"); if (playthrough) PLog2("fight idle", $"{core.idleTollSeconds:0} s without closing or firing"); }
+        float dt = Mathf.Min(Time.deltaTime, 0.1f); o = core.Step(dt); if (core.storyCapToll) { storyCapHit = true; Debug.Log($"GB AMBUSH fight cap {core.C.tollSeconds:0} s: player pays the toll"); } if (o == Outcome.HasanStruck && core.idleTollFired) { if (!capFog) o = Outcome.Escaped; Debug.Log($"GB AMBUSH idle toll after {core.idleT:0.0} s idle (fight {core.t:0.0} s)"); if (playthrough) PLog2("fight idle", $"{core.idleTollSeconds:0} s without closing or firing"); }
         if (o == Outcome.None && boardPressed) { boardPressed = false; if (core.BoardAllowed(core.H, core.P)) o = Outcome.BoardReady; }
       }
       UpdateCombatView(); yield return null; }
@@ -106,7 +106,7 @@ public partial class Game {
         int q = AddCargo(pirateGood, pirateQty) + AddCargo(pirateGood2, pirateQty2); coins += (int)c.prizeShipCoins; string extra = "";
         if (Rnd.value < c.surrenderCrewJoinChance) { crewInjured = false; extra = " A few of their sailors sign on with Hasan."; }
         yield return Ask("Spoils", $"They hand over their hold ({q} goods) and you sell the ship as a prize for {c.prizeShipCoins:0} coins.{extra}", ("Continue", null)); break; }
-      case Outcome.HasanStruck: yield return Lose("Hasan's crew can fight no more and you strike your colours."); break;
+      case Outcome.HasanStruck: if (storyCapHit) { storyCapHit = false; yield return StoryCapToll(); break; } yield return Lose("Hasan's crew can fight no more and you strike your colours."); break;
       case Outcome.BoardReady: yield return BoardFlow(); break;
       case Outcome.TollPaid: { EgFightWon("toll"); /* gamedev_end1 */ int q = AddCargo(pirateGood, Mathf.CeilToInt(pirateQty * c.tollLootFrac)); int pay = Mathf.RoundToInt(c.prizeShipCoins * c.tollLootFrac); coins += pay;
         yield return Ask("They pay a toll", $"Beaten and with dusk coming, the pirate captain strikes his flag and offers a toll to be let go: {pay} coins and {q} {pg}.", ("Accept", null)); break; }
@@ -129,6 +129,11 @@ public partial class Game {
       ("Recruit", () => { msg = "The pirate captain joins your crew, grumbling."; charms.Add("Turncoat's Oath"); }),
       ($"Bounty ({c.bounty:0})", () => { coins += (int)c.bounty; rep[dest] += 5; msg = "You hand him to the harbour master for the bounty."; }));
   }
+  public bool storyCapHit;
+  /// gamedev_timeout (Game Designer): the story fog fight ran out of time - the player pays the pirates a toll (coins), cargo kept. Not a win: no loot, no fame.
+  public int StoryTollCoins() => Mathf.Min(coins, Mathf.Max(20, Mathf.RoundToInt(coins * 0.1f)));
+  IEnumerator StoryCapToll() { int toll = StoryTollCoins(); coins -= toll; storyAmbushDone = true; Debug.Log($"GB AMBUSH timeout toll {toll} coins"); if (playthrough) PLog2("pirate toll", $"fight cap: player pays {toll} coins");
+    yield return Ask("The pirates take a toll", $"Dusk comes and the pirate still has you pinned. Her captain takes {toll} coins to let you go. Your cargo is untouched.", ("Continue", null)); msg = $"Paid a {toll}-coin toll. The hold is intact."; }
   IEnumerator Lose(string why) {
     if (InOpening && OpenFlag("openingAmbushNoDefeat")) { int toll = Mathf.Min(coins, Mathf.Max(20, Mathf.RoundToInt(coins * 0.1f))); coins -= toll; storyAmbushDone = true; if (playthrough) PLog2("pirate toll", $"no defeat in the opening: toll {toll} coins, cargo kept");
       yield return Ask("The pirates take a toll", $"The pirates have you pinned, but their captain only wants silver. They take {toll} coins and sheer off into the fog. Your cargo is untouched.", ("Continue", null)); msg = $"Paid a {toll}-coin toll. The hold is intact."; yield break; }

@@ -50,7 +50,7 @@ public class CombatCore {
      so full sail toward her is a fast run and even an unsteered ship passes inside Round range. She heaves to broadside until Hasan is in Round range. */
   public bool pirateHolds; public float idleTollSeconds, idleT, hShotAgo = 999; float idlePrevRange = -1; public bool idleTollFired;
   /* gamedev_balance (Game Designer ruling): story fog fight ONLY - pirate hull 50%, pirate damage 40% of the normal values */
-  public const float StoryPirateHullMult = 0.5f, StoryPirateDamageMult = 0.4f; public bool storyBalance; public float pirateDmgMult = 1f;
+  public const float StoryPirateHullMult = 0.5f, StoryPirateDamageMult = 0.4f; public bool storyBalance, storyCapToll; /* gamedev_timeout: story fight hit the tollSeconds limit -> the PLAYER pays the toll, never a win */ public float pirateDmgMult = 1f;
   public void ApplyStoryBalance() { if (storyBalance) return; storyBalance = true; P.hull *= StoryPirateHullMult; P.hull0 *= StoryPirateHullMult; pirateDmgMult = StoryPirateDamageMult; }
   /// gamedev_toll_fix: the FIRE button's one path. Any tap in range resets the idle clock; fires when the guns can.
   public bool FireTap() { if (InFireRange(H, P)) idleT = 0; if (!CanFire(H, P)) return false; Fire(H, P); return true; }
@@ -158,6 +158,7 @@ public class CombatCore {
     if (H.crew < H.crew0 * C.surrenderCrewFrac || (H.Disabled(C) && P.crew > H.crew)) return outcome = Outcome.HasanStruck; // same rule applies to Hasan's crew
     if (P.Disabled(C) && H.crew > P.crew && !disabledOffered) { disabledOffered = true; return outcome = Outcome.Disabled; }
     if (IdleTick(dt)) { idleTollFired = true; return outcome = Outcome.HasanStruck; } /* gamedev_ambush: idle toll clock */
+    if (t > C.tollSeconds && storyBalance) { storyCapToll = true; return outcome = Outcome.HasanStruck; } /* gamedev_timeout (Game Designer): story fog fight cap = player toll */
     if (t > C.tollSeconds) return outcome = PirateLosing() ? Outcome.TollPaid : Outcome.HasanBoarded; /* behind on damage: last-ditch boarding, settled by a duel */ // losing pirate pays a toll and strikes
     if ((H.Disabled(C) || (PT.boardsWhenStronger && P.crew > H.crew * PT.boardCrewRatio)) && BoardAllowed(P, H)) return outcome = Outcome.HasanBoarded;
     if (pirateFleeing && (Range > C.escapeRange || t - lastShotT > C.fleeQuietSeconds)) { if (R.NextDouble() < C.fleeBase) return outcome = Outcome.Escaped; pirateFleeing = false; fleeSpent = true; } // escape fails: wind drops, she turns to fight

@@ -336,10 +336,19 @@ public partial class Game {
           Chk(wins.Count == res.Count && hMin >= 0.35f && !res.Any(r => r.o == Outcome.HasanStruck), $"gamedev_balance (b): fire-every-reload broadside story fight wins {wins.Count}/60 (median {tMed:0} s, hull left median {hMed:P0}, min {hMin:P0}), no toll");
           var bow = res.Select((_, i) => CombatCore.SimStory(cc, i + 1, 0, difficulty, false, true, cc.storyStartRange, cc.storyIdleTollSeconds)).ToList(); Debug.Log("GB BALANCE story sim bow-on: " + string.Join(" ", bow.GroupBy(r => r.o).Select(g => g.Key + ":" + g.Count())));
           var nq = new CombatCore(cc, 7, false, 0, difficulty); var nq1 = new CombatCore(cc, 7, false, 1, difficulty);
-          Chk(!nq.storyBalance && !nq1.storyBalance && nq.P.hull0 == cc.pirate.hull && nq.pirateDmgMult == 1f && nq1.pirateDmgMult == 1f, $"gamedev_balance (c): later (non-story) fights keep full pirate hull {nq.P.hull0:0.#} and damage x{nq.pirateDmgMult}"); }
+          Chk(!nq.storyBalance && !nq1.storyBalance && nq.P.hull0 == cc.pirate.hull && nq.pirateDmgMult == 1f && nq1.pirateDmgMult == 1f, $"gamedev_balance (c): later (non-story) fights keep full pirate hull {nq.P.hull0:0.#} and damage x{nq.pirateDmgMult}");
+          // gamedev_timeout (Game Designer): the story fight cap is a PLAYER toll, never a win
+          var tq2 = new CombatCore(cc, 11, false, 0, difficulty); tq2.SetupStoryApproach(cc.storyStartRange); tq2.ApplyStoryBalance(); tq2.idleTollSeconds = 0; tq2.P.hull = tq2.P.hull0 * 0.2f; /* pirate far behind on damage */ tq2.t = cc.tollSeconds; var to = tq2.Step(0.05f);
+          Chk(to == Outcome.HasanStruck && tq2.storyCapToll && cc.tollSeconds < cc.storySafetyCapSeconds, $"gamedev_timeout: the story fight at the {cc.tollSeconds:0} s limit ends in the player toll even when the pirate is losing (outcome {to}); the {cc.storySafetyCapSeconds:0} s safety cap is only a backstop");
+          var bowAll = bow.Concat(res).ToList(); Chk(!bowAll.Any(r => r.o == Outcome.TollPaid || r.o == Outcome.Timeout) && bowAll.Where(r => r.t >= cc.tollSeconds).All(r => r.o == Outcome.HasanStruck), $"gamedev_timeout: no win state on a timeout ({bowAll.Count(r => r.t >= cc.tollSeconds)} sims reached the limit, all player toll; no pirate toll)");
+          int bowLoss = bow.Count(r => r.o == Outcome.HasanStruck || r.o == Outcome.HasanSunk || r.o == Outcome.HasanBoarded); Debug.Log($"GB BALANCE story sim bow-on after timeout rule: loss/player toll {bowLoss}/{bow.Count}");
+          Chk(bowLoss >= bow.Count * 0.8f, $"gamedev_timeout: never turning broadside mostly loses or pays the toll ({bowLoss}/{bow.Count}: " + string.Join(" ", bow.GroupBy(r => r.o).Select(g => g.Key + ":" + g.Count())) + ")"); }
       }
       qaPtrOn = false; qaPtrDown = false;
       core.P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      { /* gamedev_timeout: the live resolution of a story-fight timeout deducts the toll and gives no loot/fame */ int c0 = coins, f0 = fame; coins = 500; int want = StoryTollCoins(); storyCapHit = true; var rco = StartCoroutine(Resolve(Outcome.HasanStruck)); yield return null; yield return null;
+        bool tollCard = dialog != null && dialog.GetComponentsInChildren<Text>().Any(t => t.text == "The pirates take a toll"); yield return Shot("timeout_player_toll"); EgTestCloseCard(); yield return null; yield return null;
+        Chk(tollCard && coins == 500 - want && want == 50 && fame == f0 && !storyCapHit, $"gamedev_timeout: running out the clock -> 'The pirates take a toll', {want} coins deducted (500 -> {coins}), no fame"); coins = c0; }
       // second story fight in the same save: no hint
       ambushForced = true; StartCoroutine(Fight(true)); yield return null; yield return null; yield return new WaitForSeconds(0.3f); bool hint3 = SteerHintVisible;
       core.P.hull = 0; tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
