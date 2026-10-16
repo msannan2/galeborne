@@ -11,7 +11,7 @@ public partial class Game {
   public CombatCore core; public bool fighting, combatPaused; Transform pirateShip; RectTransform cui; Vector3 combatShipScale0;
   Text hudH, hudP, hudMsg, windTxt, fireTxt; Image reloadRing, rudderBar, windArrow; Button boardBtn; Image[] ammoBtns = new Image[4]; Text[] ammoTxt = new Text[4];
   RectTransform[] aimChips = new RectTransform[4]; bool firePressed, boardPressed; float camYaw; int pirateGood, pirateQty, pirateGood2, pirateQty2;
-  float dragX0; bool dragging;
+  float dragX0; bool dragging; /* gamedev_rudder: see ReadSteer */
   static readonly string[] PartNames = { "Hull", "Sails", "Guns", "Crew" };
 
   IEnumerator PirateEncounter() {
@@ -49,6 +49,7 @@ public partial class Game {
     if (ambushForced) hudMsg.text = "Tutorial: tap CHAIN and aim at their SAILS to slow her; then GRAPE at the CREW, or BOARD when she is crippled.";
     Outcome o = Outcome.None; float fightT = 0; float capS = Design.F(DZ?.Path(DZ.settings, "ambush.fightCapSeconds"), 60f); bool capFog = ambushForced && InOpening && OpenFlag("openingAmbushNoDefeat");
     if (ambushForced) { var sc = S.combat; core.SetupStoryApproach(sc.storyStartRange > 0 ? sc.storyStartRange : 140); core.idleTollSeconds = sc.storyIdleTollSeconds > 0 ? sc.storyIdleTollSeconds : 30; capS = sc.storySafetyCapSeconds > 0 ? sc.storySafetyCapSeconds : 180; camYaw = CombatCore.Bearing(core.P.x - core.H.x, core.P.z - core.H.z);
+      if (ShowSteerHint(true)) { steerHint.SetActive(true); steerHintSeen = true; Debug.Log("GB RUDDER steer hint shown"); } /* gamedev_rudder: once per save */
       Debug.Log($"GB AMBUSH start range={core.Range:0.0} idleToll={core.idleTollSeconds:0} cap={capS:0}"); } /* gamedev_ambush: Game Designer ruling (140 m start, 30 s idle toll, the 60 s cap no longer ends the story fight) */
     while (o == Outcome.None) {
       fightT += Time.deltaTime; if (capS > 0 && fightT > capS) { o = capFog ? Outcome.HasanStruck : Outcome.Escaped; if (playthrough) PLog2("fight cap", $"{capS:0} s reached: auto-resolved to " + (capFog ? "the pirate toll" : "the pirate breaking off")); break; } /* the unlosable opening fight never drags on */
@@ -138,15 +139,26 @@ public partial class Game {
 
   // ---------------- input ----------------
   public float qaRudder = float.NaN;
+  /* gamedev_rudder (Game Designer ruling): the rudder stays where the finger leaves it; released near centre it snaps to exactly 0. qaPtr* lets qa_run drive the real drag path. */
+  public const float RudderSnapBand = 0.12f; public bool steerHintSeen; GameObject steerHint; float dragR0;
+  public bool qaPtrOn, qaPtrDown; public Vector2 qaPtrPos;
+  public static float RudderFromDrag(float r0, float dx, float w) => Mathf.Clamp(r0 + dx / (w * 0.22f), -1, 1);
+  public static float RudderOnRelease(float r) => Mathf.Abs(r) < RudderSnapBand ? 0f : r;
+  public bool ShowSteerHint(bool story) => story && !steerHintSeen;
+  public bool SteerHintVisible => steerHint && steerHint.activeSelf;
+  bool PointerOverUI(Vector2 mp) {
+    var es = UnityEngine.EventSystems.EventSystem.current; if (es == null) return false;
+    var pe = new UnityEngine.EventSystems.PointerEventData(es) { position = mp }; var hits = new List<UnityEngine.EventSystems.RaycastResult>(); es.RaycastAll(pe, hits); return hits.Count > 0; }
+  public bool SteerStartsAt(Vector2 mp) => mp.y < Screen.height * 0.5f && !PointerOverUI(mp);
   void ReadSteer() {
     if (playthrough) { core.H.rudder = ptRudder; return; }
     if (!float.IsNaN(qaRudder)) { core.H.rudder = qaRudder; return; } /* gamedev_ambush: qa_run hand-style steering hook */
-    bool down = Input.GetMouseButton(0); Vector3 mp = Input.mousePosition;
-    if (Input.GetMouseButtonDown(0) && mp.y < Screen.height * 0.5f && !(UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())) { dragging = true; dragX0 = mp.x; }
-    if (!down) dragging = false;
-    if (dragging) core.H.rudder = Mathf.Clamp((mp.x - dragX0) / (Screen.width * 0.22f), -1, 1);
-    else if (!shotMode) core.H.rudder = Mathf.MoveTowards(core.H.rudder, 0, Time.deltaTime * 2);
+    bool down = qaPtrOn ? qaPtrDown : Input.GetMouseButton(0); Vector2 mp = qaPtrOn ? qaPtrPos : (Vector2)Input.mousePosition;
+    if (down && !dragging && !steerPressed) { steerPressed = true; if (SteerStartsAt(mp)) { dragging = true; dragX0 = mp.x; dragR0 = core.H.rudder; if (steerHint && steerHint.activeSelf) steerHint.SetActive(false); } }
+    if (!down) { if (dragging) core.H.rudder = RudderOnRelease(core.H.rudder); dragging = false; steerPressed = false; }
+    if (dragging) core.H.rudder = RudderFromDrag(dragR0, mp.x - dragX0, Screen.width);
   }
+  bool steerPressed;
 
   // ---------------- combat HUD ----------------
   void BuildCombatUI() {
@@ -167,7 +179,7 @@ public partial class Game {
     windArrow = Px(wbox, "arrow", 20, 30, 32, 32).gameObject.AddComponent<Image>(); windArrow.sprite = Tri(); windArrow.color = UITheme.C(T.parchment);
     windTxt = Label(wbox, "", 60, 14, 260, 72, T.fontSizeSmall - 2, T.parchment);
     windTxt.horizontalOverflow = HorizontalWrapMode.Overflow;
-    var mb = Px(cui, "Msg", 404, 8, 652, 100); Box(mb, T.ink, T.brass); hudMsg = Label(mb, "Swipe the lower screen to steer. Tap the enemy's parts to aim.", 16, 8, 648, 84, T.fontSizeSmall - 2, T.parchment);
+    var mb = Px(cui, "Msg", 404, 8, 652, 100); Box(mb, T.ink, T.brass); hudMsg = Label(mb, "Drag the lower screen to steer. Tap the enemy's parts to aim.", 16, 8, 648, 84, T.fontSizeSmall - 2, T.parchment);
     var cb = Bottom1920(cui, "cb");
     // ammo tray (right edge)
     var tray = R(cui, "tray", 1, 0, 1, 0); tray.pivot = new Vector2(1, 0); tray.sizeDelta = new Vector2(160, 1920); // hugs the screen's right edge (foldables: clear of the ships)
@@ -180,8 +192,9 @@ public partial class Game {
       r.gameObject.AddComponent<Button>().onClick.AddListener(() => core.H.aim = (Part)k); Txt(R(r, "t", 0, 0, 1, 1), PartNames[i], T.fontSize, T.text, TextAnchor.MiddleCenter, true); aimChips[i] = r; }
     // bottom controls
     var sail = Btn(cb, "Full / Half sail", 24, 1740, 300, 120, () => core.H.fullSail = !core.H.fullSail);
-    var rb = Px(cb, "Rudder", 350, 1784, 380, 28); Box(rb, T.panel, T.brass); rudderBar = Px(rb, "fill", 186, 2, 8, 24).gameObject.AddComponent<Image>(); rudderBar.color = UITheme.C(T.gold);
-    Label(cb, "← swipe to steer →", 350, 1820, 380, 40, T.fontSizeSmall - 4, T.textMuted, TextAnchor.MiddleCenter);
+    var rb = Px(cb, "Rudder", 350, 1784, 380, 28); Box(rb, T.panel, T.brass).raycastTarget = false; /* gamedev_rudder: the bar is not a dead zone for the steering drag */ rudderBar = Px(rb, "fill", 186, 2, 8, 24).gameObject.AddComponent<Image>(); rudderBar.color = UITheme.C(T.gold);
+    Label(cb, "← drag to steer →", 350, 1820, 380, 40, T.fontSizeSmall - 4, T.textMuted, TextAnchor.MiddleCenter).raycastTarget = false;
+    { var hb = Px(cb, "SteerHint", 190, 1150, 700, 110); var hi = Box(hb, T.ink, T.gold); hi.raycastTarget = false; var ht = Txt(R(hb, "t", 0, 0, 1, 1), "Drag to steer toward her.", T.fontSize, T.gold, TextAnchor.MiddleCenter, true); ht.raycastTarget = false; steerHint = hb.gameObject; steerHint.SetActive(false); } /* gamedev_rudder: one-time story-fight hint */
     var fr = Px(cb, "Fire", 800, 1600, 250, 250); var fb = fr.gameObject.AddComponent<Image>(); fb.sprite = Ring(0, 1); fb.color = UITheme.C(T.button);
     reloadRing = Px(fr, "ring", 0, 0, 250, 250).gameObject.AddComponent<Image>(); reloadRing.sprite = Ring(0.86f); reloadRing.type = Image.Type.Filled; reloadRing.fillMethod = Image.FillMethod.Radial360; reloadRing.color = UITheme.C(T.gold);
     fireTxt = Txt(R(fr, "t", 0, 0, 1, 1), "FIRE", T.fontSizeTitle, T.parchment, TextAnchor.MiddleCenter, true); fr.gameObject.AddComponent<Button>().onClick.AddListener(() => firePressed = true);

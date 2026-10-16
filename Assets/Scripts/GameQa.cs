@@ -275,6 +275,43 @@ public partial class Game {
       Chk(lastMsg.StartsWith("Out of range: ") && lastMsg.Contains(", Round reaches 120 m") || lastMsg.StartsWith("Not in arc"), $"gamedev_ambush: FIRE before range in the live fight explains why (both numbers when abeam, else the arc hint) ('{lastMsg}')");
       P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       ambushForced = af0; storyAmbushDone = sad0; boardedStoryPirate = bsp0; if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
+    // ---- gamedev_rudder: rudder stays where the drag leaves it, snaps to 0 near centre, one-time story hint, drag zones ----
+    { tab = -1; dialog = null; Refresh(); yield return null; bool town0 = town3D && town3D.gameObject.activeSelf; if (town3D) town3D.gameObject.SetActive(false); var amb0 = RenderSettings.ambientLight; RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f);
+      bool af0 = ambushForced, sad0 = storyAmbushDone, bsp0 = boardedStoryPirate, shs0 = steerHintSeen;
+      Chk(!ShowSteerHint(false) && ShowSteerHint(true), "gamedev_rudder: the steer hint is for the story fog fight only (not ordinary fights)");
+      steerHintSeen = false; ambushForced = true; StartCoroutine(Fight(true)); yield return null; yield return null; yield return new WaitForSeconds(0.4f);
+      bool hint1 = SteerHintVisible; string hintTxt = steerHint ? steerHint.GetComponentInChildren<Text>().text : ""; yield return Shot("rudder_0_hint");
+      Chk(hint1 && hintTxt == "Drag to steer toward her." && steerHintSeen, $"gamedev_rudder: story fight shows 'Drag to steer toward her.' and marks it seen ('{hintTxt}')");
+      core.H.rudder = 0; float W = Screen.width, Hh = Screen.height; var sea = new Vector2(W * 0.40f, Hh * 0.33f);
+      var bar = rudderBar.rectTransform.parent as RectTransform; var cv = rudderBar.canvas; Camera ccam = cv.renderMode == RenderMode.ScreenSpaceOverlay ? null : cv.worldCamera; Vector2 barP = RectTransformUtility.WorldToScreenPoint(ccam, bar.position);
+      int zones = 0; string zl = ""; foreach (var zp in new[] { sea, barP, new Vector2(W * 0.5f, Hh * 0.45f), new Vector2(W * 0.2f, Hh * 0.40f), new Vector2(W * 0.6f, Hh * 0.28f) }) { bool ok = SteerStartsAt(zp); if (ok) zones++; zl += $"({zp.x:0},{zp.y:0})={(ok ? "drag" : "blocked")} "; }
+      L("rudder drag zones: " + zl);
+      Chk(SteerStartsAt(sea) && SteerStartsAt(barP), $"gamedev_rudder: a drag starts on the open sea and on the rudder bar itself, no dead zone there ({zl})");
+      // drag right ~0.15 W, release, hold
+      qaPtrOn = true; qaPtrPos = sea; qaPtrDown = true; yield return null; yield return null;
+      for (int i = 1; i <= 10; i++) { qaPtrPos = sea + new Vector2(W * 0.015f * i, 0); yield return null; }
+      bool hint2 = SteerHintVisible; float rDrag = core.H.rudder; qaPtrDown = false; yield return null; yield return null; yield return new WaitForSeconds(0.6f);
+      float rHeld = core.H.rudder; yield return Shot("rudder_1_held_after_release");
+      Chk(!hint2, "gamedev_rudder: the hint hides on the first drag");
+      Chk(rDrag > 0.5f && Mathf.Abs(rHeld - rDrag) < 0.001f, $"gamedev_rudder: rudder holds its value after the finger lifts ({rDrag:0.000} -> {rHeld:0.000} after 0.6 s)");
+      // second drag continues from the held value (no jump), then back to near centre and release -> snaps to 0
+      qaPtrPos = sea; qaPtrDown = true; yield return null; yield return null; float rCont = core.H.rudder;
+      float back = -(rHeld - 0.07f) * W * 0.22f; for (int i = 1; i <= 10; i++) { qaPtrPos = sea + new Vector2(back * i / 10f, 0); yield return null; }
+      float rNear = core.H.rudder; qaPtrDown = false; yield return null; yield return null; float rSnap = core.H.rudder;
+      Chk(Mathf.Abs(rCont - rHeld) < 0.001f, $"gamedev_rudder: a new drag picks the rudder up where it was left ({rHeld:0.000} -> {rCont:0.000})");
+      Chk(Mathf.Abs(rNear) < RudderSnapBand && Mathf.Abs(rNear) > 0.01f && rSnap == 0f, $"gamedev_rudder: released near centre ({rNear:0.000}) the rudder snaps to exactly 0 ({rSnap})");
+      // a tap on a button (FIRE) never starts a steer
+      var fireR = fireTxt.transform.parent as RectTransform; Vector2 fireP = RectTransformUtility.WorldToScreenPoint(ccam, fireR.position);
+      Chk(!SteerStartsAt(fireP), $"gamedev_rudder: pressing FIRE does not grab the rudder ({fireP.x:0},{fireP.y:0})");
+      qaPtrOn = false; qaPtrDown = false;
+      core.P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      // second story fight in the same save: no hint
+      ambushForced = true; StartCoroutine(Fight(true)); yield return null; yield return null; yield return new WaitForSeconds(0.3f); bool hint3 = SteerHintVisible;
+      core.P.hull = 0; tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      Chk(!hint3, "gamedev_rudder: the hint shows once per save (not again in the next story fight)");
+      // persisted through save/load
+      steerHintSeen = true; var sd = JsonUtility.FromJson<SaveData>(JsonUtility.ToJson(new SaveData { steerHintSeen = true })); Chk(sd.steerHintSeen && JsonUtility.ToJson(new SaveData()).Contains("\"steerHintSeen\":false"), "gamedev_rudder: the hint flag is a save field");
+      ambushForced = af0; storyAmbushDone = sad0; boardedStoryPirate = bsp0; steerHintSeen = shs0; if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);
