@@ -13,7 +13,7 @@ using System.Collections.Generic;
   public float fireBurnPerSec, fireBurnSecs, fireDouseFromTick, fireDouseChance; public int firePerBattle;
   public float boardRange, duelZoneBase, duelZonePerCombat, bladeBonus, crewAdvantageBonus, hasanCombat; public bool hasanHasBlade;
   public int duelRounds; public float ringSeconds, avgPlayerHitPerZone, pirateDuelHit;
-  public float fleeQuietSeconds, surrenderCrewFrac, noviceDuelBonus, strongboxMin, strongboxMax, surrenderCrewJoinChance; public int noviceDuels; public float assistFloor = 0.25f, assistFadeFrom = 0.35f, assistFadeSpan = 0.3f; public float aimAssistAcc = 0.25f, aimAssistDamageMult = 1.5f; public int aimAssistFirstFights = 5; public float encounterFleeBase = 0.35f, breachBelowHull = 0.5f, breachOpenSeconds = 6, breachEverySeconds = 15, breachDamageMult = 2; public float fleeSpeedMult = 1, tollSeconds = 9999, chainStopChance = 0, tollLootFrac = 0.5f; public float enemyFleeHull, fleeBase, fleeWindWeight, tollCargoPct, maxFightSeconds;
+  public float fleeQuietSeconds, surrenderCrewFrac, noviceDuelBonus, strongboxMin, strongboxMax, surrenderCrewJoinChance; public int noviceDuels; public float assistFloor = 0.25f, assistFadeFrom = 0.35f, assistFadeSpan = 0.3f; public float aimAssistAcc = 0.25f, aimAssistDamageMult = 1.5f; public int aimAssistFirstFights = 5; public float encounterFleeBase = 0.35f, breachBelowHull = 0.5f, breachOpenSeconds = 6, breachEverySeconds = 15, breachDamageMult = 2; public float storyStartRange = 140, storyIdleTollSeconds = 30, storySafetyCapSeconds = 180; public float fleeSpeedMult = 1, tollSeconds = 9999, chainStopChance = 0, tollLootFrac = 0.5f; public float enemyFleeHull, fleeBase, fleeWindWeight, tollCargoPct, maxFightSeconds;
   public float sinkCargoPct, sinkCoinsMin, sinkCoinsMax, disableRareChance, ransom, bounty, prizeShipCoins, loseCargoPct, loseCrewInjuredPct; public int postLossSafeSails;
   public string[] charms; public BotProfile[] bots; public PirateTactics[] pirateTiers; public Difficulty[] difficulties; public int lateFame = 5; public int earlyPirateUntilSail;
 }
@@ -46,6 +46,16 @@ public class CombatCore {
     P.x = (float)Math.Sin(a * D2R) * d; P.z = (float)Math.Cos(a * D2R) * d; H.heading = (float)(R.NextDouble() * 360); P.heading = Norm(a + 180 + (float)(R.NextDouble() * 60 - 30));
     H.spd = SpeedOf(H) * 0.6f; P.spd = SpeedOf(P) * 0.6f;
   }
+  /* gamedev_ambush: fog-ambush approach (Game Designer ruling). The pirate appears at `range` dead downwind of Hasan, Hasan's bow ~20 deg off her,
+     so full sail toward her is a fast run and even an unsteered ship passes inside Round range. She heaves to broadside until Hasan is in Round range. */
+  public bool pirateHolds; public float idleTollSeconds, idleT, hShotAgo = 999; float idlePrevRange = -1; public bool idleTollFired;
+  public void SetupStoryApproach(float range) {
+    float a = (float)(R.NextDouble() * 360); H.x = H.z = 0; P.x = (float)Math.Sin(a * D2R) * range; P.z = (float)Math.Cos(a * D2R) * range; windTo = a; /* wind blows from Hasan toward the pirate */
+    H.heading = Norm(a + (R.NextDouble() < 0.5 ? -20 : 20)); P.heading = Norm(a + 90); H.fullSail = P.fullSail = true; H.spd = SpeedOf(H) * 0.1f; P.spd = SpeedOf(P) * 0.3f; pirateHolds = true; /* Hasan just sets sail as the fog lifts */ idleT = 0; idlePrevRange = -1; hShotAgo = 999; }
+  /// toll clock: advances only while Hasan is neither closing the gap nor firing (a shot counts as firing for one reload); true when it runs out
+  public bool IdleTick(float dt) {
+    if (idleTollSeconds <= 0) return false; float r = Range; hShotAgo += dt; bool closing = idlePrevRange >= 0 && r < idlePrevRange - 1e-4f, firing = hShotAgo < H.st.reload;
+    if (!closing && !firing) idleT += dt; idlePrevRange = r; return idleT > idleTollSeconds; }
   public static float Lerp(float a, float b, float t) => a + (b - a) * t;
   public static float Norm(float a) { a %= 360; return a < 0 ? a + 360 : a; }
   public static float Diff(float a, float b) { float d = Norm(b - a); return d > 180 ? d - 360 : d; }
@@ -79,7 +89,7 @@ public class CombatCore {
     if (a.ammo == 3) { a.fireLeft--; if (hits > 0) { b.burnT = C.fireBurnSecs; b.burnTick = 0; } a.ammo = 0; }
     b.sails = Math.Max(0, b.sails); b.gunHp = Math.Max(0, b.gunHp); b.crew = Math.Max(1, b.crew);
     if (b == P && pirateFleeing && a.ammo == 1 && hits > 0 && R.NextDouble() < C.chainStopChance) { pirateFleeing = false; fleeSpent = true; P.sails = Math.Min(P.sails, C.disableSails); } // chain to the sails stops a runner
-    if (a == H && a.ammo == 0 && a.aim == Part.Hull) { hShots += shots; hHits += hits; } a.reloadT = ReloadTime(a); lastShotT = t; OnBroadside?.Invoke(a, b, shots, hits);
+    if (a == H && a.ammo == 0 && a.aim == Part.Hull) { hShots += shots; hHits += hits; } a.reloadT = ReloadTime(a); lastShotT = t; if (a == H) hShotAgo = 0; OnBroadside?.Invoke(a, b, shots, hits);
   }
   void Burn(CShip s, float dt) {
     if (s.burnT <= 0) return; s.burnT -= dt; s.hull -= C.fireBurnPerSec * dt; s.burnTick += dt;
@@ -108,6 +118,7 @@ public class CombatCore {
     if (!pirateFleeing && !fleeSpent && s.hull < C.pirate.hull * C.enemyFleeHull && SpeedOf(P) >= SpeedOf(H)) pirateFleeing = true;
     float want;
     if (pirateFleeing) want = AvoidWind(Norm(br + 180));
+    else if (pirateHolds && rng > C.ammo[0].range) { want = Norm(br - Side(s, br) * 1.45f); s.rudder = Steer(s, want); s.fullSail = false; s.ammo = 0; s.aim = Part.Hull; return; } /* gamedev_ambush: hove to broadside, waiting */
     else {
       bool upwind = Upwindness(P) > Upwindness(H) + 10;
       float side = Side(s, br); // keep a broadside to Hasan
@@ -134,6 +145,7 @@ public class CombatCore {
     if (P.crew < P.crew0 * C.surrenderCrewFrac) return outcome = Outcome.Surrender;
     if (H.crew < H.crew0 * C.surrenderCrewFrac || (H.Disabled(C) && P.crew > H.crew)) return outcome = Outcome.HasanStruck; // same rule applies to Hasan's crew
     if (P.Disabled(C) && H.crew > P.crew && !disabledOffered) { disabledOffered = true; return outcome = Outcome.Disabled; }
+    if (IdleTick(dt)) { idleTollFired = true; return outcome = Outcome.HasanStruck; } /* gamedev_ambush: idle toll clock */
     if (t > C.tollSeconds) return outcome = PirateLosing() ? Outcome.TollPaid : Outcome.HasanBoarded; /* behind on damage: last-ditch boarding, settled by a duel */ // losing pirate pays a toll and strikes
     if ((H.Disabled(C) || (PT.boardsWhenStronger && P.crew > H.crew * PT.boardCrewRatio)) && BoardAllowed(P, H)) return outcome = Outcome.HasanBoarded;
     if (pirateFleeing && (Range > C.escapeRange || t - lastShotT > C.fleeQuietSeconds)) { if (R.NextDouble() < C.fleeBase) return outcome = Outcome.Escaped; pirateFleeing = false; fleeSpent = true; } // escape fails: wind drops, she turns to fight

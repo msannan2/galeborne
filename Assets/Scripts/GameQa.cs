@@ -205,14 +205,15 @@ public partial class Game {
         if (Mathf.Abs(ringRadiusM - rg) > 1e-4f || Mathf.Abs(ringRadiusWorld - rg * K) > 1e-3f || Mathf.Abs(sideR - rg * K) > 1e-3f || Mathf.Abs((rangeMarker.position - new Vector3(rangeRing.position.x, rangeMarker.position.y, rangeRing.position.z)).magnitude - rg * K) > 1e-2f) { radiusOk = false; why += $" r{a}:{ringRadiusM}/{rg}"; }
         yield return At(rg + 0.02f); bool o1 = !ringInRange && !core.InFireRange(H, P); int pl = ringPlaqueN; bool pt = rangePlaqueTxt.text.StartsWith($"Range {Mathf.CeilToInt(core.FireDist(H, P))} m · ");
         if (pl != Mathf.CeilToInt(core.FireDist(H, P)) || !pt || pl <= Mathf.FloorToInt(rg) && rg == Mathf.Floor(rg)) { plaqueOk = false; why += $" p{a}:{rangePlaqueTxt.text}/{core.FireDist(H, P):0.00}"; }
-        if ((H.ammo != 3 || H.fireLeft > 0) && core.InArc(H, P) && H.gunHp > 0) { var fbr = FireBlockReason(); if (fbr != $"Out of range for {S.combat.ammo[a].name} ({rg:0} m).") { plaqueOk = false; why += $" msg{a}:{fbr}"; } }
+        if ((H.ammo != 3 || H.fireLeft > 0) && core.InArc(H, P) && H.gunHp > 0) { var fbr = FireBlockReason(); if (fbr != $"Out of range: {Mathf.CeilToInt(core.FireDist(H, P))} m, {S.combat.ammo[a].name} reaches {rg:0} m") { plaqueOk = false; why += $" msg{a}:{fbr}"; } }
         int pulses0 = ringPulses; yield return At(rg - 0.02f); bool i1 = ringInRange && core.InFireRange(H, P) && rangePlaqueTxt.text == "In range" && ringPulses == pulses0 + 1 && fireRangeBorder.gameObject.activeSelf;
         yield return At(rg - 5f); bool i2 = ringInRange && ringPulses == pulses0 + 1; /* one pulse per entry */
         if (!(o1 && i1 && i2)) { flipOk = false; why += $" f{a}:{o1}/{i1}/{i2}"; } L($"ring ammo {S.combat.ammo[a].name}: range {rg} m, world radius {rg * K:0.00}"); }
       H.ammo = 0; float r0 = core.FireRange(H);
       Chk(radiusOk, "range ring radius (ring, sprite stroke, marker) equals the loaded shot's fire range, all 4 shots" + why);
       Chk(flipOk, "range ring flips dashed->solid exactly at the fire-range threshold (+/-0.02 m), one pulse per entry, FIRE border in range");
-      Chk(plaqueOk, "plaque number = ceil(fire-check distance), same range figure as 'Out of range for X (N m)'");
+      Chk(plaqueOk, "plaque number = ceil(fire-check distance), same distance and range figures as 'Out of range: N m, X reaches R m'");
+      { H.reloadT = 0; yield return At(179.6f); string m180 = FireBlockReason(); Chk(core.InArc(H, P) && m180 == "Out of range: 180 m, Round reaches 120 m" && m180 == OutOfRangeMsg() && ringPlaqueN == 180, $"gamedev_ambush: out-of-range FIRE message shows the plaque distance and the shot's reach ('{m180}', plaque {ringPlaqueN})"); }
       yield return At(r0 + 60f); yield return At(r0 + 50f); bool cl = rangePlaqueTxt.text.EndsWith("Closing"); yield return At(r0 + 55f); bool op = rangePlaqueTxt.text.EndsWith("Opening");
       Chk(cl && op, $"plaque reads Closing when the gap shrinks and Opening when it grows ({rangePlaqueTxt.text})");
       // under the hulls: ring passes right under Hasan; pixels covered by either hull must not change when the ring is drawn
@@ -228,6 +229,52 @@ public partial class Game {
       yield return At(r0 + 30f); yield return new WaitForSeconds(0.4f); yield return Shot("ring_out_of_range"); yield return At(r0 + 8f); yield return new WaitForSeconds(0.2f); yield return Shot("ring_out_of_range_near"); yield return At(r0 - 20f); yield return new WaitForSeconds(0.1f); yield return Shot("ring_entering_pulse"); yield return new WaitForSeconds(0.6f); yield return Shot("ring_in_range");
       P.hull = 0; combatPaused = false; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       Chk(!fighting && (rangeRing == null || !rangeRing.gameObject.activeSelf), "after the fight the range ring is hidden"); if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
+    // ---- gamedev_ambush: fog-ambush approach (Game Designer ruling: ~140 m start, 120 m in ~8-10 s at full sail, 30 s idle toll, both numbers in the message) ----
+    { var cc = S.combat; float st = cc.storyStartRange; bool startOk = true; float tMin = 99, tMax = 0; bool idleClose = true; string sw = "";
+      for (int sd = 0; sd < 20; sd++) { var q = new CombatCore(cc, 1000 + sd, false, 0, difficulty); q.SetupStoryApproach(st); q.idleTollSeconds = cc.storyIdleTollSeconds;
+        if (Mathf.Abs(q.Range - 140f) > 0.5f || q.InFireRange(q.H, q.P)) { startOk = false; sw += $" s{sd}:{q.Range:0.0}"; }
+        float tr = -1; for (int i = 0; i < 1500 && q.outcome == Outcome.None; i++) { q.H.rudder = CombatCore.Steer(q.H, CombatCore.Bearing(q.P.x - q.H.x, q.P.z - q.H.z)); q.H.fullSail = true; q.Step(0.02f); if (q.Range <= cc.ammo[0].range) { tr = q.t; break; } }
+        if (tr < 0) tr = 99; tMin = Mathf.Min(tMin, tr); tMax = Mathf.Max(tMax, tr); if (q.idleT > 0.1f) idleClose = false; }
+      L($"ambush approach: full sail at the pirate reaches {cc.ammo[0].range:0} m in {tMin:0.00}-{tMax:0.00} s (20 seeds)");
+      Chk(startOk, $"gamedev_ambush: the fog-ambush pirate appears at 140 m, outside Round range (storyStartRange {st}){sw}");
+      Chk(tMax <= 10f && tMin >= 5f, $"gamedev_ambush: full sail toward the pirate reaches Round range within 10 s ({tMin:0.00}-{tMax:0.00} s)");
+      Chk(idleClose, "gamedev_ambush: the toll clock does not advance while closing in");
+      // idle clock on still ships, closing ships and a firing ship
+      var z = new CombatCore(cc, 7, false, 0, difficulty); z.SetupStoryApproach(st); z.idleTollSeconds = cc.storyIdleTollSeconds; float tf = -1, tt = 0;
+      for (int i = 0; i < 2000; i++) { tt += 0.02f; if (z.IdleTick(0.02f)) { tf = tt; break; } }
+      var y = new CombatCore(cc, 8, false, 0, difficulty); y.SetupStoryApproach(st); y.idleTollSeconds = cc.storyIdleTollSeconds; bool yFired = false; float k0 = 0;
+      for (int i = 0; i < 2000; i++) { y.P.x -= y.P.x / Mathf.Max(1f, y.Range) * 0.02f; y.P.z -= y.P.z / Mathf.Max(1f, y.Range) * 0.02f; if (y.IdleTick(0.02f)) yFired = true; } k0 = y.idleT; /* 40 s of closing at 1 m/s */
+      var w = new CombatCore(cc, 9, false, 0, difficulty); w.SetupStoryApproach(st); w.idleTollSeconds = cc.storyIdleTollSeconds; bool wFired = false; float wReload = w.H.st.reload;
+      for (int i = 0; i < 2000; i++) { if (i % Mathf.RoundToInt(wReload * 0.75f / 0.02f) == 0) w.Fire(w.H, w.P); if (w.IdleTick(0.02f)) wFired = true; } /* 40 s of steady firing, no movement */
+      var v = new CombatCore(cc, 10, false, 0, difficulty); v.SetupStoryApproach(st); v.idleTollSeconds = cc.storyIdleTollSeconds; v.Fire(v.H, v.P); float vi = -1; for (int i = 0; i < 2000; i++) { if (v.IdleTick(0.02f)) { vi = (i + 1) * 0.02f; break; } } /* one shot, then idle */
+      L($"ambush toll clock: still ships toll at {tf:0.00} s; 40 s closing idle {k0:0.00} s; 40 s firing idle {w.idleT:0.00} s; one shot then still: toll at {vi:0.00} s (reload {wReload})");
+      Chk(tf > 29.9f && tf < 30.1f, $"gamedev_ambush: with no closing and no firing the toll fires after 30 s ({tf:0.00} s)");
+      Chk(!yFired && k0 < 0.05f, $"gamedev_ambush: toll clock paused while the gap shrinks (40 s closing, idle {k0:0.00} s)");
+      Chk(!wFired && w.idleT < 0.05f && Mathf.Abs(vi - (30f + wReload)) < 0.1f, $"gamedev_ambush: toll clock paused while firing (40 s firing idle {w.idleT:0.00} s; one shot delays the toll to {vi:0.00} s)");
+      var u = new CombatCore(cc, 11, false, 0, difficulty); u.SetupStoryApproach(st); u.idleTollSeconds = cc.storyIdleTollSeconds; for (int i = 0; i < 5000 && u.outcome == Outcome.None; i++) { u.H.rudder = CombatCore.Steer(u.H, CombatCore.Bearing(u.H.x - u.P.x, u.H.z - u.P.z)); u.Step(0.02f); }
+      Chk(u.outcome == Outcome.HasanStruck && u.idleTollFired && u.t >= 30f, $"gamedev_ambush: sailing away ends the story fight with the toll once 30 idle seconds add up (outcome {u.outcome}, fight {u.t:0.0} s, idle {u.idleT:0.0} s)"); }
+    // ---- gamedev_ambush: hand-style fog ambush in the live game: steer at the pirate at full sail through the real rudder input, solid ring, FIRE button, hit ----
+    { tab = -1; dialog = null; Refresh(); yield return null; bool town0 = town3D && town3D.gameObject.activeSelf; if (town3D) town3D.gameObject.SetActive(false); var amb0 = RenderSettings.ambientLight; RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f);
+      bool af0 = ambushForced, sad0 = storyAmbushDone, bsp0 = boardedStoryPirate; ambushForced = true; StartCoroutine(Fight(true)); yield return null; yield return null;
+      var H = core.H; var P = core.P; float r0 = core.Range; H.ammo = 0; H.aim = Part.Hull; H.fullSail = true; bool solid = false, hit = false, cancel = false; float tIn = -1, tHit = -1, hull0 = P.hull; int phase = 0; string lastMsg = "";
+      core.OnBroadside += (a, b, shots, hits) => { if (a == core.H && hits > 0 && !hit) { hit = true; tHit = core.t; } };
+      yield return Shot("ambush_hand_0_start"); float rq = Time.realtimeSinceStartup;
+      while (fighting && core.outcome == Outcome.None && core.t < 40f && !hit && Time.realtimeSinceStartup - rq < 120f) {
+        float br = CombatCore.Bearing(P.x - H.x, P.z - H.z);
+        if (!ringInRange && tIn < 0) qaRudder = CombatCore.Steer(H, br); else { if (tIn < 0) { tIn = core.t; solid = ringInRange && rangeRingMat.mainTexture == rangeTexSolid && rangePlaqueTxt.text == "In range" && fireRangeBorder.gameObject.activeSelf; } qaRudder = CombatCore.Steer(H, CombatCore.Norm(br - CombatCore.Side(H, br))); /* turn her abeam */ }
+        if (phase == 0 && core.t > 3f) { phase = 1; yield return Shot("ambush_hand_1_closing"); }
+        if (phase == 1 && tIn >= 0) { phase = 2; yield return Shot("ambush_hand_2_in_range"); }
+        if (tIn >= 0 && core.CanFire(H, P) && !firePressed) { firePressed = true; /* the FIRE button's own path */ }
+        else if (phase == 1 && !firePressed && core.t > 4f && !cancel) { cancel = true; firePressed = true; yield return null; lastMsg = hudMsg.text; }
+        yield return null; }
+      qaRudder = float.NaN; yield return new WaitForSeconds(0.3f); yield return Shot("ambush_hand_3_hit");
+      L($"ambush hand run: start {r0:0.0} m, in Round range at {tIn:0.00} s (fight time), first hit at {tHit:0.00} s, pirate hull {hull0:0}->{P.hull:0}, early FIRE said '{lastMsg}', idle {core.idleT:0.00} s, outcome {core.outcome}");
+      Chk(Mathf.Abs(r0 - 140f) < 0.5f, $"gamedev_ambush: live fog ambush starts at 140 m ({r0:0.0})");
+      Chk(tIn > 0 && tIn <= 10f && solid, $"gamedev_ambush: by hand (rudder input) the ring turns solid with 'In range' and the brass FIRE border within 10 s ({tIn:0.00} s)");
+      Chk(hit && P.hull < hull0, $"gamedev_ambush: by hand the FIRE button lands a hit once in range (hit at {tHit:0.00} s, hull {hull0:0}->{P.hull:0})");
+      Chk(lastMsg.StartsWith("Out of range: ") && lastMsg.Contains(", Round reaches 120 m") || lastMsg.StartsWith("Not in arc"), $"gamedev_ambush: FIRE before range in the live fight explains why (both numbers when abeam, else the arc hint) ('{lastMsg}')");
+      P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      ambushForced = af0; storyAmbushDone = sad0; boardedStoryPirate = bsp0; if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);

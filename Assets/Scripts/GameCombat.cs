@@ -48,12 +48,14 @@ public partial class Game {
     camYaw = CombatCore.Bearing(core.P.x - core.H.x, core.P.z - core.H.z);
     if (ambushForced) hudMsg.text = "Tutorial: tap CHAIN and aim at their SAILS to slow her; then GRAPE at the CREW, or BOARD when she is crippled.";
     Outcome o = Outcome.None; float fightT = 0; float capS = Design.F(DZ?.Path(DZ.settings, "ambush.fightCapSeconds"), 60f); bool capFog = ambushForced && InOpening && OpenFlag("openingAmbushNoDefeat");
+    if (ambushForced) { var sc = S.combat; core.SetupStoryApproach(sc.storyStartRange > 0 ? sc.storyStartRange : 140); core.idleTollSeconds = sc.storyIdleTollSeconds > 0 ? sc.storyIdleTollSeconds : 30; capS = sc.storySafetyCapSeconds > 0 ? sc.storySafetyCapSeconds : 180; camYaw = CombatCore.Bearing(core.P.x - core.H.x, core.P.z - core.H.z);
+      Debug.Log($"GB AMBUSH start range={core.Range:0.0} idleToll={core.idleTollSeconds:0} cap={capS:0}"); } /* gamedev_ambush: Game Designer ruling (140 m start, 30 s idle toll, the 60 s cap no longer ends the story fight) */
     while (o == Outcome.None) {
       fightT += Time.deltaTime; if (capS > 0 && fightT > capS) { o = capFog ? Outcome.HasanStruck : Outcome.Escaped; if (playthrough) PLog2("fight cap", $"{capS:0} s reached: auto-resolved to " + (capFog ? "the pirate toll" : "the pirate breaking off")); break; } /* the unlosable opening fight never drags on */
       if (!combatPaused) {
         ReadSteer(); core.H.ammo = Mathf.Clamp(core.H.ammo, 0, 3);
         if (firePressed) { firePressed = false; if (core.CanFire(core.H, core.P)) core.Fire(core.H, core.P); else hudMsg.text = FireBlockReason(); }
-        float dt = Mathf.Min(Time.deltaTime, 0.1f); o = core.Step(dt);
+        float dt = Mathf.Min(Time.deltaTime, 0.1f); o = core.Step(dt); if (o == Outcome.HasanStruck && core.idleTollFired) { if (!capFog) o = Outcome.Escaped; Debug.Log($"GB AMBUSH idle toll after {core.idleT:0.0} s idle (fight {core.t:0.0} s)"); if (playthrough) PLog2("fight idle", $"{core.idleTollSeconds:0} s without closing or firing"); }
         if (o == Outcome.None && boardPressed) { boardPressed = false; if (core.BoardAllowed(core.H, core.P)) o = Outcome.BoardReady; }
       }
       UpdateCombatView(); yield return null; }
@@ -86,7 +88,9 @@ public partial class Game {
   string FireBlockReason() {
     var H = core.H; var P = core.P; if (H.reloadT > 0) return "Reloading…"; if (H.gunHp <= 0) return "Your guns are wrecked.";
     if (H.ammo == 3 && H.fireLeft <= 0) return "No fire shot left.";
-    if (!core.InArc(H, P)) return "Not in arc: turn to bring them abeam (within 50°)."; return $"Out of range for {S.combat.ammo[H.ammo].name} ({core.FireRange(H):0} m)."; } /* gamedev_ring: same source as the ring */
+    if (!core.InArc(H, P)) return "Not in arc: turn to bring them abeam (within 50°)."; return OutOfRangeMsg(); } /* gamedev_ring: same source as the ring */
+  /// gamedev_ambush: both numbers, the distance exactly as the plaque shows it (ceil) and the loaded shot's reach
+  public string OutOfRangeMsg() => $"Out of range: {Mathf.CeilToInt(core.FireDist(core.H, core.P))} m, {S.combat.ammo[core.H.ammo].name} reaches {core.FireRange(core.H):0} m";
 
   IEnumerator Resolve(Outcome o) {
     var c = S.combat; string pg = S.goods[pirateGood].name;
@@ -133,8 +137,10 @@ public partial class Game {
     if (sailing && AdsUnlocked && AdBlockReason() == null) yield return Ask("Tow to port?", "A fishing crew offers a tow to the next port, straight away.", ("Watch ad: tow me", () => StartCoroutine(ShowAd("instantTowToPort", () => skipVoyage = true))), ("Limp on", null)); }
 
   // ---------------- input ----------------
+  public float qaRudder = float.NaN;
   void ReadSteer() {
     if (playthrough) { core.H.rudder = ptRudder; return; }
+    if (!float.IsNaN(qaRudder)) { core.H.rudder = qaRudder; return; } /* gamedev_ambush: qa_run hand-style steering hook */
     bool down = Input.GetMouseButton(0); Vector3 mp = Input.mousePosition;
     if (Input.GetMouseButtonDown(0) && mp.y < Screen.height * 0.5f && !(UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())) { dragging = true; dragX0 = mp.x; }
     if (!down) dragging = false;
