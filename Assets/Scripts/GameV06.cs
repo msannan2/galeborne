@@ -21,7 +21,7 @@ public partial class Game {
 
   public int PortIdx(string n) => Array.FindIndex(S.ports, p => p.name == n);
   List<string> AlleySells(int p) { var l = Design.SL(DZ?.Path(DZ.settings, "portGoods._backAlley.sells." + S.ports[p].name)).ToList(); string gp = Design.Path0(DZ, "opening.good", "gunpowder");
-    if (InOpening && OpenFlag("openingDebalAlleyStocksGunpowder")) { l.Remove(gp); if (p == BuyPort) l.Insert(0, gp); } return l; }
+    l.Remove(gp); if (!openingGpSold && (OpenFlag("openingDebalAlleyStocksGunpowder") || !InOpening) && p == BuyPort) l.Insert(0, gp); /* research_gp2: Farida (Debal alley) sells gunpowder until the Muscat sale, then never again */ return l; }
   List<string> AlleyBuys(int p) => Design.SL(DZ?.Path(DZ.settings, "portGoods._backAlley.buysBanned." + S.ports[p].name));
   float WantBonus(int g) => Design.F(DZ?.Path(DZ.settings, "goodWantBonus." + S.goods[g].id), 1f);
 

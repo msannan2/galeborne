@@ -84,14 +84,19 @@ public partial class Game {
       tab = -1; Refresh(); }
     // ---- research_gp1: gunpowder goal survives the Journal unlock, flags Muscat, clears on the Muscat alley sale ----
     { int ss0 = storyStep, gp0 = hold[Gp], c0 = coins, pt0 = port; bool sold0 = openingGpSold, fb0 = fallbackFired, fr0 = firstRun; float pr0 = price[Muscat, Gp]; int rn0 = eg.renown, rk0 = eg.rank; var fs0 = eg.firstSales.ToList();
-      storyStep = StDone; openingGpSold = false; fallbackFired = false; hold[Gp] = 2;
+      storyStep = StDone; openingGpSold = false; fallbackFired = false; hold[Gp] = 0;
+      { string gpId = S.goods[Gp].id; Chk(Goals3().Item1 == GpBuyGoal && GpBuyGoal == "Buy gunpowder from Farida in Debal's Back Alley.", $"gunpowder buy goal shown before buying (Now: {Goals3().Item1})"); /* research_gp2 */
+        Chk(AlleySells(Debal).Contains(gpId), "Farida (Debal Back Alley) sells gunpowder before the Muscat sale");
+        Chk(A1s("goalMediumOpening", "") == "Get gunpowder from Debal to Muscat's Back Alley.", $"goalMediumOpening from built data ({A1s("goalMediumOpening", "")})"); }
+      hold[Gp] = 2;
+      Chk(GpSellGoal == "Sell the gunpowder in Muscat's Back Alley.", "gunpowder sell goal text");
       Chk(JournalUnlocked && Goals3().Item1 == GpSellGoal, $"gunpowder goal shown after Journal unlock (Now: {Goals3().Item1})");
       tab = 4; chartDest = -1; chartCentered = false; Refresh(); yield return null; yield return null; yield return Shot("gp_map_flag");
       var flags = FindObjectsByType<RectTransform>(FindObjectsSortMode.None).Where(r => r.name.StartsWith("egflag ")).Select(r => r.name.Substring(7)).ToList();
       var gpOnly = flags.Where(f => EgMapFlag(PortIdx(f)) == null).ToList(); Chk(flags.Contains("Muscat") && gpOnly.All(f => f == "Muscat"), $"sea map flag on Muscat while gunpowder is held; other flags are contracts only (flags: {string.Join(",", flags)})");
       tab = -1; port = Muscat; Refresh(); yield return null; Sell(Gp); Sell(Gp);
       Chk(openingGpSold && Goals3().Item1 != GpSellGoal && msg == GpSoldLine, $"gunpowder goal clears on the Muscat sale (Now: {Goals3().Item1}; msg: {msg})");
-      Chk(GpMapFlag(Muscat) == null, "Muscat gunpowder flag gone after the sale");
+      Chk(GpMapFlag(Muscat) == null, "Muscat gunpowder flag gone after the sale"); Chk(!AlleySells(Debal).Contains(S.goods[Gp].id), "Farida stops selling gunpowder after the Muscat sale"); Chk(Goals3().Item1 != GpBuyGoal, "no gunpowder buy goal after the sale"); /* research_gp2 */
       storyStep = ss0; hold[Gp] = gp0; coins = c0; port = pt0; openingGpSold = sold0; fallbackFired = fb0; firstRun = fr0; price[Muscat, Gp] = pr0; msg = ""; eg.renown = rn0; eg.rank = rk0; eg.firstSales.Clear(); eg.firstSales.AddRange(fs0); if (news.Count > 0 && news[0] == GpSoldLine) news.RemoveAt(0); Refresh(); yield return null; }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
