@@ -41,7 +41,7 @@ public partial class Game {
         (coins >= FloatCost ? L(1) : Off(L(1), "Not enough coins"), () => { coins -= FloatCost; ShortageRumour(db, pg); outT = O(1); }),
         (L(2), () => outT = O(2)));
     } else if (id == "leakyDhow") { int dg = G("dates"), gw = GwadarIdx, unit = Mathf.Max(1, Mathf.RoundToInt(price[gw, dg] * 0.5f)), room = Mathf.Min(LeakyMaxQ, free), n = Mathf.Min(room, coins / unit);
-      string lab = VeFill(L(0), ("n", Mathf.Max(n, room).ToString()), ("cost", (unit * Mathf.Max(n, room)).ToString()));
+      int shownN = room > 0 ? Mathf.Max(n, room) : LeakyMaxQ; /* full hold: still show the real offer, greyed */ string lab = VeFill(L(0), ("n", shownN.ToString()), ("cost", (unit * shownN).ToString()));
       yield return Ask(title, body,
         (room <= 0 ? Off(lab, VeS(NewOpt(id, 0), "greyWhenFull", "Hold full")) : n <= 0 ? Off(lab, "Not enough coins") : lab, () => { coins -= unit * n; hold[dg] += n; outT = VeFill(O(0), ("goods", GoodCount(dg, n))); }),
         (L(1), () => { LoseWeek(); ShortageRumour(Debal, G("salt")); outT = O(1); }),
