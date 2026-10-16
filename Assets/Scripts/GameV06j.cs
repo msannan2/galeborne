@@ -277,16 +277,17 @@ public partial class Game {
       if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null;
       /* v0.6k: ink panel sized to cards; title fully inside with headroom */
       int n = Mathf.Max(1, offers.Count); float pad = 24f;
-      float panelH = Mathf.Clamp(160 + n * 368 + 110, 400, 1700); /* k4: taller offer cards */
+      float panelW0 = 940f, iw0 = panelW0 - 48f; var qtf = CardTitleFit(keeperName ?? "", iw0, T.fontSizeTitle - 4); /* gamedev_title2: measured first so the panel grows by qtf.extra */
+      float panelH = Mathf.Clamp(160 + n * 368 + 110, 400, 1700) + qtf.extra + 20; /* gamedev_title2: +title extra, +20 for the rule/body gap */ /* k4: taller offer cards */
       float panelW = 940f; float left = (1080f - panelW) * 0.5f;
       float top = 100f; /* fully cover keeper "Innkeeper of the Salt &…" title */
       var dimQ = R(root, "QuestDim", 0, 0, 1, 1); myDim = dimQ; var di = dimQ.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.72f); di.raycastTarget = true;
       my = Px(root, "QuestMenu", left, top, panelW, panelH); dialog = my; { var qm = my; PushBack("Job offer", () => qm != null && !closed, () => closed = true); } /* gamedev_t8: Back = Leave (Jeff) */ Box(dialog, T.ink, T.gold); dialog.SetAsLastSibling();
-      string title = keeperName ?? ""; if (title.Length > 36) title = title.Substring(0, 34) + "…";
+      string title = keeperName ?? ""; /* gamedev_title2: no manual truncation - best-fit / 2 lines via GameCardTitle */
       float iw = panelW - pad * 2;
-      Label(dialog, title, pad, 36, iw, 56, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
-      Label(dialog, offers.Count > 0 ? offers[0].greeting : "Nothing for you today, Captain.", pad, 96, iw, 44, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter);
-      float y = 150;
+      CardTitle(dialog, title, pad, iw, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, qtf, iw - 160, pad + 80); /* gamedev_title2: shared title + rule under the last line */
+      Label(dialog, offers.Count > 0 ? offers[0].greeting : "Nothing for you today, Captain.", pad, 114 + qtf.extra, iw, 44, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); /* gamedev_title2: 12 px below the rule */
+      float y = 170 + qtf.extra; /* gamedev_title2: was 150 */
       if (ActiveJobCount >= JobCap) { Label(dialog, "Journal is full (3/3). Finish a job first.", pad, y, iw, 44, T.fontSizeSmall, T.down, TextAnchor.MiddleCenter); y += 50; }
       if (offers.Count == 0) { Label(dialog, "No offers match your standing right now.", pad, y, iw, 50, T.fontSize, T.textMuted, TextAnchor.MiddleCenter); y += 70; }
       for (int i = 0; i < offers.Count; i++) {

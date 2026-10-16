@@ -147,7 +147,7 @@ public partial class Game {
       foreach (var (n, t) in new[] { ("rankup_long", "Your name carries on the quay"), ("delivered_long", "Dates for the Debal bazaar"), ("rankup_data", ED.RankUpHeading(1)), ("storm_oneline", "Storm front") }) {
         var f = CardTitleFit(t, 640, T.fontSizeTitle); L($"title '{t}': size {f.size}/{T.fontSizeTitle} lines {f.lines} extra {f.extra:0}"); yield return Card(n, Ask(t, t == "Storm front" ? "A black wall of rain marches across the Gulf. The mate waits on your word." : "The harbour knows your name now. Trader.", ("Onward", null))); }
       yield return Card("askcard_long", AskCard("Your name carries on the quay", "An AskCard with the long legacy heading.", ("Fight", null), ("Flee", null)));
-      tab = 8; Refresh(); yield return null; yield return Card("quest", QuestMenu("tavern", "Innkeeper of " + S.ports[port].name)); }
+      tab = 8; Refresh(); yield return null; foreach (var (qn, kn) in new[] { ("quest_short", "Innkeeper of Gwadar"), ("quest_long", "Innkeeper of the Salt & Lantern"), ("quest_verylong", "Harbourmaster of the Great Pearl Banks of Muscat") }) { var f = CardTitleFit(kn, 892, T.fontSizeTitle - 4); L($"quest title '{kn}': size {f.size} lines {f.lines} extra {f.extra:0}"); yield return Card(qn, QuestMenu("tavern", kn)); } } /* gamedev_title2 */
     L(fails == 0 ? "ALL PASS" : fails + " FAIL"); yield return new WaitForSeconds(0.5f); Application.Quit(fails == 0 ? 0 : 1);
   }
 }
