@@ -544,6 +544,7 @@ public partial class Game : MonoBehaviour {
     if (lastBackFrame == Time.frameCount) return; lastBackFrame = Time.frameCount; /* once per frame */
     backStack.RemoveAll(e => e.alive == null || !e.alive());
     if (backStack.Count == 0 && !onTitle && !fighting && !sailing && dialog == null && tab >= 0) { /* gamedev_back1: no card open -> Back closes the open town tab (shipwright, market, etc.) or the sea map (tab 4), same as its "‹  Town" button */
+      if (tab == 4 && chartDest >= 0 && chartDest != port) { Debug.Log("Back pressed, clearing route"); chartDest = -1; Refresh(); return; } /* gamedev_back2: first Back on the sea map clears only a selected route */
       Debug.Log("Back pressed, closing " + (tab == 4 ? "sea map" : "tab " + tab)); /* gamedev_back1 */
       if (tab == 4) { chartDest = -1; chartCentered = false; } tab = -1; Refresh(); return; } /* gamedev_back1 */
     if (backStack.Count == 0) { Debug.Log("Back pressed, ignored (" + (onTitle ? "title screen" : fighting ? "combat" : (sailing || tab == 4) ? "sea map" : "town, nothing open" /* back_market_t6: chart (tab 4) logs as sea map; behaviour unchanged */) + ")"); return; }
