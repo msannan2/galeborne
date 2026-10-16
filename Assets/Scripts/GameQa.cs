@@ -12,10 +12,10 @@ using UnityEngine.UI;
 public partial class Game {
   /// gamedev_salvage_full: drawn-pixel check of a greyed option (plate, no outline, label ink, contrast vs an active button) from a real screen capture
   // gamedev_voyage_events2 qa helper: run a forced event (or the Hail path), tap option `opt` like a real tap, capture both cards
-  public string qvCard = "", qvOut = "", qvDir = ""; public bool qvTapOk;
+  public string qvCard = "", qvOut = "", qvDir = "", qvLbl0 = "", qvCap0 = ""; public bool qvTapOk;
   IEnumerator QaVe(string force, int opt, string shot = null) { qvCard = qvOut = ""; qvTapOk = false; dialog = null; veForce = force;
     if (force == "horizon") { voyageKindsUsed = 0; StartCoroutine(VoyageDecision()); } else StartCoroutine(Encounter(false, false));
-    yield return null; yield return null; string Txt() => dialog ? string.Join(" | ", dialog.GetComponentsInChildren<Text>().Select(t => t.text)) : ""; qvCard = Txt();
+    yield return null; yield return null; string Txt() => dialog ? string.Join(" | ", dialog.GetComponentsInChildren<Text>().Select(t => t.text)) : ""; qvCard = Txt(); var b0 = dialog ? dialog.GetComponentsInChildren<Button>().FirstOrDefault() : null; qvLbl0 = b0 ? b0.GetComponentInChildren<Text>().text : ""; var cp0 = dialog ? dialog.GetComponentsInChildren<Text>().FirstOrDefault(t => t.gameObject.name == "OptionReason") : null; qvCap0 = cp0 ? cp0.text : "";
     if (shot != null) { yield return null; yield return ShotCo(System.IO.Path.Combine(qvDir, shot + ".png")); } yield return new WaitForSecondsRealtime(0.7f);
     var bs = dialog ? dialog.GetComponentsInChildren<Button>() : new Button[0]; if (opt < bs.Length) { qvTapOk = bs[opt].interactable; UnityEngine.EventSystems.ExecuteEvents.Execute(bs[opt].gameObject, new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current), UnityEngine.EventSystems.ExecuteEvents.pointerClickHandler); }
     for (int k = 0; k < 4; k++) yield return null; if (dialog != null && Txt() != qvCard) qvOut = Txt();
@@ -242,11 +242,11 @@ yield return Shot("polish_blk_greyed_button"); }
       System.Array.Clear(hold, 0, hold.Length); coins = 500; float pd = price[db, pg]; yield return QaVe("pearlDiver", 1); Ok(coins == 490 && price[db, pg] > pd && qvOut.Contains("Debal"), "pearl float");
       coins = 5; yield return QaVe("pearlDiver", 1); Ok(!qvTapOk && coins == 5, "pearl float greyed when broke"); coins = 500; yield return QaVe("pearlDiver", 2); Ok(coins == 500 && qvOut.Contains("next boat"), "pearl sail on");
       System.Array.Clear(hold, 0, hold.Length); coins = 5000; int unit = Mathf.Max(1, Mathf.RoundToInt(price[gw, dg] * 0.5f)); yield return QaVe("leakyDhow", 0, "ve2_leaky"); Ok(hold[dg] == 5 && coins == 5000 - 5 * unit && qvCard.Contains($"({5 * unit})"), $"leaky buy 5 at {unit}");
-      System.Array.Clear(hold, 0, hold.Length); hold[cu] = S.holdSize; yield return QaVe("leakyDhow", 0, "ve2_leaky_full"); Ok(!qvTapOk && qvCard.Contains("Hold full") && qvCard.Contains($"Buy 5 dates ({5 * unit})") && hold[dg] == 0, $"leaky greyed 'Hold full' still shows the real offer 'Buy 5 dates ({5 * unit})'");
+      System.Array.Clear(hold, 0, hold.Length); hold[cu] = S.holdSize; yield return QaVe("leakyDhow", 0, "ve2_leaky_full"); string fullLbl = qvLbl0, fullCap = qvCap0; Ok(!qvTapOk && qvCard.Contains("Hold full") && fullLbl == "Buy dates" && fullCap == "Hold full" && hold[dg] == 0, $"leaky full hold: greyed '{fullLbl}' with '{fullCap}' under it (no count or price)");
       System.Array.Clear(hold, 0, hold.Length); wB = week; float ps = price[db, sg]; yield return QaVe("leakyDhow", 1); Ok(week == wB + 1 && price[db, sg] > ps && qvOut.Contains("salt"), "leaky crew");
       var ban0 = new System.Collections.Generic.List<Ban>(bans); int bg = G("pepper"); System.Array.Clear(hold, 0, hold.Length); bans.RemoveAll(bn => bn.port == mu);
       hold[cu] = 3; coins = 1000; yield return QaVe("customsLaunch", 0, "ve2_customs_clear"); Ok(qvCard.Contains("Customs waved you through.") && coins == 1000 && hold[cu] == 3, "customs no banned goods: waved through");
-      bans.Add(new Ban { good = bg, port = mu, start = week - 1, end = week + 50 }); hold[bg] = 4; wB = week; yield return QaVe("customsLaunch", 0, "ve2_customs"); Ok(hold[bg] == 0 && hold[cu] == 3 && week == wB + 1, "customs heave to: banned seized, legal kept");
+      bans.Add(new Ban { good = bg, port = mu, start = week - 1, end = week + 50 }); hold[bg] = 4; wB = week; yield return QaVe("customsLaunch", 0, "ve2_customs"); Ok(hold[bg] == 0 && hold[cu] == 3 && week == wB + 1, "customs heave to: banned seized, legal kept"); Ok(qvCard.Contains("Let them search"), "customs label 'Let them search'");
       bans[bans.Count - 1].end = week + 50; hold[bg] = 4; coins = 1000; yield return QaVe("customsLaunch", 1); Ok(coins == 950 && hold[bg] == 4 && qvOut.Contains("50"), "customs fee 5%");
       coins = 100; yield return QaVe("customsLaunch", 1); Ok(coins == 80, "customs fee min 20"); coins = 9000; yield return QaVe("customsLaunch", 1); Ok(coins == 8850, "customs fee max 150");
       coins = 1000; veRoll = 0.1f; yield return QaVe("customsLaunch", 2); Ok(coins == 1000 && qvOut.Contains("outrun"), "customs run escapes");

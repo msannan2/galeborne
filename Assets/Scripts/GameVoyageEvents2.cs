@@ -9,7 +9,7 @@ using Rnd = UnityEngine.Random;
 public partial class Game {
   public const float WPearl = 6f, WLeaky = 6f, WLighthouse = 6f, WCustoms = 6f, WSquallLine = 4f, MonsoonMult = 2.5f; /* final ruling: absolute weights beside pirate 35 / wreck 20 / merchant 20 / squall 15 / rumor 10 */ public const int MonsoonFrom = 6, MonsoonTo = 9;
   public const int HailWRumour = 50, HailWTrade = 30, HailWWarning = 20, HailTradeMaxQ = 4; public const float HailTradeCoinFrac = 0.8f;
-  public const int PearlCoins = 60, FloatCost = 10, NewsCost = 15, LeakyMaxQ = 5, CustomsFeeMin = 20, CustomsFeeMax = 150, RunHullLoss = 10, HeaveHullLoss = 5; public const float CustomsFeePct = 0.05f, RunEscape = 0.55f, CutLossChance = 0.4f;
+  public const string LeakyFullLabel = "Buy dates"; /* Game Designer: full hold reads exactly this, greyed, Hold full under it */ public const int PearlCoins = 60, FloatCost = 10, NewsCost = 15, LeakyMaxQ = 5, CustomsFeeMin = 20, CustomsFeeMax = 150, RunHullLoss = 10, HeaveHullLoss = 5; public const float CustomsFeePct = 0.05f, RunEscape = 0.55f, CutLossChance = 0.4f;
   public bool ambushHalveNext, hailWarned; public float veRoll = -1; public string veForceHail = "";
   float VeR() => veRoll >= 0 ? veRoll : Rnd.value;
   public Dictionary<string, object> VeNew(string id) => (VE.TryGetValue("new", out var n) && n is List<object> l ? l.Select(Design.D).FirstOrDefault(e => (string)e["id"] == id) : null) ?? new Dictionary<string, object>();
@@ -43,7 +43,7 @@ public partial class Game {
     } else if (id == "leakyDhow") { int dg = G("dates"), gw = GwadarIdx, unit = Mathf.Max(1, Mathf.RoundToInt(price[gw, dg] * 0.5f)), room = Mathf.Min(LeakyMaxQ, free), n = Mathf.Min(room, coins / unit);
       int shownN = room > 0 ? Mathf.Max(n, room) : LeakyMaxQ; /* full hold: still show the real offer, greyed */ string lab = VeFill(L(0), ("n", shownN.ToString()), ("cost", (unit * shownN).ToString()));
       yield return Ask(title, body,
-        (room <= 0 ? Off(lab, VeS(NewOpt(id, 0), "greyWhenFull", "Hold full")) : n <= 0 ? Off(lab, "Not enough coins") : lab, () => { coins -= unit * n; hold[dg] += n; outT = VeFill(O(0), ("goods", GoodCount(dg, n))); }),
+        (room <= 0 ? Off(LeakyFullLabel, VeS(NewOpt(id, 0), "greyWhenFull", "Hold full")) : n <= 0 ? Off(lab, "Not enough coins") : lab, () => { coins -= unit * n; hold[dg] += n; outT = VeFill(O(0), ("goods", GoodCount(dg, n))); }),
         (L(1), () => { LoseWeek(); ShortageRumour(Debal, G("salt")); outT = O(1); }),
         (L(2), () => outT = O(2)));
     } else if (id == "customsLaunch") { int mu = Muscat; var banned = LosableGoods().Where(g => Banned(g, mu)).ToList(); int fee = Mathf.Clamp(Mathf.RoundToInt(coins * CustomsFeePct), CustomsFeeMin, CustomsFeeMax);
