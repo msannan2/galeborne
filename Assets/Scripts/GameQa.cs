@@ -525,7 +525,7 @@ yield return Shot("polish_blk_greyed_button"); }
       IEnumerator QTap(Button b) { QC(b); yield return null; float t0 = Time.realtimeSinceStartup; while (busy && Time.realtimeSinceStartup - t0 < 10) yield return null; yield return null; }
       string BL(Button b) => b ? b.GetComponentInChildren<Text>().text : "";
       lastBuyQty = 1; /* a new session */ yield return QOpen(cg); int q1 = sheet ? (int)qty.value : -1;
-      Chk(q1 == 1 && BL(sBuyBtn) == "Buy 1" && sBuyBtn.interactable && !sSellBtn.interactable && sSellPrev.text == "None hq", $"research_qty: first-ever buy defaults to 1 (slider {q1}, '{BL(sBuyBtn)}'); Sell greyed with 'None hq'");
+      Chk(q1 == 1 && BL(sBuyBtn) == "Buy 1" && sBuyBtn.interactable && !sSellBtn.interactable && sSellPrev.text == "None held", $"research_qty: first-ever buy defaults to 1 (slider {q1}, '{BL(sBuyBtn)}'); Sell greyed with 'None held'");
       qty.value = 2; yield return null; yield return QTap(sBuyBtn); int afterBuy = (int)qty.value;
       Chk(hold[cg] == 2 && lastBuyQty == 2 && afterBuy <= qty.maxValue && qty.maxValue == Mathf.Max(BuyMax(cg), hold[cg]), $"research_qty: bought 2 by tapping 'Buy 2'; slider re-clamped to max {qty.maxValue} (value {afterBuy})");
       yield return QOpen(sg); int q2 = (int)qty.value; Chk(q2 == 2 && BL(sBuyBtn) == "Buy 2", $"research_qty: reopening Buy on another good defaults to the last bought quantity (slider {q2}, '{BL(sBuyBtn)}')");
@@ -536,13 +536,13 @@ yield return Shot("polish_blk_greyed_button"); }
       hold[dg] = 0; coins = 0; yield return QOpen(sg); Chk(!sBuyBtn.interactable && sBuyPrev.text == "Can't afford / no room", $"research_qty: max 0 greys Buy with the reason line ('{sBuyPrev.text}')"); coins = 5000;
       // sell after a partial sale: default = hq = max of what Sell can do, Sell stays enabled
       yield return QOpen(cg); qty.value = 5; yield return null; yield return QTap(sBuyBtn); int hq = hold[cg]; /* 7 */
-      yield return QOpen(cg); int q5 = (int)qty.value; Chk(q5 == hq && BL(sSellBtn) == $"Sell {hq}", $"research_qty: Sell defaults to everything hq ({hq}; slider {q5}, '{BL(sSellBtn)}')");
-      price[port, cg] = 60; qty.value = 3; yield return null; yield return QTap(sSellBtn); int q6 = (int)qty.value; yield return new WaitForSeconds(0.3f); yield return Shot("qty_sell_after_partial_sale");
-      Chk(hold[cg] == hq - 3 && q6 == hold[cg] && BL(sSellBtn) == $"Sell {hold[cg]}" && sSellBtn.interactable, $"research_qty: after selling 3 of {hq}, slider re-defaults to hq {hold[cg]} ({q6}) and '{BL(sSellBtn)}' stays enabled");
-      qty.value = qty.maxValue; yield return null; Chk(BL(sSellBtn) == $"Sell {hold[cg]}" && sSellBtn.interactable && qty.maxValue >= hold[cg], $"research_qty: slider at max {qty.maxValue} (Buy reach) still leaves '{BL(sSellBtn)}' enabled, clamped to hq");
+      yield return QOpen(cg); int q5 = (int)qty.value; Chk(q5 == hq && BL(sSellBtn) == $"Sell {hq}", $"research_qty: Sell defaults to everything held ({hq}; slider {q5}, '{BL(sSellBtn)}')");
+      price[port, cg] = 60; qty.value = 3; yield return null; yield return QTap(sSellBtn); int q6 = (int)qty.value; int pfs = lastProfitText && lastProfitText.name == "ProfitText" ? lastProfitText.fontSize : -1; yield return new WaitForSeconds(0.3f); yield return Shot("qty_sell_after_partial_sale");
+      Chk(hold[cg] == hq - 3 && q6 == hold[cg] && BL(sSellBtn) == $"Sell {hold[cg]}" && sSellBtn.interactable, $"research_qty: after selling 3 of {hq}, slider re-defaults to held {hold[cg]} ({q6}) and '{BL(sSellBtn)}' stays enabled");
+      qty.value = qty.maxValue; yield return null; Chk(BL(sSellBtn) == $"Sell {hold[cg]}" && sSellBtn.interactable && qty.maxValue >= hold[cg], $"research_qty: slider at max {qty.maxValue} (Buy reach) still leaves '{BL(sSellBtn)}' enabled, clamped to held");
       CloseSheet(); yield return new WaitForSeconds(2f);
       // loss font size = profit font size
-      int pfs = lastProfitText ? lastProfitText.fontSize : -1; yield return QOpen(cg); price[port, cg] = 10; UpdateSheet(true); yield return null; yield return QTap(sSellBtn); var lt = lastProfitText; int lfs = lt ? lt.fontSize : -2; string ltx = lt ? lt.text : ""; bool isLoss = lt && lt.name == "LossText";
+      yield return QOpen(cg); price[port, cg] = 10; UpdateSheet(true); yield return null; yield return QTap(sSellBtn); var lt = lastProfitText; int lfs = lt ? lt.fontSize : -2; string ltx = lt ? lt.text : ""; bool isLoss = lt && lt.name == "LossText";
       yield return new WaitForSeconds(0.2f); yield return Shot("qty_loss_popup");
       Chk(isLoss && pfs > 0 && lfs == pfs && ltx.StartsWith("−"), $"research_qty: loss '{ltx}' font size {lfs} equals the profit font size {pfs}");
       CloseSheet(); for (int i = 0; i < hold.Length; i++) hold[i] = hold0[i]; avgCost = avg0; coins = c0; fame = f0; port = p0; price = pr0; lastBuyQty = lb0; if (st0 != null) stock = st0; tab = -1; Refresh(); yield return new WaitForSeconds(1.5f); }
