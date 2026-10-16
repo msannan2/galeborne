@@ -50,7 +50,7 @@ public partial class Game {
       int port0 = port; var story0 = tavernStory; var news0 = news.ToList();
       foreach (var pn in new[] { "Gwadar", "Debal", "Muscat" }) {
         port = PortIdx(pn); tavernStory = "The tavern keeper slides you a letter sealed with the Qarin mark: \"To the captain who carries this seal: the Sultan's customs in Muscat look away for those who bear the Qarin mark. Bring powder, and ask for the man in the blue doorway. - Q.\"";
-        for (int k = 0; k < 5; k++) news.Insert(0, "Rumor (Week 2 · Moon 1 · Year 1): Muscat's customs seize gunpowder on sight, but the garrison still pays a fortune for it under the table. Farida in the back alley has some, at Gwadar's price.");
+        news.Insert(0, "Rumor (Week 2 · Moon 1 · Year 1): Muscat's customs seize gunpowder on sight, but the garrison still pays a fortune for it under the table. Farida in Debal's Back Alley sells it cheap. Sell it in Muscat's Back Alley."); /* research_gp1: once, not 5x */
         tab = 8; Refresh(); yield return null; yield return null; yield return Shot("egfix_tavern_" + pn);
         var msgR = Named("Msg"); var qb = Find("Ask about work"); var cb = Find(EndgameData.BoardTitle);
         if (msgR != null && qb != null && cb != null) { var mr = SR2(msgR); var qr = SR2(qb.GetComponent<RectTransform>()); var cr = SR2(cb.GetComponent<RectTransform>()); L($"rect {pn} ticker {mr} ask {qr} board {cr}");
@@ -82,6 +82,17 @@ public partial class Game {
         foreach (var o in all.Where(r => r.name.StartsWith("plaque ") || r.name.StartsWith("town ") || r.name == "ShipHere")) { var orr = SR(o); bool ov = fr.Overlaps(orr); L($"rect {o.name}: {orr}{(ov ? "  OVERLAPS FLAG" : "")}"); any |= ov; }
         Chk(!any, "map flag overlaps no port plaque / port ring / ship marker"); }
       tab = -1; Refresh(); }
+    // ---- research_gp1: gunpowder goal survives the Journal unlock, flags Muscat, clears on the Muscat alley sale ----
+    { int ss0 = storyStep, gp0 = hold[Gp], c0 = coins, pt0 = port; bool sold0 = openingGpSold, fb0 = fallbackFired, fr0 = firstRun; float pr0 = price[Muscat, Gp]; int rn0 = eg.renown, rk0 = eg.rank; var fs0 = eg.firstSales.ToList();
+      storyStep = StDone; openingGpSold = false; fallbackFired = false; hold[Gp] = 2;
+      Chk(JournalUnlocked && Goals3().Item1 == GpSellGoal, $"gunpowder goal shown after Journal unlock (Now: {Goals3().Item1})");
+      tab = 4; chartDest = -1; chartCentered = false; Refresh(); yield return null; yield return null; yield return Shot("gp_map_flag");
+      var flags = FindObjectsByType<RectTransform>(FindObjectsSortMode.None).Where(r => r.name.StartsWith("egflag ")).Select(r => r.name.Substring(7)).ToList();
+      Chk(flags.Contains("Muscat") && !flags.Contains("Gwadar") && !flags.Contains("Debal"), $"sea map flag on Muscat only while gunpowder is held (flags: {string.Join(",", flags)})");
+      tab = -1; port = Muscat; Refresh(); yield return null; Sell(Gp); Sell(Gp);
+      Chk(openingGpSold && Goals3().Item1 != GpSellGoal && msg == GpSoldLine, $"gunpowder goal clears on the Muscat sale (Now: {Goals3().Item1}; msg: {msg})");
+      Chk(GpMapFlag(Muscat) == null, "Muscat gunpowder flag gone after the sale");
+      storyStep = ss0; hold[Gp] = gp0; coins = c0; port = pt0; openingGpSold = sold0; fallbackFired = fb0; firstRun = fr0; price[Muscat, Gp] = pr0; msg = ""; eg.renown = rn0; eg.rank = rk0; eg.firstSales.Clear(); eg.firstSales.AddRange(fs0); if (news.Count > 0 && news[0] == GpSoldLine) news.RemoveAt(0); Refresh(); yield return null; }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);

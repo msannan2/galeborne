@@ -214,9 +214,9 @@ public partial class Game {
     "Sail to Debal with your cargo.",
     "Sell all your dates and salt in Debal.",
     "Visit the Debal tavern and listen for news.",
-    "Buy gunpowder before the ban bites, then make for Muscat.",
-    "Sail to Muscat with your gunpowder.",
-    "Sell your gunpowder in Muscat.",
+    "Buy gunpowder from Farida in Debal's Back Alley, then sail for Muscat.",
+    "Sail to Muscat with the gunpowder. Keep it from customs.",
+    "Sell the gunpowder in Muscat's Back Alley, not the market.",
     "Stop at a tavern. Someone has a letter for you." }; /* gamedev_t8 */
   const string JournalSealLine = "Earn Yusuf's seal in Muscat."; /* gamedev_t8 */
   /* gamedev_t10_next: Next = the MEDIUM goal for this storyStep (never the following step; never names the gunpowder ban before the Debal tavern rumour, step 4+) */

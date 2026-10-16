@@ -103,7 +103,7 @@ public partial class Game : MonoBehaviour {
   public int SellPrice(int g) => RugsBanSale(g) ? RugsBanPrice() : Mathf.FloorToInt(price[port, g] * (Banned(g, port) ? S.contraband.bannedSellMult : S.sellSpread));
   public bool Sell(int g) {
     if (hold[g] <= 0) return false; int v = SellPrice(g); coins += v; hold[g]--; JackpotCheck(g, v); EgFirstSale(g); /* gamedev_end1 */
-    if (g == Gp && port == Muscat && !openingGpSold) { openingGpSold = true; if (playthrough) PLog2("opening sale", "gunpowder sold in Muscat's alley — medium goal clears"); } /* v0.6h4: sale not confiscation */
+    if (g == Gp && port == Muscat && !openingGpSold) { openingGpSold = true; msg = GpSoldLine; news.Insert(0, GpSoldLine); /* research_gp1 */ if (playthrough) PLog2("opening sale", "gunpowder sold in Muscat's alley — medium goal clears"); } /* v0.6h4: sale not confiscation */
     price[port, g] *= 1 - (Banned(g, port) ? S.contraband.bannedPerUnitSellDrop : S.perUnitSellDrop); return true; }
 
   // ---------------- 3D sea ----------------

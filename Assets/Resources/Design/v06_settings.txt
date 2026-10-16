@@ -228,7 +228,7 @@
     "faridaAllyPapersDiscount": 0.2,
     "jackpotMult": 2.5,
     "jackpotSpillSeconds": 1.4,
-    "goalMediumOpening": "Get the gunpowder to Muscat.",
+    "goalMediumOpening": "Sell the gunpowder in Muscat's Back Alley.",
     "goalMediumAfter": "Run Farida's rugs.",
     "goalLong": "Find out what House Qarin is hoarding.",
     "goalLongBeforeYusuf": "Who burned your ship? The Qarin seal.",
