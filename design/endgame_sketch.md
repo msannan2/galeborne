@@ -10,7 +10,7 @@ Rank goes up with **Renown**, which you earn from contracts, profitable voyages,
 | Rank | Renown | Unlocks |
 |---|---|---|
 | Deckhand | 0 | Start of the game after the opening |
-| Trader | 100 | Contract board in every tavern, tier 1 contracts |
+| Trader | 100 | Full contract board in every tavern, tier 1 contracts (Deckhands see one starter delivery per board) |
 | Merchant | 300 | Second cargo deck at the Shipwright, tier 2 contracts |
 | Captain | 700 | Bounty board, escort contracts, better duel gear |
 | Merchant Prince | 1500 | Tier 3 contracts, a named rival who competes for the same contracts |
@@ -30,7 +30,7 @@ Each tavern board offers 3 contracts, and they refresh every moon. Every contrac
 | Escort | Protect a merchant ship on the next voyage | Forced fight |
 | Bounty (Captain and up) | Hunt a named pirate seen near a port | A harder duel |
 
-- **Each port has its own contract flavour:** Gwadar deals in fish and salt, Debal in spice and cloth, and Muscat in smuggling and gunpowder. That keeps routes a real decision and backs up the "no two towns alike" rule.
+- **Each port has its own contract flavour:** Each port's contracts draw on its own cheap goods (smuggling comes in a later slice). That keeps routes a real decision and backs up the "no two towns alike" rule.
 - **Failing** costs Renown and the deposit, never story cargo or the ship.
 - **Streaks:** completing 3 contracts in a row gives a bonus card. It's a small reason to play "one more voyage".
 
@@ -49,3 +49,8 @@ Each tavern board offers 3 contracts, and they refresh every moon. Every contrac
 
 ## First slice (approved, after the duel window)
 Renown plus the first 3 ranks, plus delivery and rush contracts at the 3 existing ports. That's enough to test whether players chase the next rank.
+
+## Data rulings (17:21 PKT, on research/endgame-data 2018624)
+- Deckhand gets one starter delivery per board: approved.
+- Port flavour comes from each port's cheap goods: approved.
+- Contract coin rewards are capped in slice 1 at 900 for a delivery and 1,200 for a rush. Pearl contracts carry smaller quantities to fit under the cap.
