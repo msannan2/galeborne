@@ -59,13 +59,13 @@ public partial class Game {
   void SetBtn(Button b, string label, bool en) { b.interactable = en; b.GetComponent<Image>().sprite = Panel(UITheme.C(en ? T.ledgerButton : T.ledgerRowAlt), UITheme.C(en ? T.frame : T.ledgerRule));
     var t = b.GetComponentInChildren<Text>(); t.text = label; t.color = UITheme.C(en ? T.ledgerButtonText : T.ledgerMuted); }
   IEnumerator SheetTrade(bool buy) {
-    int g = sheetGood, q = Mathf.RoundToInt(qty.value); busy = true; int done = 0;
+    int g = sheetGood, q = Mathf.RoundToInt(qty.value); busy = true; int done = 0; if (!buy) ProfitBegin(); /* research_profit */
     for (int i = 0; i < q; i++) {
       if (buy) { if (!Buy(g)) break; }
       else { int v = SellPrice(g); if (!Sell(g)) break; SaleFx(sSell.rectTransform.position + new Vector3(0, 0, 0)); }
       done++; Refresh(); UpdateSheet(false); yield return new WaitForSeconds(buy ? 0.03f : 0.1f); }
     msg = buy ? $"Bought {GoodCount(g, done)}." /* gamedev_t9 */ : $"Sold {GoodCount(g, done)}. Next sells for {SellPrice(g)}.";
-    busy = false; Refresh(); UpdateSheet(true);
+    busy = false; Refresh(); UpdateSheet(true); if (!buy) ProfitEnd(sSell.rectTransform.position); /* research_profit */
   }
   public void CloseSheet() { if (sheet) Destroy0(sheet.gameObject); sheet = null; priceTexts.Remove(sheetGood); }
 }

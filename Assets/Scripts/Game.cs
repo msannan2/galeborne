@@ -60,7 +60,7 @@ public partial class Game : MonoBehaviour {
         float m = PortMult(p, g);
         basePrice[p, g] = b * m * Rnd.Range(0.95f, 1.05f); price[p, g] = lastPrice[p, g] = basePrice[p, g]; } }
     for (int g = 0; g < ng; g++) if (S.goods[g].contraband) { int p = Rnd.Range(0, np); bans.Add(new Ban { good = g, port = p, start = 0, end = Rnd.Range(S.contraband.banMoonsMin, S.contraband.banMoonsMax + 1) * S.weeksPerMoon }); }
-    KeepBases(); shipTier = new int[4]; ApplyShipTiers(); fame = 0; bankCoins = 0; bankPort = -1; loanOwed = 0; loanCap = 0; fightsFought = 0; duelsFought = 0; if (GwadarIdx >= 0) port = GwadarIdx;
+    KeepBases(); shipTier = new int[4]; ApplyShipTiers(); fame = 0; firstProfitDone = false; bankCoins = 0; bankPort = -1; loanOwed = 0; loanCap = 0; fightsFought = 0; duelsFought = 0; if (GwadarIdx >= 0) port = GwadarIdx;
     InitV06(); ScheduleBans(); msg = $"Dawn at {S.ports[port].name}. Hasan's dhow creaks against the pier. Tap the bazaar.";
   }
 
@@ -102,7 +102,7 @@ public partial class Game : MonoBehaviour {
     int paid = Mathf.CeilToInt(price[port, g]); AvgCost[g] = (AvgCost[g] * hold[g] + paid) / (hold[g] + 1); coins -= paid; hold[g]++; price[port, g] *= 1 + S.perUnitBuyRise; return true; }
   public int SellPrice(int g) => RugsBanSale(g) ? RugsBanPrice() : Mathf.FloorToInt(price[port, g] * (Banned(g, port) ? S.contraband.bannedSellMult : S.sellSpread));
   public bool Sell(int g) {
-    if (hold[g] <= 0) return false; int v = SellPrice(g); coins += v; hold[g]--; JackpotCheck(g, v); EgFirstSale(g); /* gamedev_end1 */
+    if (hold[g] <= 0) return false; int v = SellPrice(g); ProfitTrack(g, v); coins += v; hold[g]--; JackpotCheck(g, v); EgFirstSale(g); /* gamedev_end1 */
     if (g == Gp && port == Muscat && !openingGpSold) { openingGpSold = true; msg = GpSoldLine; news.Insert(0, GpSoldLine); /* research_gp1 */ if (playthrough) PLog2("opening sale", "gunpowder sold in Muscat's alley — medium goal clears"); } /* v0.6h4: sale not confiscation */
     price[port, g] *= 1 - (Banned(g, port) ? S.contraband.bannedPerUnitSellDrop : S.perUnitSellDrop); return true; }
 
@@ -258,7 +258,7 @@ public partial class Game : MonoBehaviour {
     bool overdue = harbourDebt > 0 && harbourDebtDueWeek >= 0 && week > harbourDebtDueWeek;
     string debt = harbourDebt <= 0 ? "" : $" · Debt {harbourDebt}" + (harbourDebtDueWeek < 0 ? "" : overdue ? " OVERDUE" : $" due moon {harbourDebtDueWeek / Mathf.Max(1, S.weeksPerMoon) + 1}");
     string town = sailing ? $"At sea → {S.ports[dest].name}" : tab == 4 ? S.ports[port].name : ""; /* in town the town title shows the name */
-    string rest = $" · {coins:N0} coins · Hull {(HullMax > 0 ? HullCur / HullMax * 100f : 100f):0}% · Moon {Moon % S.moonsPerYear + 1}";
+    string rest = $" · {CoinsShown:N0} coins · Hull {(HullMax > 0 ? HullCur / HullMax * 100f : 100f):0}% · Moon {Moon % S.moonsPerYear + 1}";
     int over = town.Length + rest.Length + debt.Length - 43; /* ~43 chars fit at 540px wide in the inset rect: shorten the town name first, coins/hull stay whole */
     if (over > 0 && sailing) { town = $"→ {S.ports[dest].name}"; over = town.Length + rest.Length + debt.Length - 43; } /* sea: keep the destination, drop "At sea" first */
     if (over > 0 && town.Length > 4) town = town.Substring(0, Mathf.Max(3, town.Length - over - 1)) + "…";
@@ -367,8 +367,8 @@ public partial class Game : MonoBehaviour {
     Refresh(); SaleFx(at);
   }
   IEnumerator SellAll(int g) {
-    busy = true; while (hold[g] > 0 && !Banned(g, port) && tab == 0 && !sailing) { DoSell(g, content); yield return new WaitForSeconds(0.12f); }
-    busy = false; Refresh();
+    busy = true; ProfitBegin(); while (hold[g] > 0 && !Banned(g, port) && tab == 0 && !sailing) { DoSell(g, content); yield return new WaitForSeconds(0.12f); }
+    busy = false; Refresh(); ProfitEnd(content.position); /* research_profit */
   }
   void SaleFx(Vector3 at) {
     fx.SetAsLastSibling();
@@ -376,11 +376,7 @@ public partial class Game : MonoBehaviour {
     var a = new GameObject("arrow", typeof(RectTransform)).GetComponent<RectTransform>(); a.SetParent(fx, false); a.position = at; a.anchoredPosition += new Vector2(-34, -6);
     a.sizeDelta = new Vector2(16, 13); var ai = a.gameObject.AddComponent<Image>(); ai.sprite = Tri(); ai.color = UITheme.C(T.down); a.localScale = new Vector3(1, -1, 1);
     if (Application.isPlaying) StartCoroutine(Fade(ai, 0.9f, new Vector2(0, -10)));
-    // short coin spill toward the purse
-    for (int i = 0; i < 5; i++) {
-      var c = new GameObject("coin", typeof(RectTransform)).GetComponent<RectTransform>(); c.SetParent(fx, false); c.position = at; c.sizeDelta = new Vector2(14, 14);
-      var ci = c.gameObject.AddComponent<Image>(); ci.sprite = Dot(); ci.color = UITheme.C(T.gold);
-      if (Application.isPlaying) StartCoroutine(Coin(c, ci, i * 0.04f)); }
+    /* research_profit: the old dot spill is replaced by the profit coin fly (ProfitEnd) */
   }
   IEnumerator Fade(Image i, float d, Vector2 drift) { var r = i.rectTransform; var p0 = r.anchoredPosition; for (float t = 0; t < d; t += Time.deltaTime) { i.color = new Color(i.color.r, i.color.g, i.color.b, 0.85f * (1 - t / d)); r.anchoredPosition = p0 + drift * (t / d); yield return null; } Destroy(i.gameObject); }
   IEnumerator Coin(RectTransform c, Image i, float delay) {
@@ -404,7 +400,7 @@ public partial class Game : MonoBehaviour {
       var row = Px(led, "row", 14, y, 1004, 96); Box(row, T.rowShade);
       Label(row, S.goods[g].name, 16, 0, 280, 96, T.fontSize + 8, T.text); priceTexts[g] = Label(row, SellPrice(g).ToString(), 286, 0, 200, 96, T.fontSize + 8, T.gold, TextAnchor.MiddleLeft, true);
       Label(row, hold[g].ToString(), 600, 0, 80, 96, T.fontSize + 8, T.text);
-      Btn(row, "Sell 1", 700, 8, 140, 80, () => DoSellAlley(gg, row), hold[g] > 0); Btn(row, "Sell all", 850, 8, 140, 80, () => { int got = 0, v = 0; while (hold[gg] > 0) { int pv = SellPrice(gg); if (!Sell(gg)) break; got++; v += pv; } if (got > 0) { msg = $"A quiet buyer takes {GoodCount(gg, got)} for {v:N0} coins." /* gamedev_t9 */; var at = priceTexts[gg].rectTransform.position; Refresh(); SaleFx(at); } }, hold[g] > 0); y += 104; }
+      Btn(row, "Sell 1", 700, 8, 140, 80, () => DoSellAlley(gg, row), hold[g] > 0); Btn(row, "Sell all", 850, 8, 140, 80, () => { int got = 0, v = 0; ProfitBegin(); while (hold[gg] > 0) { int pv = SellPrice(gg); if (!Sell(gg)) break; got++; v += pv; } if (got > 0) { msg = $"A quiet buyer takes {GoodCount(gg, got)} for {v:N0} coins." /* gamedev_t9 */; var at = priceTexts[gg].rectTransform.position; Refresh(); SaleFx(at); ProfitEnd(at); } }, hold[g] > 0); y += 104; }
     if (!any) { Label(led, $"Nothing is banned in {S.ports[port].name} this week. The alley is quiet.", 26, y + 8, 980, 110, T.fontSize + 8, T.textMuted, TextAnchor.UpperLeft); y += 126; } /* k4art: top-anchored, 8px under headings — 2-line wrap no longer rides up into GOOD/PRICE/HELD */
     y += 20; Label(led, "Current bans", 26, y, 600, 60, T.fontSize + 8, T.parchment, TextAnchor.MiddleLeft, true); y += 66;
     foreach (var b in bans) { string when = b.end >= int.MaxValue / 4 ? "banned for good" : week < b.start ? "from next week" : $"until moon {b.end / S.weeksPerMoon + 1}";
@@ -422,7 +418,7 @@ public partial class Game : MonoBehaviour {
     if (InOpening && jackpotStartCoins < 0 && g == G("gunpowder")) { jackpotStartCoins = coins + got * Mathf.CeilToInt(allyCut ? full * (1f - A1("faridaAllyPapersDiscount", 0.2f)) : full); news.Insert(0, "Yusuf: \"Muscat's purse is deep, Captain. Just don't let customs see what's in yours.\""); }
     if (!papersGiven && g == G("gunpowder") && firstRun) { papersGiven = true; keeperTrig = "papers"; msg = $"Farida slips you forged papers with the {S.goods[g].name.ToLower()}: Muscat customs will wave you through.";  /* research_gp3: papers make CustomsWaved true (risk 0), so say so at buy */ }
     else msg = allyCut ? $"Bought {GoodCount(g, got)} in the alley (−20%)." : $"Bought {GoodCount(g, got)} in the alley."; Refresh(); }
-  void DoSellAlley(int g, RectTransform row) { int v = SellPrice(g); if (!Sell(g)) return; if (port == Muscat && g == Gp) keeperTrig = "sold"; /* research_gp4: Salim thanks you */ msg = $"A quiet buyer pays {v} for {GoodCount(g, 1)}."; var at = priceTexts[g].rectTransform.position; Refresh(); SaleFx(at); }
+  void DoSellAlley(int g, RectTransform row) { ProfitBegin(); int v = SellPrice(g); if (!Sell(g)) return; if (port == Muscat && g == Gp) keeperTrig = "sold"; /* research_gp4: Salim thanks you */ msg = $"A quiet buyer pays {v} for {GoodCount(g, 1)}."; var at = priceTexts[g].rectTransform.position; Refresh(); SaleFx(at); ProfitEnd(at); }
 
   void Ware(RectTransform led) {
     var w = wh[port]; int slots = w.tier == 2 ? S.warehouse.buySlots : w.tier == 1 ? S.warehouse.leaseSlots : 0; float used = w.items.Sum(b => b.qty);
