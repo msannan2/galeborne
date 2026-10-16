@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using Rnd = UnityEngine.Random;
 
 [Serializable] public class KeeperLine { public string trigger, mood, text; }
-[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida, innkeeper, priest, harbourmaster; }
+[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida, innkeeper, priest, harbourmaster, salim; }
 
 /// v0.6: tall scrolling 3D town with tappable buildings, keepers with mood faces, bank, money lender, shipwright, tavern, palace, chart-table map.
 public partial class Game {
@@ -411,6 +411,8 @@ public partial class Game {
       RectTransformUtility.ScreenPointToLocalPointInRectangle(signLayer, sp, null, out var lp); r.anchoredPosition = lp - rect.min; }
   }
 
+  const int SalimRow = 8; /* art_salim_portrait: Salim's own face (row 7 reserved for Rashid) */
+  public const string MuscatFence = "Salim the fence"; /* research_gp3: Game Designer ruling */
   // ---- keepers ----
   static readonly Dictionary<int, (string key, string name, int row)> Keepers = new Dictionary<int, (string, string, int)> {
     { 0, ("bazaarMerchant", "Jalal the bazaar merchant", 0) }, { 1, ("farida", "Farida of the back alley", 2) }, { 3, ("shipwright", "Temple priest", 4) }, /* reuse face row until temple art */
@@ -426,12 +428,13 @@ public partial class Game {
   bool KeeperHeader(int tab) {
     if (!Keepers.TryGetValue(tab, out var k)) return false;
     bool harbour = tab == 7 && (S.ports[port].name == "Muscat" || ShipwrightMode(S.ports[port].name) == "none"); /* designer: same rule as the "Harbour Master" plaque */
+    if (tab == 1 && port == Muscat) { k.name = MuscatFence; k.key = "salim"; } /* research_gp3; research_gp4: own lines */
     if (tab == 3) k.key = "priest"; else if (harbour) { k.key = "harbourmaster"; k.name = "Harbour master"; } /* own lines + optional own portrait instead of Bashir's */
-    var line = Line(k.key, keeperTrig); if (tab == 0 && S.ports[port].name != "Gwadar") { k.name = $"{S.ports[port].name} bazaar merchant"; if (line.trigger == "greet") line = new KeeperLine { trigger = line.trigger, mood = line.mood, text = "Everything except a discount!" }; } /* gamedev_t19_merchant: Jalal and his Gwadar goods cry stay in Gwadar */ int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
+    var line = Line(k.key, k.key == "salim" && openingGpSold && keeperTrig == "greet" ? "sold" : keeperTrig); /* research_gp5: Salim greets with the after-sale line from saved state (openingGpSold), on every visit and after a relaunch */ if (tab == 0 && S.ports[port].name != "Gwadar") { k.name = $"{S.ports[port].name} bazaar merchant"; if (line.trigger == "greet") line = new KeeperLine { trigger = line.trigger, mood = line.mood, text = "Everything except a discount!" }; } /* gamedev_t19_merchant: Jalal and his Gwadar goods cry stay in Gwadar */ int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
     var r = Px(content, "Keeper", 16, 172, 1048, KeeperH); Box(r, T.ledgerBg, T.frame);
     var fr = Px(r, "face", 14, 14, KeeperH - 28, KeeperH - 28); Box(fr, T.ink, T.gold);
     /* v0.6h4: ally Farida until turned in; rival portrait from FaridaState == 2 */
-    var tex = k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}");
+    var tex = tab == 1 && port == Muscat ? Resources.Load<Texture2D>($"Keepers/k{SalimRow}_{mood}") : k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}"); /* art_salim_portrait */
     /* designer: optional own portraits, Assets/Resources/Art/Portraits/<file>.png (Builder.cs:115 import rule); until painted, the borrowed face is mirrored + tinted */
     string own = k.key == "innkeeper" ? "innkeeper" : k.key == "priest" ? "priest" : k.key == "harbourmaster" ? "harbourmaster" : null;
     var ownTex = own != null ? Resources.Load<Texture2D>("Art/Portraits/" + own) : null; if (ownTex) tex = ownTex;

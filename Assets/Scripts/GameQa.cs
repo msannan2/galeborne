@@ -139,6 +139,32 @@ public partial class Game {
       tab = -1; port = Muscat; Refresh(); yield return null; Sell(Gp); Sell(Gp);
       Chk(openingGpSold && Goals3().Item1 != GpSellGoal && msg == GpSoldLine, $"gunpowder goal clears on the Muscat sale (Now: {Goals3().Item1}; msg: {msg})");
       Chk(GpMapFlag(Muscat) == null, "Muscat gunpowder flag gone after the sale"); Chk(!AlleySells(Debal).Contains(S.goods[Gp].id), "Farida stops selling gunpowder after the Muscat sale"); Chk(Goals3().Item1 != GpBuyGoal, "no gunpowder buy goal after the sale"); /* research_gp2 */
+      /* research_gp3: text follow-ups */
+      Chk(QarinPowderLine.Contains("My thanks") && !QarinPowderLine.Contains("Bring powder"), $"Qarin letter thanks you once gunpowder is sold ({QarinPowderLine})");
+      { int ab0 = tab; port = Muscat; tab = 1; keeperTrig = "greet"; Refresh(); yield return null; yield return null;
+        var tx = FindObjectsByType<Text>(FindObjectsSortMode.None).Select(t => t.text).ToList();
+        Chk(MuscatFence == "Salim the fence" && tx.Any(t => t.Contains(MuscatFence)) && !tx.Any(t => t.Contains("Farida of the back alley")), "Muscat Back Alley keeper is Salim the fence, not Farida");
+        Chk(Line("salim", "greet").text == "Powder? Quietly, captain. The garrison pays well." && Line("salim", "sold").text == "Pleasure doing business. Forget my face.", "Salim has his own greet and after-sale lines"); /* research_gp4 */
+        tab = ab0; Refresh(); yield return null; }
+      /* research_gp5: Salim's after-sale line on the REAL path: Sell all button in Muscat's alley, re-entry, save + reload */
+      { const string SGreet = "Powder? Quietly", SSold = "Forget my face"; bool hadBan = Banned(Gp, Muscat); var qBan = new Ban { good = Gp, port = Muscat, start = 0, end = int.MaxValue / 2 }; if (!hadBan) bans.Add(qBan);
+        System.Func<List<string>> shown = () => FindObjectsByType<Text>(FindObjectsSortMode.None).Where(t => t.isActiveAndEnabled).Select(t => t.text).ToList();
+        openingGpSold = false; hold[Gp] = 3; port = Muscat; tab = -1; Refresh(); yield return null; OpenBuilding(1); yield return null; yield return null;
+        var t0 = shown(); Chk(t0.Any(t => t.Contains(SGreet)) && !t0.Any(t => t.Contains(SSold)), "Salim greets before the sale (real alley open)");
+        var sb = LiveButtons().FirstOrDefault(b => LabelOf(b) == "Sell all" && b.transform.parent.GetComponentsInChildren<Text>().Any(t => t.text == S.goods[Gp].name));
+        Chk(sb != null, "Sell all button for gunpowder in Muscat's alley"); if (sb != null) sb.onClick.Invoke(); yield return null; yield return null;
+        var t1 = shown(); Chk(openingGpSold && hold[Gp] == 0 && t1.Any(t => t.Contains(SSold)) && !t1.Any(t => t.Contains(SGreet)), $"after Sell all Salim shows the after-sale line (sold {openingGpSold}, held {hold[Gp]})");
+        tab = -1; Refresh(); yield return null; OpenBuilding(1); yield return null; yield return null;
+        var t2 = shown(); Chk(t2.Any(t => t.Contains(SSold)) && !t2.Any(t => t.Contains(SGreet)), "re-entering the alley: after-sale line, no greeting");
+        tab = -1; Refresh(); Save(); yield return null; openingGpSold = false; bool ld = Load(); Refresh(); yield return null; port = Muscat; OpenBuilding(1); yield return null; yield return null;
+        var t3 = shown(); Chk(ld && openingGpSold && t3.Any(t => t.Contains(SSold)) && !t3.Any(t => t.Contains(SGreet)), $"after save + reload: after-sale line, no greeting (loaded {ld}, sold {openingGpSold})");
+        tab = -1; if (!hadBan) bans.RemoveAll(b => b.good == Gp && b.port == Muscat && b.end == int.MaxValue / 2); Refresh(); yield return null; }
+      openingGpSold = false; fallbackFired = false; hold[Gp] = 0;
+      Chk(OpeningGoalLineAt(4) == GpBuyGoal, $"opening step 4 goal before buying ({OpeningGoalLineAt(4)})");
+      hold[Gp] = 2;
+      Chk(OpeningGoalLineAt(4) == GpSellGoal && OpeningGoalLineAt(5) == GpSellGoal && OpeningGoalLineAt(6) == GpSellGoal, $"opening steps 4-6 goal with kegs aboard ({OpeningGoalLineAt(5)})");
+      Chk(GpBuyGoal.Length <= 50 && GpSellGoal.Length <= 50 && !JournalOpeningGoals.Any(j => j.Contains("then sail for Muscat") || j.Contains("Keep it from customs")), "opening gunpowder lines are the short ruled texts (fit one line)");
+      Chk(OpeningMediumGoalAt(4) == "Get gunpowder from Debal to Muscat's Back Alley." && OpeningMediumGoalAt(6) == OpeningMediumGoalAt(4) && !OpeningMediumGoals.Any(m => m.Contains("Make a fortune")), $"opening medium goal is the ruled text ({OpeningMediumGoalAt(5)})");
       storyStep = ss0; hold[Gp] = gp0; coins = c0; port = pt0; openingGpSold = sold0; fallbackFired = fb0; firstRun = fr0; price[Muscat, Gp] = pr0; msg = ""; eg.renown = rn0; eg.rank = rk0; eg.firstSales.Clear(); eg.firstSales.AddRange(fs0); if (news.Count > 0 && news[0] == GpSoldLine) news.RemoveAt(0); Refresh(); yield return null; }
     // ---- gamedev_ring: naval range ring (radius = fire range, state flips at the threshold, plaque = fire-check distance, under the hulls) ----
     { tab = -1; dialog = null; Refresh(); yield return null; bool town0 = town3D && town3D.gameObject.activeSelf; if (town3D) town3D.gameObject.SetActive(false); var amb0 = RenderSettings.ambientLight; RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f); /* at sea, as Voyage() sets it */ StartCoroutine(Fight(true)); for (int k = 0; k < 6; k++) yield return null; combatPaused = true;

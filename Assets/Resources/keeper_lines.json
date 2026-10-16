@@ -43,5 +43,11 @@
   {"trigger":"forgedPapers","mood":"delighted","text":"Papers for you. First run's on me. Second run, I own your soul. Joking. Mostly."},
   {"trigger":"caughtByCustoms","mood":"offended","text":"You got caught? With MY papers? Hold them right-side up next time."},
   {"trigger":"jackpotReturn","mood":"delighted","text":"Rich and alive. My two favorite things in a customer."}
+ ],
+ "salim": [
+  {"trigger":"greet","mood":"suspicious","text":"Powder? Quietly, captain. The garrison pays well."},
+  {"trigger":"sold","mood":"delighted","text":"Pleasure doing business. Forget my face."},
+  {"trigger":"buyContraband","mood":"neutral","text":"Keep your voice down. Muscat's walls have ears."},
+  {"trigger":"caughtByCustoms","mood":"offended","text":"Customs took it? Then we never met."}
  ]
 }
