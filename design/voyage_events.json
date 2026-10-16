@@ -1,6 +1,7 @@
 {
  "existing": {
   "horizon": {
+   "family": "horizon",
    "code": "Game.cs:572 VoyageDecision kind 0",
    "variants": [
     {
@@ -33,6 +34,7 @@
    ]
   },
   "storm": {
+   "family": "weather",
    "code": "Game.cs:579-583 kind 1",
    "variants": [
     {
@@ -77,6 +79,7 @@
    ]
   },
   "wreckage": {
+   "family": "salvage",
    "code": "Game.cs:585-588 kind 2",
    "rule": "Hold full: grey out Salvage with label 'Hold full' (or skip the event)",
    "variants": [
@@ -119,6 +122,7 @@
    ]
   },
   "wreckAdrift": {
+   "family": "salvage",
    "code": "Game.cs:598-601 Encounter wreck",
    "variants": [
     {
@@ -142,6 +146,7 @@
    ]
   },
   "merchant": {
+   "family": "merchant",
    "code": "Game.cs:602-607 Encounter merchant",
    "note": "drop the false 'cheaper than any quay' claim",
    "variants": [
@@ -178,6 +183,7 @@
    ]
   },
   "squall": {
+   "family": "weather",
    "code": "Game.cs:608-610 Encounter squall",
    "variants": [
     {
@@ -201,6 +207,7 @@
    ]
   },
   "rumor": {
+   "family": "rumour",
    "code": "Game.cs:611-613 Encounter rumour",
    "variants": [
     {
@@ -290,6 +297,7 @@
  "new": [
   {
    "id": "pearlDiver",
+   "family": "pearlDiver",
    "title": "Diver in trouble",
    "when": "any voyage touching Gwadar or Muscat (pearl ports)",
    "variants": [
@@ -322,6 +330,7 @@
   },
   {
    "id": "leakyDhow",
+   "family": "leakyDhow",
    "title": "Leaky date dhow",
    "when": "route to/from Gwadar or Muscat (date ports)",
    "variants": [
@@ -355,6 +364,7 @@
   },
   {
    "id": "customsLaunch",
+   "family": "customsLaunch",
    "title": "Customs launch",
    "when": "only when destination is Muscat",
    "variants": [
@@ -367,13 +377,13 @@
    ],
    "options": [
     {
-     "label": "Heave to",
-     "safe": true,
+     "label": "Heave to, they search the hold",
      "cost": "+1 week; banned non-story goods seized (LosableGoods, never story cargo)",
      "out": "They search, stamp, and wave you on."
     },
     {
      "label": "Pay the fee",
+     "safe": true,
      "cost": "5% of coins, min 20, max 150",
      "out": "The clerk pockets {fee} coins and looks away."
     },
@@ -387,6 +397,7 @@
   },
   {
    "id": "squallLine",
+   "family": "weather",
    "title": "Monsoon squall line",
    "when": "any; more likely moons 6-9 (monsoon) if a season exists, else flat weight",
    "variants": [
@@ -419,6 +430,7 @@
   },
   {
    "id": "lighthouse",
+   "family": "lighthouse",
    "title": "Lighthouse keeper",
    "when": "route via Ras al Hadd (Gwadar-Muscat, Debal-Muscat)",
    "variants": [
@@ -438,9 +450,11 @@
     },
     {
      "label": "Give him supplies",
-     "cost": "1 losable good of your choice (cheapest)",
+     "auto": "takes 1 unit of your cheapest good from LosableGoods(); no picker",
+     "disabledWhenNoLosable": "Nothing to spare",
+     "cost": "1 unit of your cheapest losable good",
      "gain": "pirate warning: next voyage ambush chance halved",
-     "out": "He warns you where the raiders wait."
+     "out": "He takes {goods} and warns you where the raiders wait."
     },
     {
      "label": "Sail by",

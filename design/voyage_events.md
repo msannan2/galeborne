@@ -1,16 +1,33 @@
 # Voyage events: variants, 5 new events, Hail payoffs
-Source read: `origin/gamedev/endgame-fixes` @ 1467a0b, `Game.cs:563-614` (`VoyageDecision`, `Encounter`). Machine-readable: `voyage_events.json`. Tester report: `shots/fun_t19/fun_report.md`.
+Source read: `origin/gamedev/endgame-fixes` @ 1467a0b, `Game.cs:563-614` (`VoyageDecision`, `Encounter`). Machine-readable: `voyage_events.json`. Tester report: `shots/fun_t19/fun_report.md`. Game Designer sign-off changes applied (lighthouse auto-take, customs Heave to, families).
 
 ## Important: there are no text keys today
 All voyage card text is hardcoded C# string literals in `Game.cs` (only the ambush cards and rumours live in `v06_events_content.txt`). The JSON is keyed by event id with fields named after each `Ask(title, body, options)` call and its `msg` outcome lines, so Game Developer needs a small loader (pick a random variant per card) to drop it in. Placeholders `{good}`, `{goods}` (= `GoodCount`), `{n}`, `{unit}`, `{cost}`, `{port}`, `{lost}`, `{fee}` match the values those lines already use.
 
 ## Rules for Game Developer
-- **Never the same event twice in a row** (Game Designer). Today `voyageKindsUsed` only blocks repeats *within one voyage*; keep a `lastEventId` across voyages (save it) and reroll on a match.
+- **Never the same event family twice in a row** (Game Designer). Every event has a `family` field; compare families, not ids, so Storm front, Squall and Monsoon squall line (all `weather`) never follow each other, nor Wreckage and Wreckage adrift (`salvage`). Today `voyageKindsUsed` only blocks repeats *within one voyage*; keep a `lastFamily` across voyages (save it) and reroll on a match.
 - **Wreckage with a full hold:** show the card with Salvage greyed and labelled "Hold full" (Game Designer), or skip the event; never a live dead button.
 - **Hail her always pays:** replace the 35% goodwill roll with a weighted outcome card: rumour 50, trade 30, warning 20.
-- **Story cargo:** every loss uses `LosableGoods()`; customs seizure in the new launch event too.
+- **Story cargo:** every loss uses `LosableGoods()`, including the customs search and the lighthouse supplies.
+- **Lighthouse supplies are automatic:** take 1 unit of the cheapest good in `LosableGoods()` (no picker). With no losable goods, grey the option with "Nothing to spare".
 - Variants change wording only; outcomes stay exactly as coded.
 - Merchant: dropped the false "cheaper than any quay" claim.
+
+## Families
+| Event | Family |
+|---|---|
+| horizon | horizon |
+| storm | weather |
+| wreckage | salvage |
+| wreckAdrift | salvage |
+| merchant | merchant |
+| squall | weather |
+| rumor | rumour |
+| pearlDiver | pearlDiver |
+| leakyDhow | leakyDhow |
+| customsLaunch | customsLaunch |
+| squallLine | weather |
+| lighthouse | lighthouse |
 
 ## (a) Existing events: variant counts
 - `horizon` (Game.cs:572 VoyageDecision kind 0): 3 variants
@@ -32,7 +49,7 @@ Rumour goods must come from the target port's real lists (shortage: `want`; glut
 
 ## (b) 5 new events
 
-### Diver in trouble (`pearlDiver`)
+### Diver in trouble (`pearlDiver`, family `pearlDiver`)
 When: any voyage touching Gwadar or Muscat (pearl ports)
 
 - Body v1: A pearl diver clings to a broken float, waving. His boat is gone.
@@ -44,7 +61,7 @@ When: any voyage touching Gwadar or Muscat (pearl ports)
 | Toss him a float | 10 coins | rumour: pearls dear in Debal | He shouts thanks: Debal pays well for pearls. |
 | Sail on (safe) | - | - | You leave him to the next boat. |
 
-### Leaky date dhow (`leakyDhow`)
+### Leaky date dhow (`leakyDhow`, family `leakyDhow`)
 When: route to/from Gwadar or Muscat (date ports)
 
 - Body v1: A sinking dhow full of dates. Her nakhuda sells cheap before she goes.
@@ -56,7 +73,7 @@ When: route to/from Gwadar or Muscat (date ports)
 | Take her crew off | +1 week | rumour: salt dear in Debal | Her crew tell you salt sells high in Debal. A week lost. |
 | Sail on (safe) | - | - | You leave them bailing. |
 
-### Customs launch (`customsLaunch`)
+### Customs launch (`customsLaunch`, family `customsLaunch`)
 When: only when destination is Muscat
 
 - Body v1: A Muscat customs launch signals you to heave to for search.
@@ -64,11 +81,11 @@ When: only when destination is Muscat
 
 | Option | Cost | Gain | Outcome |
 |---|---|---|---|
-| Heave to (safe) | +1 week; banned non-story goods seized (LosableGoods, never story cargo) | - | They search, stamp, and wave you on. |
-| Pay the fee | 5% of coins, min 20, max 150 | - | The clerk pockets {fee} coins and looks away. |
+| Heave to, they search the hold | +1 week; banned non-story goods seized (LosableGoods, never story cargo) | - | They search, stamp, and wave you on. |
+| Pay the fee (safe) | 5% of coins, min 20, max 150 | - | The clerk pockets {fee} coins and looks away. |
 | Run for it | 55%: nothing; 45%: hull -10 and fee x2 | - | You outrun her. / A shot holes your hull. They fine you {fee}. |
 
-### Monsoon squall line (`squallLine`)
+### Monsoon squall line (`squallLine`, family `weather`)
 When: any; more likely moons 6-9 (monsoon) if a season exists, else flat weight
 
 - Body v1: A long grey line of squalls lies across your course.
@@ -80,7 +97,7 @@ When: any; more likely moons 6-9 (monsoon) if a season exists, else flat weight
 | Cut through | 40%: lose 1-2 losable goods | - | Soaked but whole. / The squalls take {lost}. |
 | Heave to | hull -5 | - | You wait it out. The rigging groans. |
 
-### Lighthouse keeper (`lighthouse`)
+### Lighthouse keeper (`lighthouse`, family `lighthouse`)
 When: route via Ras al Hadd (Gwadar-Muscat, Debal-Muscat)
 
 - Body v1: The keeper at Ras al Hadd waves a lamp. He trades news for supplies.
@@ -89,7 +106,7 @@ When: route via Ras al Hadd (Gwadar-Muscat, Debal-Muscat)
 | Option | Cost | Gain | Outcome |
 |---|---|---|---|
 | Buy news (15) | 15 coins | real rumour (shortage at a want port) | He says {port} is short of {good}. |
-| Give him supplies | 1 losable good of your choice (cheapest) | pirate warning: next voyage ambush chance halved | He warns you where the raiders wait. |
+| Give him supplies | 1 unit of your cheapest losable good | pirate warning: next voyage ambush chance halved | He takes {goods} and warns you where the raiders wait. · greyed with no losable goods: Nothing to spare |
 | Sail by (safe) | - | - | You dip your flag and sail past. |
 
 ## Self-check
@@ -144,16 +161,16 @@ Limits: title <=19 chars, body <=90 chars after filling placeholders with worst-
 | NEW lighthouse v1 | 17 | 68 | 3 | PASS |
 | NEW lighthouse v2 | 17 | 64 | 3 | PASS |
 
-**Overall: ALL PASS** (46 card bodies checked).
+**Overall: ALL PASS** (46 card bodies checked). Longest option label: "Heave to, they search the hold" (30 chars, 3-option card).
 
 ### Trade-off check (new events)
 | Event | Every option costs/gains? | Safe dull option |
 |---|---|---|
 | pearlDiver | week / 10 coins / nothing | Sail on |
 | leakyDhow | coins / week / nothing | Sail on |
-| customsLaunch | week+search / fee / risk hull+fee | Heave to |
+| customsLaunch | week + search / fee / risk hull + fee | Pay the fee |
 | squallLine | week / cargo risk / hull | Sail around it |
-| lighthouse | coins / 1 good / nothing | Sail by |
+| lighthouse | coins / 1 cheapest losable good (auto) / nothing | Sail by |
 
 ### Goods validity (fixed goods named in text)
 | Text | Good | Port | Code list | OK |
