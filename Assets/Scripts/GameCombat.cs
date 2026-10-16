@@ -111,7 +111,7 @@ public partial class Game {
       case Outcome.BoardReady: yield return BoardFlow(); break;
       case Outcome.TollPaid: { EgFightWon("toll"); /* gamedev_end1 */ int q = AddCargo(pirateGood, Mathf.CeilToInt(pirateQty * c.tollLootFrac)); int pay = Mathf.RoundToInt(c.prizeShipCoins * c.tollLootFrac); coins += pay;
         yield return Ask("They pay a toll", $"Beaten and with dusk coming, the pirate captain strikes his flag and offers a toll to be let go: {pay} coins and {q} {pg}.", ("Accept", null)); break; }
-      case Outcome.Escaped: yield return Ask("She escapes", "The pirate claws away out of range. She will remember you.", ("Continue", null)); break;
+      case Outcome.Escaped: if (core != null && core.pirateFled) { yield return FleeWin(); break; } yield return Ask("She escapes", "The pirate claws away out of range. She will remember you.", ("Continue", null)); break;
       case Outcome.HasanBoarded: { yield return Duel(false);
         if (duelWon) EgFightWon("boarders repelled"); /* gamedev_end1 */
         if (duelWon) yield return Ask("Boarders repelled", "Hasan's crew throw the boarders back. The pirate cuts loose and flees.", ("Continue", null)); else yield return Lose("The pirates swarm aboard."); break; }
@@ -131,6 +131,12 @@ public partial class Game {
       ($"Bounty ({c.bounty:0})", () => { coins += (int)c.bounty; rep[dest] += 5; msg = "You hand him to the harbour master for the bounty."; }));
   }
   public bool storyCapHit;
+  /// gamedev_flee (Game Designer): a pirate that flees is a fight won - half the sinking loot and half the sinking fame (fame is whole points: two flees = 1 fame)
+  public const string FleeCardText = "She breaks off and flees. Victory, with half the spoils."; public int fameHalf;
+  IEnumerator FleeWin() { var c = S.combat; string pg = S.goods[pirateGood].name; EgFightWon("fled");
+    int q = AddCargo(pirateGood, Mathf.RoundToInt(pirateQty * c.sinkCargoPct * 0.5f)); int cw = Rnd.Range((int)c.sinkCoinsMin, (int)c.sinkCoinsMax + 1) / 2; coins += cw;
+    fameHalf++; bool up = fameHalf >= 2; if (up) { fameHalf -= 2; fame++; } Debug.Log($"GB FIGHT fled: half loot {q}x{pg} {cw} coins, half fame (fame {fame}, half {fameHalf})");
+    yield return Ask("She flees", $"{FleeCardText}\n\nHalf loot: {q} {pg} and {cw} coins.\nHalf fame: +½" + (up ? " (with your last flee, +1 fame)" : ""), ("Continue", null)); }
   /// gamedev_timeout (Game Designer): the story fog fight ran out of time - the player pays the pirates a toll (coins), cargo kept. Not a win: no loot, no fame.
   public int StoryTollCoins() => Mathf.Min(coins, Mathf.Max(20, Mathf.RoundToInt(coins * 0.1f)));
   IEnumerator StoryCapToll() { int toll = StoryTollCoins(); coins -= toll; storyAmbushDone = true; Debug.Log($"GB AMBUSH timeout toll {toll} coins"); if (playthrough) PLog2("pirate toll", $"fight cap: player pays {toll} coins");

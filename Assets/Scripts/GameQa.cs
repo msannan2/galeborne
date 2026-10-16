@@ -371,6 +371,14 @@ public partial class Game {
       }
       qaPtrOn = false; qaPtrDown = false;
       core.P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      { /* gamedev_flee: a fled pirate is a win with half the spoils */ var cq = core; int c0 = coins, f0 = fame, h0 = fameHalf; var cc = S.combat; core = new CombatCore(cc, 3); core.pirateFled = true; coins = 500; fameHalf = 0;
+        var fco = StartCoroutine(Resolve(Outcome.Escaped)); yield return null; yield return null; var ft = dialog ? dialog.GetComponentsInChildren<Text>().Select(t => t.text).ToList() : new System.Collections.Generic.List<string>();
+        bool card = ft.Contains("She flees") && ft.Any(t => t.StartsWith(FleeCardText + "\n\nHalf loot: ") && t.Contains("Half fame: +½")); yield return new WaitForSeconds(0.3f); yield return Shot("polish_flee_card"); EgTestCloseCard(); yield return null; yield return null;
+        int got = coins - 500; bool half = got >= (int)cc.sinkCoinsMin / 2 && got <= (int)cc.sinkCoinsMax / 2 && fame == f0 && fameHalf == 1;
+        core = new CombatCore(cc, 4); core.pirateFled = true; StartCoroutine(Resolve(Outcome.Escaped)); yield return null; yield return null; EgTestCloseCard(); yield return null; yield return null; bool two = fame == f0 + 1 && fameHalf == 0;
+        core = new CombatCore(cc, 5); StartCoroutine(Resolve(Outcome.Escaped)); yield return null; yield return null; bool plain = dialog != null && dialog.GetComponentsInChildren<Text>().Any(t => t.text == "She escapes"); EgTestCloseCard(); yield return null; yield return null;
+        Chk(card && half && two && plain, $"gamedev_flee: fled pirate = win card '{FleeCardText}' with half loot ({got} coins, half of {cc.sinkCoinsMin:0}-{cc.sinkCoinsMax:0}) and half fame (two flees = +1 fame); other escapes unchanged");
+        core = cq; coins = c0; fame = f0; fameHalf = h0; }
       { /* gamedev_timeout: the live resolution of a story-fight timeout deducts the toll and gives no loot/fame */ int c0 = coins, f0 = fame; coins = 500; int want = StoryTollCoins(); storyCapHit = true; var rco = StartCoroutine(Resolve(Outcome.HasanStruck)); yield return null; yield return null;
         bool tollCard = dialog != null && dialog.GetComponentsInChildren<Text>().Any(t => t.text == "The pirates take a toll"); yield return Shot("timeout_player_toll"); EgTestCloseCard(); yield return null; yield return null;
         Chk(tollCard && coins == 500 - want && want == 50 && fame == f0 && !storyCapHit, $"gamedev_timeout: running out the clock -> 'The pirates take a toll', {want} coins deducted (500 -> {coins}), no fame"); coins = c0; }
