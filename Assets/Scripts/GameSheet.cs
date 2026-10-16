@@ -65,7 +65,7 @@ public partial class Game {
       else { int v = SellPrice(g); if (!Sell(g)) break; SaleFx(sSell.rectTransform.position + new Vector3(0, 0, 0)); }
       done++; Refresh(); UpdateSheet(false); yield return new WaitForSeconds(buy ? 0.03f : 0.1f); }
     msg = buy ? $"Bought {GoodCount(g, done)}." /* gamedev_t9 */ : $"Sold {GoodCount(g, done)}. Next sells for {SellPrice(g)}.";
-    busy = false; Refresh(); UpdateSheet(true); if (!buy) ProfitEnd(sSell.rectTransform.position); /* research_profit */
+    busy = false; Refresh(); UpdateSheet(true); if (!buy) { var sc = new Vector3[4]; sSell.rectTransform.GetWorldCorners(sc); ProfitEnd((sc[0] + sc[2]) / 2); } /* research_profit */
   }
   public void CloseSheet() { if (sheet) Destroy0(sheet.gameObject); sheet = null; priceTexts.Remove(sheetGood); }
 }

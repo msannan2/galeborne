@@ -106,7 +106,7 @@ public partial class Game {
   void JackpotCheck(int g, int v) { float cost = AvgCost[g]; if (cost <= 0 || v < A1("jackpotMult", 2.5f) * cost) return; float x = v / cost;
     lastJackpot = $"JACKPOT {S.goods[g].id} sold at {v} ({x:0.00}x buy {cost:0})"; if (Time.unscaledTime - jackpotT < 2f) return; jackpotT = Time.unscaledTime; StartCoroutine(JackpotFx(x)); }
   IEnumerator JackpotFx(float x) {
-    var layer = Stretch(root, "JackpotFx", 0, 0, 0, 0); layer.SetAsLastSibling(); var cg = layer.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
+    var layer = Stretch(root, "JackpotFx", 0, 0, 0, 0); layer.SetAsLastSibling(); gaspLayer = layer.gameObject; gaspStartT = Time.unscaledTime; /* research_profit: toast waits on this */ var cg = layer.gameObject.AddComponent<CanvasGroup>(); cg.blocksRaycasts = false; cg.interactable = false;
     var spill = ArtSlot("Art/coin_spill"); RectTransform sr = null; if (spill) { sr = Px(layer, "spill", 60, 620, 960, 520); var ri = sr.gameObject.AddComponent<RawImage>(); ri.texture = spill; ri.raycastTarget = false; } /* v0.6h4: lower, over ledger rows so Farida/merchant quote stays clear */
     var strip = Px(layer, "gaspStrip", 0, 850, 1080, 110); var si = strip.gameObject.AddComponent<Image>(); si.color = new Color(0.07f, 0.05f, 0.03f, 0.88f); si.raycastTarget = false;
     var line1 = Px(strip, "trimT", 0, 0, 1080, 4).gameObject.AddComponent<Image>(); line1.color = UITheme.C(T.brass); line1.raycastTarget = false; var line2 = Px(strip, "trimB", 0, 106, 1080, 4).gameObject.AddComponent<Image>(); line2.color = UITheme.C(T.brass); line2.raycastTarget = false;
@@ -115,5 +115,5 @@ public partial class Game {
     for (float t = 0; t < dur && layer; t += Time.unscaledDeltaTime) { float k = t / dur; /* coins drop onto the ledger with a small bounce, then fade */
       if (sr) { float drop = k < 0.25f ? 1 - k / 0.25f : 0; float bounce = k >= 0.25f && k < 0.45f ? Mathf.Sin((k - 0.25f) / 0.2f * Mathf.PI) * 0.06f : 0; sr.anchoredPosition = new Vector2(60, -620 + 200 * drop - 400 * bounce); sr.localScale = Vector3.one * (0.85f + 0.15f * Mathf.Min(1, k * 4)); }
       gasp.rectTransform.localScale = Vector3.one * (1 + 0.15f * Mathf.Sin(Mathf.Min(1, k * 3) * Mathf.PI)); cg.alpha = k < 0.75f ? 1 : 1 - (k - 0.75f) / 0.25f; yield return null; }
-    if (layer) Destroy(layer.gameObject); }
+    if (layer) Destroy(layer.gameObject); gaspEndT = Time.unscaledTime; gaspLayer = null; }
 }

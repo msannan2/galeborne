@@ -15,6 +15,7 @@ public partial class Game {
   float saleRev, saleCost; int saleUnits; /* the open sale transaction */
   public int coinShown = -1; /* >= 0 while the HUD counter is ticking */
   public Text lastProfitText, lastToast; public int lastProfitN, lastCoinFly, clinkCount;
+  GameObject gaspLayer; public float gaspStartT = -99, gaspEndT = -99, toastShownT = -99; /* Game Designer: gasp first, toast once it clears */
   int CoinsShown => coinShown >= 0 ? coinShown : coins;
   void ProfitBegin() { saleRev = saleCost = 0; saleUnits = 0; }
   void ProfitTrack(int g, int v) { saleRev += v; saleCost += AvgCost[g]; saleUnits++; }
@@ -28,7 +29,7 @@ public partial class Game {
     t.name = up ? "ProfitText" : "LossText"; t.color = col; t.raycastTarget = false; t.horizontalOverflow = HorizontalWrapMode.Overflow;
     var o = t.gameObject.AddComponent<Outline>(); o.effectColor = UITheme.C(ProfitOutlineHex); o.effectDistance = new Vector2(ProfitOutlinePx, -ProfitOutlinePx);
     var o2 = t.gameObject.AddComponent<Outline>(); o2.effectColor = UITheme.C(ProfitOutlineHex); o2.effectDistance = new Vector2(-ProfitOutlinePx, ProfitOutlinePx);
-    t.rectTransform.position = at; t.rectTransform.anchoredPosition += new Vector2(0, 70); fx.SetAsLastSibling(); lastProfitText = t;
+    t.rectTransform.pivot = new Vector2(0.5f, 0.5f); t.rectTransform.position = at; t.rectTransform.anchoredPosition += new Vector2(0, 62); /* Chief Art Designer: centred just above the Sell price */ fx.SetAsLastSibling(); lastProfitText = t;
     if (Application.isPlaying) StartCoroutine(FloatText(t, 1.8f));
     if (!up) { lastCoinFly = 0; return; }
     int k = Mathf.Clamp(5 + n / 40, 5, 8); lastCoinFly = k; var spr = Resources.Load<Sprite>("Art/UI/profit_coin");
@@ -53,10 +54,17 @@ public partial class Game {
   /// writes v into the HUD line in place (no full Refresh); a Refresh mid-tick redraws coinShown, which is the same v
   void SetCounter(int v) { string a = $"{counterDrawn:N0} coins", b = $"{v:N0} coins"; coinShown = v;
     if (coinText) { var s = coinText.text; int i = s.IndexOf(a); if (i >= 0 && (i == 0 || s[i - 1] == ' ')) coinText.text = s.Substring(0, i) + b + s.Substring(i + a.Length); } counterDrawn = v; }
-  void ShowToast(string s) {
-    var p = Px(fx, "FirstProfitToast", 140, 300, 800, 120); Box(p, T.panel, T.gold); var t = Label(p, s, 20, 0, 760, 120, T.fontSize + 4, ProfitHex, TextAnchor.MiddleCenter, true); t.raycastTarget = false;
+  void ShowToast(string s) { if (Application.isPlaying) StartCoroutine(ToastAfterGasp(s)); else ToastNow(s); }
+  IEnumerator ToastAfterGasp(string s) { yield return null; /* a gasp started by the same sale is already up */ while (gaspLayer) yield return null; ToastNow(s); }
+  /// Chief Art Designer: a strip just under the HUD bar (above the merchant card), ~90% of the screen wide, one line, best-fit shrink
+  void ToastNow(string s) {
+    var p = new GameObject("FirstProfitToast", typeof(RectTransform)).GetComponent<RectTransform>(); p.SetParent(fx, false); p.anchorMin = new Vector2(0.05f, 1); p.anchorMax = new Vector2(0.95f, 1); p.pivot = new Vector2(0.5f, 1);
+    float h = 64; if (topBar) { var c = new Vector3[4]; topBar.GetWorldCorners(c); var lp = fx.InverseTransformPoint(c[0]); p.anchoredPosition = new Vector2(0, lp.y - fx.rect.yMax - 6); h = Mathf.Max(48, topBar.rect.height); } else p.anchoredPosition = new Vector2(0, -90);
+    p.sizeDelta = new Vector2(0, h); Box(p, T.panel, T.gold);
+    var tr = new GameObject("T", typeof(RectTransform)).GetComponent<RectTransform>(); tr.SetParent(p, false); tr.anchorMin = Vector2.zero; tr.anchorMax = Vector2.one; tr.offsetMin = new Vector2(16, 4); tr.offsetMax = new Vector2(-16, -4);
+    var t = Txt(tr, s, T.fontSize + 4, ProfitHex, TextAnchor.MiddleCenter, true); t.horizontalOverflow = HorizontalWrapMode.Wrap; t.resizeTextForBestFit = true; t.resizeTextMinSize = 12; t.resizeTextMaxSize = T.fontSize + 4; /* best fit shrinks rather than wrapping (height fits one line) */
     var o = t.gameObject.AddComponent<Outline>(); o.effectColor = UITheme.C(ProfitOutlineHex); o.effectDistance = new Vector2(ProfitOutlinePx, -ProfitOutlinePx);
-    foreach (var g in p.GetComponentsInChildren<Graphic>()) g.raycastTarget = false; lastToast = t; fx.SetAsLastSibling(); Debug.Log("GB PROFIT toast: " + s);
+    foreach (var g in p.GetComponentsInChildren<Graphic>()) g.raycastTarget = false; lastToast = t; toastShownT = Time.unscaledTime; fx.SetAsLastSibling(); Debug.Log($"GB PROFIT toast: {s} (gasp ended {gaspEndT:0.00}, toast {toastShownT:0.00})");
     if (Application.isPlaying) StartCoroutine(KillAfter(p.gameObject, 3.2f)); }
   IEnumerator KillAfter(GameObject g, float s) { yield return new WaitForSeconds(s); if (g) Destroy(g); }
   /* procedural coin clink (no SFX assets in the project, like the duel clang): two bright partials, fast decay */
