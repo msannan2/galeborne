@@ -232,6 +232,7 @@ public partial class Game {
   public string OpeningMediumGoalAt(int st) => OpeningMediumGoals[Mathf.Clamp(st, 0, OpeningMediumGoals.Length - 1)]; /* gamedev_t10_next */
   public string OpeningGoalLine() => OpeningGoalLineAt(storyStep); public string OpeningGoalLineAt(int st) => JournalOpeningGoals[Mathf.Clamp(st, 0, JournalOpeningGoals.Length - 1)]; /* gamedev_t9 */ /* gamedev_t8: ONE shared step line - Journal + Next hints */
   string JournalOpeningGoal => OpeningGoalLine() + (openingGpSold && !yusufSeal ? "\n" + JournalSealLine : ""); /* gamedev_t8 */
+  string JournalActiveLine() => EgBoardOpen ? $"Active {eg.active.Count}/{EndgameData.MaxActive}" + (ActiveJobCount > 0 ? $"   ·   Jobs {ActiveJobCount}/{JobCap}" : "") : $"Active {ActiveJobCount}/{JobCap}"; /* gamedev_egfix2 */
   void OpenJournal() { StartCoroutine(JournalCo()); }
   IEnumerator JournalCo() {
     bool done = false; int shownTab = -1; var jbe = PushBack("Journal", () => !done, () => done = true); /* final modal_queue_back: DISMISSABLE, closes via its own done path */
@@ -242,14 +243,15 @@ public partial class Game {
         dialog = R(root, "Journal", 0, 0, 1, 1); dialog.offsetMin = new Vector2(20, 40); dialog.offsetMax = new Vector2(-20, -40);
         Box(dialog, T.panel, T.gold);
         var inner = Stretch(dialog, "in", 28, 28, 28, 28);
-        Label(inner, "Journal" + (EgBoardOpen ? $"  <size={T.fontSizeSmall}>{RankName} · {eg.renown:N0} Renown</size>" : "") /* gamedev_badge1 */, 100, 14, 600, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
+        var jt = Label(inner, "Journal", 100, 14, 230, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true); jt.gameObject.name = "JournalTitle";
+        if (EgBoardOpen) { var jr = Label(inner, $"{RankName} · {eg.renown:N0} Renown", 300, 14, 340, 60, T.fontSizeSmall, T.parchment, TextAnchor.MiddleLeft, true); jr.gameObject.name = "JournalRank"; jr.resizeTextForBestFit = true; jr.resizeTextMinSize = 16; jr.resizeTextMaxSize = T.fontSizeSmall; jr.verticalOverflow = VerticalWrapMode.Truncate; } /* gamedev_egfix3: rank line ends at 640, clear of Close (660) */
         JTab(Btn(inner, "Active", 110, 100, 220, 70, /* art_t9_journal: inset below/right of top-left bracket */ () => { journalTab = 0; shownTab = -1; }, true, journalTab == 0), journalTab == 0); /* art_t10_fixes: selected tab no longer drawn disabled (#5A4F44, ~2.3:1) */
         JTab(Btn(inner, "Done", 350, 100, 220, 70, /* art_t9_journal: shifted with Active, clear of Close (660) */ () => { journalTab = 1; shownTab = -1; }, true, journalTab == 1), journalTab == 1);
         Btn(inner, "Close", 660, 10, 220, 70, /* art_t8_brackets: clear of the top-right bracket */ () => { done = true; });
         var list = journalTab == 0 ? journal.Where(j => j.status == "active").ToList() : journal.Where(j => j.status != "active").Take(10).ToList();
         float y = 190; /* art_t9_journal: below the moved tabs */
         if (!JournalUnlocked) { Label(inner, "Goal", 110, y, 780, 52, T.fontSize, "#C9A55A" /* art_t9_journal: light brass on dark panel */, TextAnchor.MiddleLeft, true); Label(inner, JournalOpeningGoal, 110, y + 56, 780, 170, T.fontSize, T.parchment, TextAnchor.UpperLeft); /* art_t9_journal: body size, parchment, wraps inside brackets */ } /* gamedev_t8: gold Goal heading + muted opening goal line(s) instead of the locked note */
-        else if (list.Count == 0) Label(inner, journalTab == 0 ? "No active jobs. Talk to keepers for offers." : "No finished jobs yet.", 20, y, 960, 80, T.fontSize, T.textMuted);
+        else if (list.Count == 0 && !(journalTab == 0 && EgBoardOpen && eg.active.Count > 0) /* gamedev_egfix2: contracts listed below count as active */) Label(inner, journalTab == 0 ? "No active jobs. Talk to keepers for offers." : "No finished jobs yet.", 20, y, 960, 80, T.fontSize, T.textMuted);
         else foreach (var a in list) {
           var card = Px(inner, "e", 20, y, 960, 200); Box(card, T.panelAlt, T.brass);
           Label(card, a.title, 16, 8, 700, 44, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
@@ -261,7 +263,7 @@ public partial class Game {
           y += 220;
         }
         if (EgBoardOpen) Label(inner, EgJournalBlock(), 110, 1250, 780, 280, T.fontSizeSmall, T.parchment, TextAnchor.LowerLeft); /* gamedev_end1: next rank + contracts */
-        Label(inner, $"Active {ActiveJobCount}/{JobCap}", 110, 1540, /* art_t11_fixes: inset clear of the left frame */ 400, 40, T.fontSizeSmall, T.textMuted);
+        Label(inner, JournalActiveLine(), 110, 1540, /* art_t11_fixes: inset clear of the left frame */ 400, 40, T.fontSizeSmall, T.textMuted);
       }
       yield return null;
     }
@@ -318,8 +320,8 @@ public partial class Game {
   /// k4: last label added to row stays on one line, shrinking (min 18) instead of spilling into the next line
   static void FitLine(RectTransform row) { var t = row.GetChild(row.childCount - 1).GetComponent<Text>(); if (!t) return; t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Truncate; t.resizeTextForBestFit = true; t.resizeTextMinSize = 18; t.resizeTextMaxSize = t.fontSize; }
 
-  void QuestBtn(RectTransform led, string building, string keeperName, float y = 1320) {
-    Btn(led, "Ask about work", 26, y, 980, 110, () => StartCoroutine(QuestMenu(building, keeperName)), true, true);
+  Button QuestBtn(RectTransform led, string building, string keeperName, float y = 1320, float x = 26, float w = 980) {
+    return Btn(led, "Ask about work", x, y, w, 110, () => StartCoroutine(QuestMenu(building, keeperName)), true, true);
   }
 
   bool BuildingAvailable(int tab) {

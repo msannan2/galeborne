@@ -41,11 +41,22 @@ public partial class Game {
   IEnumerator PortraitCard(string title, string body, Texture2D face, params (string, Action)[] opts) {
     int seq0 = cardSeq; var co = AskCard(title, body, opts); bool more = co.MoveNext();
     while (more && cardSeq == seq0) { yield return co.Current; more = co.MoveNext(); } /* final modal_queue_back: AskCard may be queued; attach the portrait only to its own card */
-    if (dialog != null && face != null) { var inner = dialog.Find("in") as RectTransform; if (inner) { foreach (var t in inner.GetComponentsInChildren<Text>()) if (t.GetComponentInParent<Button>() == null && t.rectTransform.sizeDelta.y > 200) t.rectTransform.sizeDelta = new Vector2(700, t.rectTransform.sizeDelta.y);
+    if (dialog != null && face != null) { var inner = dialog.Find("in") as RectTransform; if (inner) { PortraitLayout(inner); /* gamedev_egfix4 */
         var fr = Px(inner, "Portrait", 752, 100, 222, 296); var teak = fr.gameObject.AddComponent<Image>(); teak.color = new Color(0.24f, 0.14f, 0.08f); teak.raycastTarget = false;
         var brass = Px(fr, "brass", 7, 7, 208, 282).gameObject.AddComponent<Image>(); brass.color = new Color(0.72f, 0.56f, 0.3f); brass.raycastTarget = false;
         var im = Px(fr, "img", 10, 10, 202, 276).gameObject.AddComponent<RawImage>(); im.texture = face; im.raycastTarget = false; /* teak frame, brass trim, 3:4 portrait */ } }
     while (more) { yield return co.Current; more = co.MoveNext(); } }
+
+  /// gamedev_egfix4: body wraps left of the portrait (x 100-736) and the button row drops below whichever ends lower, body or portrait; the card grows to match
+  void PortraitLayout(RectTransform inner) {
+    const float pL = 752, pBottom = 100 + 296, gap = 24; Canvas.ForceUpdateCanvases();
+    Text body = null; foreach (var t in inner.GetComponentsInChildren<Text>()) if (t.GetComponentInParent<Button>() == null && Mathf.Abs(t.rectTransform.anchoredPosition.x - 100) < 1 && t.alignment == TextAnchor.UpperLeft) body = t;
+    if (body == null) return; float top = -body.rectTransform.anchoredPosition.y;
+    body.rectTransform.sizeDelta = new Vector2(pL - 16 - 100, body.rectTransform.sizeDelta.y); Canvas.ForceUpdateCanvases(); float bh = body.preferredHeight + 6; body.rectTransform.sizeDelta = new Vector2(pL - 16 - 100, bh);
+    float btnTop = float.MaxValue; var btns = inner.GetComponentsInChildren<Button>().Select(b => b.GetComponent<RectTransform>()).ToList(); foreach (var b in btns) btnTop = Mathf.Min(btnTop, -b.anchoredPosition.y);
+    if (btns.Count == 0) return; float want = Mathf.Max(top + bh, pBottom) + gap, d = want - btnTop; if (d <= 0) return;
+    foreach (var b in btns) b.anchoredPosition -= new Vector2(0, d);
+    inner.sizeDelta += new Vector2(0, d); var card = inner.parent as RectTransform; if (card) card.offsetMax += new Vector2(0, d); }
 
   // ---------- prologue choice ----------
   IEnumerator PrologueChoice() {

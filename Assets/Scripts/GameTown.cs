@@ -494,15 +494,25 @@ public partial class Game {
   void ApplyShipTiers() { S.holdSize = baseHold + shipTier[3] * 5; S.combat.hasan.hull = baseHull + shipTier[0] * 15; S.combat.hasan.sails = baseSails + shipTier[1] * 10; S.combat.hasan.gunsPerSide = baseGuns + shipTier[2]; }
   int baseHold, baseGuns; float baseHull, baseSails; bool basesKept;
   void KeepBases() { if (basesKept) return; basesKept = true; baseHold = S.holdSize; baseHull = S.combat.hasan.hull; baseSails = S.combat.hasan.sails; baseGuns = (int)S.combat.hasan.gunsPerSide; }
-  void TavernScreen(RectTransform led) {
-    LedgerHeader(led, "The Salt & Lantern tavern");
-    Label(led, "Sailors trade gossip for a cup of tea.", 26, 76, 980, 60, T.fontSizeSmall + 4, T.textMuted);
+  void TavernScreen(RectTransform led) { /* gamedev_egfix1: list scrolls in a masked viewport; Ask about work + Contract board pinned at the panel bottom, same spot in every port, clear of the ticker */
+    const float pinH = 140f;
+    var vp = Stretch(led, "TavVp", 0, 0, 0, pinH); vp.gameObject.AddComponent<RectMask2D>(); var vpi = vp.gameObject.AddComponent<Image>(); vpi.color = Color.clear;
+    var lst = Px(vp, "TavList", 0, 0, 1032, 400);
+    LedgerHeader(lst, "The Salt & Lantern tavern");
+    Label(lst, "Sailors trade gossip for a cup of tea.", 26, 76, 980, 60, T.fontSizeSmall + 4, T.textMuted);
     float y = 150; /* tavernStory is computed once in OpenBuilding so a re-draw can never blank it */
-    if (tavernStory != null) { var tl = Label(led, $"<b>“{tavernStory}”</b>", 26, y, 980, 150, T.fontSize + 4, T.gold, TextAnchor.UpperLeft); float th = Mathf.Max(150, tl.preferredHeight + 10); tl.rectTransform.sizeDelta = new Vector2(tl.rectTransform.sizeDelta.x, th); y += th + 24; } /* the Qarin letter is long: measure it so the payout/unlock news sits below */ foreach (var n in news.Take(5)) { y += Flow(Label(led, "· " + n, 26, y, 980, 100, T.fontSizeSmall + 6, T.text, TextAnchor.UpperLeft), 100) + 6; } /* v0.6g2: measured, long rumours no longer run into the next line */
-    Btn(led, "Buy a round (10 coins) for a rumour", 26, y + 10, 980, 120, () => { coins -= 10; news.Insert(0, RandomRumour()); Refresh(); }, coins >= 10);
-    if (AdsUnlocked) Btn(led, "Hear next week's talk early (ad)", 26, y + 145, 980, 110, () => StartCoroutine(ShowAd("earlyRumor", () => { var pe = pendingEv.FirstOrDefault(); news.Insert(0, pe.e != null ? $"Early word: {Content((string)pe.e["id"]).GetValueOrDefault("headline", "") }".Replace("{port}", S.ports[pe.p].name).Replace("{good}", pe.g >= 0 ? S.goods[pe.g].name.ToLower() : "goods") : "Nothing new is brewing yet."); })), AdBlockReason() == null);
-    TryCompleteJobsOnEnterBuilding("tavern"); QuestBtn(led, "tavern", "Innkeeper of " + S.ports[port].name, y + 280); EgBoardBtn(led, y + 405); /* gamedev_end1 */
+    if (tavernStory != null) { var tl = Label(lst, $"<b>“{tavernStory}”</b>", 26, y, 980, 150, T.fontSize + 4, T.gold, TextAnchor.UpperLeft); Canvas.ForceUpdateCanvases(); float th = Mathf.Max(150, tl.preferredHeight + 10); tl.rectTransform.sizeDelta = new Vector2(tl.rectTransform.sizeDelta.x, th); y += th + 24; } foreach (var n in news.Take(5)) { y += Flow(Label(lst, "· " + n, 26, y, 980, 100, T.fontSizeSmall + 6, T.text, TextAnchor.UpperLeft), 100) + 6; }
+    Btn(lst, "Buy a round (10 coins) for a rumour", 26, y + 10, 980, 120, () => { coins -= 10; news.Insert(0, RandomRumour()); Refresh(); }, coins >= 10); y += 140;
+    if (AdsUnlocked) { Btn(lst, "Hear next week's talk early (ad)", 26, y, 980, 110, () => StartCoroutine(ShowAd("earlyRumor", () => { var pe = pendingEv.FirstOrDefault(); news.Insert(0, pe.e != null ? $"Early word: {Content((string)pe.e["id"]).GetValueOrDefault("headline", "") }".Replace("{port}", S.ports[pe.p].name).Replace("{good}", pe.g >= 0 ? S.goods[pe.g].name.ToLower() : "goods") : "Nothing new is brewing yet."); })), AdBlockReason() == null); y += 130; }
+    lst.sizeDelta = new Vector2(1032, y + 10);
+    var sr = vp.gameObject.AddComponent<ScrollRect>(); sr.viewport = vp; sr.content = lst; sr.horizontal = false; sr.movementType = ScrollRect.MovementType.Clamped; sr.scrollSensitivity = 40;
+    Box(Pin(Px(led, "TavPinRule", 20, 0, 992, 3), 20, pinH - 4), T.ledgerRule);
+    TryCompleteJobsOnEnterBuilding("tavern");
+    bool board = IsBoardPort(port);
+    var qb = QuestBtn(led, "tavern", "Innkeeper of " + S.ports[port].name, 0, 26, board ? 482 : 980); Pin(qb.GetComponent<RectTransform>(), 26, 16);
+    var eb = EgBoardBtn(led, 0, 524, 482); if (eb) Pin(eb.GetComponent<RectTransform>(), 524, 16); /* gamedev_end1 */
   }
+  static RectTransform Pin(RectTransform r, float x, float bottom) { r.anchorMin = r.anchorMax = Vector2.zero; r.pivot = Vector2.zero; r.anchoredPosition = new Vector2(x, bottom); return r; } /* gamedev_egfix1 */
   string RandomRumour() { var g = S.goods[Rnd.Range(0, S.goods.Length)]; var p = S.ports[Rnd.Range(0, S.ports.Length)];
     string[] f = { $"They say {p.name} is short of {g.name.ToLower()}…", $"A trader swore {g.name.ToLower()} will be worth more in {p.name} soon.", $"Pirates were seen near {p.name}, chasing fat holds." }; return f[Rnd.Range(0, f.Length)]; }
 

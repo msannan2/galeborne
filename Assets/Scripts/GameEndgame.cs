@@ -68,9 +68,9 @@ public partial class Game {
   }
 
   // ---- UI ----
-  void EgBoardBtn(RectTransform led, float y) { /* gamedev_end1: tavern entry */
-    if (!IsBoardPort(port)) return; EgRefreshBoards(); int n = eg.board.Count(b => b.from == S.ports[port].name);
-    Btn(led, EgBoardOpen ? $"{ED.BoardTitle} ({n})" : ED.BoardTitle, 26, y, 980, 110, () => { if (!EgBoardOpen) { msg = ED.BoardLocked; Refresh(); return; } StartCoroutine(EgBoardCo()); }, true, false);
+  Button EgBoardBtn(RectTransform led, float y, float x = 26, float w = 980) { /* gamedev_end1: tavern entry */
+    if (!IsBoardPort(port)) return null; EgRefreshBoards(); int n = eg.board.Count(b => b.from == S.ports[port].name);
+    return Btn(led, EgBoardOpen ? $"{ED.BoardTitle} ({n})" : ED.BoardTitle, x, y, w, 110, () => { if (!EgBoardOpen) { msg = ED.BoardLocked; Refresh(); return; } StartCoroutine(EgBoardCo()); }, true, false);
   }
   IEnumerator EgBoardCo() {
     bool closed = false; EgContract open = null; bool rebuild = true; RectTransform my = null, dim = null;
