@@ -411,6 +411,7 @@ public partial class Game {
       RectTransformUtility.ScreenPointToLocalPointInRectangle(signLayer, sp, null, out var lp); r.anchoredPosition = lp - rect.min; }
   }
 
+  const int SalimRow = 8; /* art_salim_portrait: Salim's own face (row 7 reserved for Rashid) */
   public const string MuscatFence = "Salim the fence"; /* research_gp3: Game Designer ruling */
   // ---- keepers ----
   static readonly Dictionary<int, (string key, string name, int row)> Keepers = new Dictionary<int, (string, string, int)> {
@@ -433,7 +434,7 @@ public partial class Game {
     var r = Px(content, "Keeper", 16, 172, 1048, KeeperH); Box(r, T.ledgerBg, T.frame);
     var fr = Px(r, "face", 14, 14, KeeperH - 28, KeeperH - 28); Box(fr, T.ink, T.gold);
     /* v0.6h4: ally Farida until turned in; rival portrait from FaridaState == 2 */
-    var tex = k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}");
+    var tex = tab == 1 && port == Muscat ? Resources.Load<Texture2D>($"Keepers/k{SalimRow}_{mood}") : k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}"); /* art_salim_portrait */
     /* designer: optional own portraits, Assets/Resources/Art/Portraits/<file>.png (Builder.cs:115 import rule); until painted, the borrowed face is mirrored + tinted */
     string own = k.key == "innkeeper" ? "innkeeper" : k.key == "priest" ? "priest" : k.key == "harbourmaster" ? "harbourmaster" : null;
     var ownTex = own != null ? Resources.Load<Texture2D>("Art/Portraits/" + own) : null; if (ownTex) tex = ownTex;
