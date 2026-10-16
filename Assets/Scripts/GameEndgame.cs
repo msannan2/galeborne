@@ -116,10 +116,11 @@ public partial class Game {
 
   /* gamedev_end1: -gbforce endgame_test (with -gbsavedir under /tmp): scripted smoke test of the slice, logs "GB EGTEST ...", screenshots the card, quits.
      -gbforce endgame (any run): opens the board before the opening ends. */
-  IEnumerator EgSelfTest() {
+  int egFails; /* gamedev_qa1 */
+  IEnumerator EgSelfTest(bool standalone = true) {
     int fails = 0; void L(string s) => Debug.Log("GB EGTEST " + s); void Chk(bool ok, string what) { if (!ok) fails++; L((ok ? "PASS " : "FAIL ") + what); }
     if (!SaveDirIsolated) { L("REFUSED: needs -gbsavedir"); Application.Quit(4); yield break; }
-    yield return new WaitForSeconds(1f); onTitle = false; Init(); egTestQuiet = true; storyStep = StDone; coins = 3000; port = PortIdx("Gwadar"); tab = 8; Refresh(); yield return null;
+    if (standalone) yield return new WaitForSeconds(1f); onTitle = false; Init(); egTestQuiet = true; storyStep = StDone; coins = 3000; port = PortIdx("Gwadar"); tab = 8; Refresh(); yield return null;
     EgRefreshBoards(true); Chk(eg.board.Count == 3 && eg.board.All(b => b.kind == "delivery"), $"Deckhand boards: 1 starter delivery per port (got {eg.board.Count})");
     string bd = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(bd); /* gamedev_badge1 */
     IEnumerator Bar(string n) { tab = -1; Refresh(); yield return null; yield return null; var md = topBar ? topBar.Find("Medallion") : null; var im = md ? md.GetComponent<Image>() : null; Chk(im && im.sprite && im.sprite.name == "rank_" + eg.rank, $"top bar badge {n}: {(im && im.sprite ? im.sprite.name : "fallback/none")}"); yield return ShotCo(System.IO.Path.Combine(bd, "topbar_" + n + ".png")); yield return new WaitForSeconds(0.4f); }
@@ -160,6 +161,7 @@ public partial class Game {
         var f = CardTitleFit(t, 640, T.fontSizeTitle); L($"title '{t}': size {f.size}/{T.fontSizeTitle} lines {f.lines} extra {f.extra:0}"); yield return Card(n, Ask(t, t == "Storm front" ? "A black wall of rain marches across the Gulf. The mate waits on your word." : "The harbour knows your name now. Trader.", ("Onward", null))); }
       yield return Card("askcard_long", AskCard("Your name carries on the quay", "An AskCard with the long legacy heading.", ("Fight", null), ("Flee", null)));
       tab = 8; Refresh(); yield return null; foreach (var (qn, kn) in new[] { ("quest_short", "Innkeeper of Gwadar"), ("quest_long", "Innkeeper of the Salt & Lantern"), ("quest_verylong", "Harbourmaster of the Great Pearl Banks of Muscat") }) { var f = CardTitleFit(kn, 892, T.fontSizeTitle - 4); L($"quest title '{kn}': size {f.size} lines {f.lines} extra {f.extra:0}"); yield return Card(qn, QuestMenu("tavern", kn)); } } /* gamedev_title2 */
+    egFails += fails; if (!standalone) yield break; /* gamedev_qa1: the QA run continues */
     L(fails == 0 ? "ALL PASS" : fails + " FAIL"); yield return new WaitForSeconds(0.5f); Application.Quit(fails == 0 ? 0 : 1);
   }
 }
