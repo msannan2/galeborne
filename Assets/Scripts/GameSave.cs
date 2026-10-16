@@ -65,8 +65,9 @@ public partial class Game {
     bool has = HasSave; float y = 280;
     if (saveBroken) { has = false; Label(pnl, "Both voyage logs are damaged. Start a new voyage, or wait until we can mend them.", 40, 250, 720, 80, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 80; }
     if (has) { Btn(pnl, "Continue", 120, y, 560, 110, () => { if (!Load()) { saveBroken = true; ShowTitle(); return; } onTitle = false; Refresh(); }, true, true); y += 140; }
-    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
+    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); difficulty = 1; Save(); /* back_market_t6: old save overwritten at once with the fresh Captain game, so a quit before the difficulty card cannot Continue on Hard */ /* final ask_modal: new game defaults to Captain (middle) even if the difficulty card is never answered */ prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
       ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }, true, !has);
-    Btn(pnl, "Credits", 250, 548, 300, 62, () => ShowCredits());
+    float cy = y + 130; Btn(pnl, "Credits", 250, cy, 300, 62, () => ShowCredits()); /* art_t5_fixes: 20 px under New Game */
+    pnl.sizeDelta = new Vector2(800, Mathf.Max(620f, cy + 62 + 110)); /* art_t5_fixes: frame grows so Credits clears the ~110 px bottom brackets */
   }
 }

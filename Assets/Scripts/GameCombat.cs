@@ -25,7 +25,7 @@ public partial class Game {
     if (choice == 1) msg = "The wind fails you. They close to fight!";
     yield return Fight();
   }
-  void PayCargo(int n, bool spareGp = false) { int gp = G("gunpowder"); for (int i = 0; i < n && HoldUsed > 0; i++) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !(spareGp && g == gp)).ToList(); if (held.Count == 0) break; hold[held[Rnd.Range(0, held.Count)]]--; } } /* the opening spares the gunpowder on a first-ambush loss */
+  void PayCargo(int n, bool spareGp = false, HashSet<int> keep = null) { int gp = G("gunpowder"); for (int i = 0; i < n && HoldUsed > 0; i++) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !(spareGp && g == gp) && (keep == null || !keep.Contains(g)) /* gamedev_t8 */).ToList(); if (held.Count == 0) break; hold[held[Rnd.Range(0, held.Count)]]--; } } /* the opening spares the gunpowder on a first-ambush loss */
   int AddCargo(int g, int q) { q = Mathf.Min(q, S.holdSize - HoldUsed); if (q > 0) hold[g] += q; return Mathf.Max(0, q); }
 
   public IEnumerator Fight(bool scripted = false) {
@@ -275,6 +275,16 @@ public partial class Game {
     int n = 256; var tex = new Texture2D(n, n, TextureFormat.RGBA32, false); var px = new Color[n * n];
     for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) { float r = new Vector2(x - n / 2f + .5f, y - n / 2f + .5f).magnitude / (n / 2f); px[y * n + x] = r <= outer && r >= inner ? Color.white : Color.clear; }
     tex.SetPixels(px); tex.Apply(); return rings[key] = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(.5f, .5f)); }
+  /* gamedev_t10_duel: short procedural metal clang (no SFX assets in the project) */
+  AudioClip clangClip; AudioSource clangSrc;
+  void PlayClang() {
+    if (clangClip == null) { int sr = 44100, n = (int)(sr * 0.45f); var d = new float[n]; var r = new System.Random(7);
+      for (int i = 0; i < n; i++) { float t = i / (float)sr, env = Mathf.Exp(-t * 9f), hitEnv = Mathf.Exp(-t * 60f);
+        d[i] = 0.5f * env * (0.45f * Mathf.Sin(2 * Mathf.PI * 1180f * t) + 0.3f * Mathf.Sin(2 * Mathf.PI * 2730f * t) + 0.2f * Mathf.Sin(2 * Mathf.PI * 4310f * t) + 0.12f * Mathf.Sin(2 * Mathf.PI * 6150f * t)) + 0.35f * hitEnv * (float)(r.NextDouble() * 2 - 1); }
+      clangClip = AudioClip.Create("gb_clang", n, 1, sr, false); clangClip.SetData(d, 0); }
+    if (clangSrc == null) clangSrc = gameObject.AddComponent<AudioSource>();
+    clangSrc.PlayOneShot(clangClip, 0.8f); Debug.Log("GB DUEL clang");
+  }
   IEnumerator Duel(bool attacking) {
     var c = S.combat; float zone = core.DuelZone(); int need = c.duelRounds / 2 + 1, won = 0, lost = 0;
     var pnl = Px(root, "Duel", 30, 1600, 1020, 660); Box(pnl, T.panel, T.gold);
@@ -295,9 +305,12 @@ public partial class Game {
         closing.rectTransform.localScale = Vector3.one * Mathf.Max(0.02f, 1 - t);
         if (tapped) { hitAt = t; break; } yield return null; }
       bool hit = hitAt >= 0.5f - zone / 2 && hitAt <= 0.5f + zone / 2;
-      if (!attacking && hit && Rnd.value < c.pirateDuelHit * 0.5f) hit = false; // a defending crew is pressed harder
-      if (!hit && duelsFought == 0) { hit = true; hitAt = 0.5f; } // prologue duel: Hasan's crew rallies, it can't be lost
-      if (hit) won++; else lost++; res.text = hit ? "Hit!" : hitAt < 0 ? "Too slow — parried" : hitAt < 0.5f - zone / 2 ? "Too early — parried" : "Too late — parried";
+      bool parried = false; /* gamedev_t10_duel */
+      if (!attacking && hit && Rnd.value < c.pirateDuelHit * 0.5f) { hit = false; parried = true; } // a defending crew is pressed harder (Jeff t10: kept, but shown as a visible parry)
+      if (!hit && duelsFought == 0) { hit = true; parried = false; hitAt = 0.5f; } // prologue duel: Hasan's crew rallies, it can't be lost
+      if (parried) PlayClang(); /* gamedev_t10_duel */
+      Debug.Log($"GB DUEL round={round + 1} tap={hitAt:0.000} band=[{0.5f - zone / 2:0.000},{0.5f + zone / 2:0.000}] hit={hit} parried={parried}"); /* gamedev_t10_duel: ring outer radius = 1-tap; gold ring spans the same [lo,hi] radii */
+      if (hit) won++; else lost++; res.text = hit ? "Hit!" : parried ? "Good strike, but the pirate parried!" /* gamedev_t10_duel */ : hitAt < 0 ? "Too slow — parried" : hitAt < 0.5f - zone / 2 ? "Too early — parried" : "Too late — parried";
       score.text = $"You {won} – {lost} Pirate"; yield return new WaitForSeconds(0.9f); }
     duelWon = won >= need; duelsFought++; Destroy0(pnl.gameObject);
   }

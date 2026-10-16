@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using Rnd = UnityEngine.Random;
 
 [Serializable] public class KeeperLine { public string trigger, mood, text; }
-[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida; }
+[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida, innkeeper, priest, harbourmaster; }
 
 /// v0.6: tall scrolling 3D town with tappable buildings, keepers with mood faces, bank, money lender, shipwright, tavern, palace, chart-table map.
 public partial class Game {
@@ -35,7 +35,7 @@ public partial class Game {
         case TCell.Plaster: { c = Color.Lerp(H("#D9B886"), H("#F0DDB6"), N(u * 5, v * 5) * 0.8f + N(u * 23, v * 23) * 0.2f); float grime = Mathf.Clamp01(0.35f - v) * 0.9f * (0.6f + 0.4f * N(u * 14, 3)); c = Color.Lerp(c, H("#9C7A52"), grime); if (N(u * 40, v * 40) > 0.78f) c *= 0.93f; break; }
         case TCell.Roof: { bool g = (v * 8 % 1) < 0.15f; c = Color.Lerp(H("#9C4A2C"), H("#C0663E"), N(u * 12, v * 4)); if (g) c *= 0.7f; break; }
         case TCell.AwnRed: c = H("#D9CDB0") * (0.9f + 0.1f * N(u * 20, v * 20)); break; /* k4: plain canvas, no stripes; ApplyKeeperSkinK4 tints it per town (#3E4A6E / #D08A2E / #8FAE8C) */
-        case TCell.AwnTeal: c = ((int)(u * 8) % 2 == 0 ? H("#2A8F8A") : H("#EFE2C4")) * (0.9f + 0.1f * N(u * 20, v * 20)); break;
+        case TCell.AwnTeal: c = H("#2A8F8A") * (0.9f + 0.1f * N(u * 20, v * 20)); break; /* designer: plain trim teal, no stripes (skins retint per town) */
         case TCell.Gold: c = Color.Lerp(H("#B8862E"), H("#F2CC6A"), Mathf.Pow(N(u * 4, v * 4), 0.7f)); break;
         case TCell.Rock: c = Color.Lerp(H("#8A6A48"), H("#C7A27A"), N(u * 5, v * 5) * 0.7f + N(u * 17, v * 17) * 0.3f); break;
         case TCell.Wood: { float g = N(u * 3, v * 40); c = Color.Lerp(H("#5A3C24"), H("#8E6440"), g); if ((u * 5 % 1) < 0.05f) c *= 0.6f; break; }
@@ -191,11 +191,11 @@ public partial class Game {
     mb.Quad(new Vector3(c.x - w / 2, h, c.z - d / 2), new Vector3(c.x + w / 2, h, c.z - d / 2), new Vector3(c.x + w / 2, h + rise, c.z), new Vector3(c.x - w / 2, h + rise, c.z), r, true);
     mb.Quad(new Vector3(c.x - w / 2, h + rise, c.z), new Vector3(c.x + w / 2, h + rise, c.z), new Vector3(c.x + w / 2, h, c.z + d / 2), new Vector3(c.x - w / 2, h, c.z + d / 2), r, true);
     for (int i = -1; i <= 1; i += 2) mb.Tri(new Vector3(c.x + i * (w / 2 - 0.15f), h, c.z - d / 2 + 0.1f), new Vector3(c.x + i * (w / 2 - 0.15f), h + rise - 0.05f, c.z), new Vector3(c.x + i * (w / 2 - 0.15f), h, c.z + d / 2 - 0.1f), UVc(TCell.Plaster, 0, 0), UVc(TCell.Plaster, .5f, 1), UVc(TCell.Plaster, 1, 0)); }
-  /* striped awning on posts, with a scalloped valance */
+  /* plain awning on posts (cloth canopy), with a scalloped valance in trim teal */
   static void BigAwning(MeshB mb, float x0, float x1, float yWall, float zWall, float yFront, float zFront, TCell cloth, bool posts = true) {
     mb.Quad(new Vector3(x0, yFront, zFront), new Vector3(x1, yFront, zFront), new Vector3(x1, yWall, zWall), new Vector3(x0, yWall, zWall), U(cloth), true);
     int n = Mathf.Max(3, Mathf.RoundToInt((x1 - x0) / 0.45f)); for (int i = 0; i < n; i++) { float a = Mathf.Lerp(x0, x1, i / (float)n), b = Mathf.Lerp(x0, x1, (i + 1f) / n);
-      mb.Tri(new Vector3(a, yFront, zFront - 0.01f), new Vector3(b, yFront, zFront - 0.01f), new Vector3((a + b) / 2, yFront - 0.28f, zFront - 0.03f), UVc(i % 2 == 0 ? TCell.AwnTeal : cloth, 0.05f, .5f), UVc(i % 2 == 0 ? TCell.AwnTeal : cloth, 0.1f, .5f), UVc(i % 2 == 0 ? TCell.AwnTeal : cloth, 0.07f, .2f)); }
+      mb.Tri(new Vector3(a, yFront, zFront - 0.01f), new Vector3(b, yFront, zFront - 0.01f), new Vector3((a + b) / 2, yFront - 0.28f, zFront - 0.03f), UVc(TCell.AwnTeal, 0.05f, .5f), UVc(TCell.AwnTeal, 0.1f, .5f), UVc(TCell.AwnTeal, 0.07f, .2f)); } /* designer: valance all trim colour — alternating cloth/teal scallops read as stripes */
     if (posts) foreach (var px in new[] { x0 + 0.1f, x1 - 0.1f, (x0 + x1) / 2 }) mb.Cyl(new Vector3(px, 0, zFront + 0.05f), new Vector3(px, yFront + 0.05f, zFront + 0.05f), 0.07f, 0.06f, 6, U(TCell.Teak)); }
   static TCell merlonCell = TCell.Stone; static void Merlons(MeshB mb, float x0, float x1, float y, float z, float depth, float step = 0.7f) { for (float x = x0 + step / 4; x < x1 - step / 4; x += step) mb.Box(new Vector3(x + step / 4, y + 0.25f, z), new Vector3(step / 2, 0.5f, depth), U(merlonCell)); }
   static void Flag(MeshB mb, Vector3 top) { mb.Cyl(top, top + Vector3.up * 1.4f, 0.03f, 0.03f, 4, U(TCell.Dark)); var a = top + Vector3.up * 1.4f;
@@ -336,7 +336,9 @@ public partial class Game {
     var face = R(rt, "face", 0, 0, 1, 1); var fi = face.gameObject.AddComponent<Image>(); fi.sprite = Panel(UITheme.C("#B8893C"), UITheme.C("#5A3A16")); fi.type = Image.Type.Sliced;
     var inner = Stretch(face, "in", 5, 5, 5, 5); var ii = inner.gameObject.AddComponent<Image>(); ii.sprite = Panel(UITheme.C("#D9AE5C"), UITheme.C("#8A6224")); ii.type = Image.Type.Sliced; ii.raycastTarget = false;
     var t = Txt(R(face, "L", 0, 0, 1, 1), name, T.fontSizeSmall - 6, "#2A1A0C", TextAnchor.MiddleCenter, true); t.raycastTarget = false;
-    var b = face.gameObject.AddComponent<Button>(); b.onClick.AddListener(() => { if (!busy) on(); }); return rt; }
+    var b = face.gameObject.AddComponent<Button>(); float pressT = -9f; b.onClick.AddListener(() => { if (Time.unscaledTime - pressT < 1f) return; if (!busy) on(); }); /* gamedev_t7: bot/keyboard click path kept; skipped if the press already opened it */ b.transition = Selectable.Transition.None; /* gamedev_t7: open on press, so a plaque that moves (post-dock camera settle) between press and release still opens */
+    var et = face.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>(); var en = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerDown }; en.callback.AddListener(_ => { if (!busy && !ModalUp && dialog == null) { pressT = Time.unscaledTime; townSnapTap = true; Debug.Log("GB PLAQUE tap " + name); on(); } }); et.triggers.Add(en); return rt; } /* gamedev_t7 */
+  bool townSnapTap; /* gamedev_t7: a plaque press cancels any town drag/settle so the press is never eaten as a swipe */
   int townClose = -1; /* shot mode: frame one building close */
   void TownCamera() { if (townClose >= 0 && townClose < bldgs.Count) { var b = bldgs[townClose]; var c = b.t.position + Vector3.up * (b.h * 0.42f); float d = Mathf.Max(12f, b.h * 2.1f);
       cam.transform.position = c + new Vector3(d * 0.32f, d * 0.38f, -d); cam.transform.LookAt(c); return; }
@@ -358,21 +360,21 @@ public partial class Game {
     var (gs, gm, gl) = Goals3(); goalsOpen = true; /* v0.6h: all three goals always shown */ string storyShort = ShortStoryGoal(gl); var gp = Px(content, "Goals", 16, 248, 1048, 132); Box(gp, T.ink, T.brass); gp.GetComponent<Image>().raycastTarget = true;
     Label(gp, $"<color={T.gold}>Now</color>  {gs}", 22, 4, 1000, 42, T.fontSizeSmall, T.text);
     Label(gp, $"<color={T.gold}>Next</color>  {gm}", 22, 46, 1000, 42, T.fontSizeSmall, T.text); Label(gp, $"<color={T.gold}>Story</color>  {storyShort}", 22, 88, 1000, 42, T.fontSizeSmall, T.textMuted);
-    var gb = gp.gameObject.AddComponent<Button>(); gb.onClick.AddListener(() => { goalsOpen = !goalsOpen; if (InOpening) { msg = "Next: " + StoryGoals().Item1; nudgeT = Time.unscaledTime; } Refresh(); }); if (Time.unscaledTime - nudgeT < 4f) { var glow = Px(gp, "nudge", -6, -6, 1060, 162); Box(glow, "#00000000", T.gold); glow.GetComponent<Image>().raycastTarget = false; StartCoroutine(PulseChip(gp)); } YusufCheck();
+    var gb = gp.gameObject.AddComponent<Button>(); gb.onClick.AddListener(() => { goalsOpen = !goalsOpen; if (InOpening) { msg = "Next: " + OpeningMediumGoalAt(storyStep); /* gamedev_t10_next: medium goal */ nudgeT = Time.unscaledTime; } Refresh(); }); if (Time.unscaledTime - nudgeT < 4f) { var glow = Px(gp, "nudge", -6, -6, 1060, 162); Box(glow, "#00000000", T.gold); glow.GetComponent<Image>().raycastTarget = false; StartCoroutine(PulseChip(gp)); } YusufCheck();
     signLayer = R(content, "Signs", 0, 0, 1, 1); signs.Clear();
     for (int i = 0; i < bldgs.Count; i++) { int k = i; if (Hidden(bldgs[i].tab)) continue; string nm = bldgs[i].name; if (bldgs[i].tab == 7 && ShipwrightMode(S.ports[port].name) == "none") nm = "Harbour Master"; signs.Add((Plaque(signLayer, nm, () => OpenBuilding(bldgs[k].tab)), i)); }
     var cb = Bottom1920(content, "TownBottom");
     /* v0.6i: SET SAIL art button from ui_setsail_button.png */
-    var sail = SetSailBtn(cb, 16, 1660, 680, 140, "SET SAIL", () => { if (!CanLeavePort(out var why)) { msg = why; Refresh(); } else OpenBuilding(4); }); chartBtn = sail.GetComponent<RectTransform>(); if (!JournalUnlocked) ShowTownHints(); else if (signLayer) { /* v0.6j: map/quest markers off after opening */ }
+    var sail = SetSailBtn(cb, 16, 1660, 680, 140, "SET SAIL", () => { if (ModalUp) return; /* final ask_modal */ if (!CanLeavePort(out var why)) { msg = why; Refresh(); } else OpenBuilding(4); }); chartBtn = sail.GetComponent<RectTransform>(); if (!JournalUnlocked) ShowTownHints(); else if (signLayer) { /* v0.6j: map/quest markers off after opening */ }
     /* v0.6k2: Journal/Options chips — ink fill + cream label (never empty teal) */
     {
       var jr = Px(cb, "JournalChip", 712, 1660, 168, 140); Box(jr, T.ink, T.brass);
       var ji = jr.GetComponent<Image>(); if (ji) { var c = ji.color; c.a = 1f; ji.color = c; }
-      Label(jr, "Journal", 6, 45, 156, 50, T.fontSizeSmall, JournalUnlocked ? T.parchment : T.textMuted, TextAnchor.MiddleCenter, true);
-      var jb = jr.gameObject.AddComponent<Button>(); jb.interactable = JournalUnlocked; jb.onClick.AddListener(() => { if (JournalUnlocked) OpenJournal(); });
+      Label(jr, "Journal", 6, 45, 156, 50, T.fontSizeSmall, T.parchment /* gamedev_t7 */, TextAnchor.MiddleCenter, true);
+      var jb = jr.gameObject.AddComponent<Button>(); jb.interactable = true; /* gamedev_t7: Journal always opens in town (was gated on OpeningDone) */ jb.onClick.AddListener(() => { if (ModalUp && dialog == null && creditsCard == null) { Debug.Log("GB JOURNAL modalDepth " + modalDepth + " with no card up: reset"); modalDepth = 0; } /* gamedev_t7: stale depth never locks the chip */ if (ModalUp) { Debug.Log("GB JOURNAL blocked (card up)"); return; } Debug.Log("GB JOURNAL open"); OpenJournal(); });
       var orr = Px(cb, "OptionsChip", 896, 1660, 168, 140); Box(orr, T.ink, T.brass);
       Label(orr, "Options", 6, 45, 156, 50, T.fontSizeSmall, T.parchment, TextAnchor.MiddleCenter, true);
-      orr.gameObject.AddComponent<Button>().onClick.AddListener(OptionsMenu);
+      orr.gameObject.AddComponent<Button>().onClick.AddListener(() => { if (ModalUp) return; /* final ask_modal */ OptionsMenu(); });
     }
     var hintBg = Px(cb, "swipeBg", 16, 1588, 1048, 56); Box(hintBg, T.ink, T.brass); var hi = hintBg.GetComponent<Image>(); hi.raycastTarget = false; hi.color = new Color(0.06f, 0.04f, 0.03f, 0.92f);
     Label(hintBg, "Swipe up and down to walk the town · tap a building", 8, 4, 1032, 48, T.fontSizeSmall - 2, T.parchment, TextAnchor.MiddleCenter);
@@ -389,18 +391,23 @@ public partial class Game {
     if (town3D == null || !town3D.gameObject.activeSelf || dialog != null || sheet != null) return;
     bool overUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
     if (Input.GetMouseButtonDown(0) && !overUI) { townDrag = true; townDown = Input.mousePosition; townDownS = townS; }
-    if (townDrag && Input.GetMouseButton(0)) townS = Mathf.Clamp(townDownS - (Input.mousePosition.y - townDown.y) / Screen.height * 40f, townSMin, townSMax);
+    if (townSnapTap) { townSnapTap = false; townDrag = false; townDownS = townS; } /* gamedev_t7 */ if (townDrag && Input.GetMouseButton(0)) townS = Mathf.Clamp(townDownS - (Input.mousePosition.y - townDown.y) / Screen.height * 40f, townSMin, townSMax);
     if (townDrag && Input.GetMouseButtonUp(0)) { townDrag = false;
       if (((Vector2)Input.mousePosition - townDown).magnitude < Screen.height * 0.015f && Physics.Raycast(cam.ScreenPointToRay(Input.mousePosition), out var hit, 300f)) {
         var b = bldgs.FirstOrDefault(x => x.t == hit.transform); if (b.t != null) OpenBuilding(b.tab); } }
     TownCamera();
     if (signLayer == null) return; var rect = signLayer.rect;
     float k = canvasRoot ? canvasRoot.localScale.x : 1f; var sa = SafeRect(); float bottom = sa.yMin + 330 * k;
+    var placed = new List<(float x, float y, float half)>(); /* designer: Tavern/Money Lender/Palace share a column (x~4.5, rows 3-5); a later plaque that overlaps an earlier one lifts just above it */
     foreach (var (r, i) in signs) { if (r == null) continue; var b = bldgs[i]; var bc = b.t.GetComponent<BoxCollider>(); var bb = bc ? bc.bounds : new Bounds(b.t.position, Vector3.one);
       var anchor = new Vector3(bb.center.x, bb.max.y + 0.15f, bb.center.z - bb.extents.z * 0.4f); var sp = cam.WorldToScreenPoint(anchor) + new Vector3(0, 46 * k, 0);
       float half = r.sizeDelta.x / 2 * k + 12 * k; float cx = cam.WorldToScreenPoint(bb.center).x; bool inside = cx > sa.xMin + 20 * k && cx < sa.xMax - 20 * k; /* show whenever the building itself is on screen; the plaque is clamped inside */
       bool vis = sp.z > 0 && sp.y > bottom && sp.y < SignMaxY() && inside; r.gameObject.SetActive(vis); if (!vis) continue;
       sp.x = Mathf.Clamp(sp.x, sa.xMin + half, sa.xMax - half); /* plaque kept inside the safe area; its stem still drops on the building */
+      for (int pass = 0; pass < 4; pass++) { bool moved = false; float ph = 68 * k;
+        foreach (var q in placed) if (Mathf.Abs(sp.x - q.x) < half + q.half - 24 * k && sp.y < q.y + ph && sp.y + ph > q.y) { sp.y = q.y + ph; moved = true; }
+        if (!moved) break; }
+      placed.Add((sp.x, sp.y, half));
       RectTransformUtility.ScreenPointToLocalPointInRectangle(signLayer, sp, null, out var lp); r.anchoredPosition = lp - rect.min; }
   }
 
@@ -409,7 +416,7 @@ public partial class Game {
     { 0, ("bazaarMerchant", "Jalal the bazaar merchant", 0) }, { 1, ("farida", "Farida of the back alley", 2) }, { 3, ("shipwright", "Temple priest", 4) }, /* reuse face row until temple art */
     { 5, ("banker", "Master Idris, banker", 3) },
     { 6, ("moneyLender", "Rafiq the lender", 1) }, { 7, ("shipwright", "Old Bashir, shipwright", 4) },
-    { 8, ("bazaarMerchant", "Innkeeper of the Salt & Lantern", 0) }, { 9, ("banker", "Governor's chamberlain", 3) } };
+    { 8, ("innkeeper", "Innkeeper of the Salt & Lantern", 0) } /* own lines; face: Art/Portraits/innkeeper when painted, else mirrored + tinted row 0 (see KeeperHeader) */, { 9, ("banker", "Governor's chamberlain", 3) } };
   static readonly string[] Moods = { "neutral", "delighted", "offended", "suspicious" };
   KeeperLine Line(string key, string trig) { if (book == null) { var ta = Resources.Load<TextAsset>("keeper_lines"); book = ta ? JsonUtility.FromJson<KeeperBook>(ta.text) : new KeeperBook(); }
     var arr = (KeeperLine[])typeof(KeeperBook).GetField(key).GetValue(book); if (arr == null || arr.Length == 0) return new KeeperLine { mood = "neutral", text = "" };
@@ -417,12 +424,20 @@ public partial class Game {
   public void Say(string trig) { keeperTrig = trig; }
   const float KeeperH = 400;
   bool KeeperHeader(int tab) {
-    if (!Keepers.TryGetValue(tab, out var k)) return false; var line = Line(k.key, keeperTrig); int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
+    if (!Keepers.TryGetValue(tab, out var k)) return false;
+    bool harbour = tab == 7 && (S.ports[port].name == "Muscat" || ShipwrightMode(S.ports[port].name) == "none"); /* designer: same rule as the "Harbour Master" plaque */
+    if (tab == 3) k.key = "priest"; else if (harbour) { k.key = "harbourmaster"; k.name = "Harbour master"; } /* own lines + optional own portrait instead of Bashir's */
+    var line = Line(k.key, keeperTrig); int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
     var r = Px(content, "Keeper", 16, 172, 1048, KeeperH); Box(r, T.ledgerBg, T.frame);
     var fr = Px(r, "face", 14, 14, KeeperH - 28, KeeperH - 28); Box(fr, T.ink, T.gold);
     /* v0.6h4: ally Farida until turned in; rival portrait from FaridaState == 2 */
     var tex = k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}");
-    if (tex) { var im = Px(fr, "img", 5, 5, KeeperH - 38, KeeperH - 38).gameObject.AddComponent<RawImage>(); im.texture = tex; }
+    /* designer: optional own portraits, Assets/Resources/Art/Portraits/<file>.png (Builder.cs:115 import rule); until painted, the borrowed face is mirrored + tinted */
+    string own = k.key == "innkeeper" ? "innkeeper" : k.key == "priest" ? "priest" : k.key == "harbourmaster" ? "harbourmaster" : null;
+    var ownTex = own != null ? Resources.Load<Texture2D>("Art/Portraits/" + own) : null; if (ownTex) tex = ownTex;
+    Color tint = k.key == "innkeeper" ? new Color(0.78f, 0.84f, 0.95f) /* cool lamplight */ : k.key == "priest" ? new Color(1f, 0.93f, 0.78f) /* warm candle */ : new Color(0.82f, 0.95f, 0.86f) /* sea-green dock light */;
+    if (tex) { var im = Px(fr, "img", 5, 5, KeeperH - 38, KeeperH - 38).gameObject.AddComponent<RawImage>(); im.texture = tex;
+      if (own != null && !ownTex) { im.uvRect = new Rect(1, 0, -1, 1); im.color = tint; } }
     float tx = KeeperH + 6, tw = 1048 - tx - 20;
     var kn = Label(r, tab == 7 && S.ports[port].name == "Muscat" ? "Harbour master, dock patch" : k.name, tx, 12, tw, 72, T.fontSizeTitle - 8, T.ledgerInk, TextAnchor.UpperLeft, true); kn.horizontalOverflow = HorizontalWrapMode.Wrap; kn.verticalOverflow = VerticalWrapMode.Overflow; /* v0.6k: long keeper titles wrap inside panel */
     Label(r, line.mood, tx, 88, tw, 36, T.fontSizeSmall - 4, T.ledgerMuted);
@@ -473,7 +488,7 @@ public partial class Game {
         Btn(led, max ? "Fully upgraded" : $"Upgrade · {cost:N0}", 470, y + 10, 530, 100, () => { coins -= cost; shipTier[kk]++; ApplyShipTiers(); Say("upgrade"); msg = $"{UpKinds[kk]} upgraded."; Refresh(); }, !max && coins >= cost);
         y += 124; }
       if (mode == "sells_small_hulls") { Label(led, "Small hulls (coming soon). Timber jobs keep the yard busy.", 26, y, 980, 60, T.fontSizeSmall, T.textMuted); y += 70; }
-    } else Label(led, "Gwadar's yard repairs only — no new hulls sold here.", 26, y, 980, 60, T.fontSizeSmall, T.textMuted);
+    } else { Label(led, "Gwadar's yard repairs only — no new hulls sold here.", 26, y, 980, 60, T.fontSizeSmall, T.textMuted); y += 70; } /* art_t4_fixes: room before Ask about work */
     QuestBtn(led, "shipwright", "Shipwright of " + S.ports[port].name, Mathf.Min(y + 40, 1320));
   }
   void ApplyShipTiers() { S.holdSize = baseHold + shipTier[3] * 5; S.combat.hasan.hull = baseHull + shipTier[0] * 15; S.combat.hasan.sails = baseSails + shipTier[1] * 10; S.combat.hasan.gunsPerSide = baseGuns + shipTier[2]; }
@@ -527,7 +542,7 @@ public partial class Game {
   public float AmbushChance() => AmbushChanceFor(chartDest >= 0 && chartDest != port ? chartDest : (port + 1) % S.ports.Length); /* v06_ambush_data roll, see GameV06 */
 
   // ---- difficulty ----
-  void OptionsDialog() { StartCoroutine(Ask("Options · difficulty", $"Current: {S.combat.difficulties[difficulty].name}.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
+  void OptionsDialog() { StartCoroutine(AskD("Options · difficulty", $"Current: {S.combat.difficulties[difficulty].name}.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
     ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }
 }
 public partial class Game {

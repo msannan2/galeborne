@@ -153,7 +153,7 @@ public partial class Game {
     float t = Time.time;
     foreach (var f in folk) { if (f.t == null || !f.t.gameObject.activeSelf) continue;
       if (f.speed > 0) { float L = Vector3.Distance(f.a, f.b), u = Mathf.PingPong((t + f.phase) * f.speed / Mathf.Max(0.1f, L), 1); var pos = Vector3.Lerp(f.a, f.b, u); var dir = (f.b - f.a) * (Mathf.Repeat((t + f.phase) * f.speed / Mathf.Max(0.1f, L), 2) < 1 ? 1 : -1);
-        float step = (t + f.phase) * f.speed * (f.kind == 4 ? 7 : 5); f.t.position = pos + Vector3.up * Mathf.Abs(Mathf.Sin(step)) * (f.kind == 4 ? 0.12f : 0.05f); f.t.rotation = Quaternion.LookRotation(-dir) * Quaternion.Euler(0, 0, Mathf.Sin(step) * 3); }
+        float step = (t + f.phase) * f.speed * (f.kind == 4 ? 7 : 5); f.t.position = pos + Vector3.up * Mathf.Abs(Mathf.Sin(step)) * (f.kind == 4 ? 0.12f : 0.05f); f.t.rotation = SafeRot.Look(-dir, f.t.rotation) /* gamedev_t8: folk standing still */ * Quaternion.Euler(0, 0, Mathf.Sin(step) * 3); }
       else { f.t.position = f.a + Vector3.up * Mathf.Sin((t + f.phase) * 1.7f) * 0.012f; f.t.rotation = Quaternion.Euler(0, 180 + Mathf.Sin((t + f.phase) * 0.6f) * 18, Mathf.Sin((t + f.phase) * 1.2f) * 1.5f); } }
     TutorialPointer(t);
   }

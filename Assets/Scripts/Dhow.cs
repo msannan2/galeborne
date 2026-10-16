@@ -63,7 +63,7 @@ public static class Dhow {
       Vector3 a0 = new Vector3(side * Half(t0, pirate) * 1.01f, Sheer(t0, pirate) - 0.55f, Z(t0)), a1 = new Vector3(side * Half(t1, pirate) * 1.01f, Sheer(t1, pirate) - 0.55f, Z(t1));
       Vector3 b0 = a0 + Vector3.up * 0.5f, b1 = a1 + Vector3.up * 0.5f; var tr = Sub(ShipArt.TRIM, t0, 0, t1, 1);
       if (side > 0) mb.Quad(a0, a1, b1, b0, tr); else mb.Quad(a1, a0, b0, b1, tr);
-      if (!broken) { mb.Box((b0 + b1) / 2 + Vector3.up * 0.08f, new Vector3(0.14f, 0.12f, (b1 - b0).magnitude + 0.02f), Quaternion.LookRotation(b1 - b0), U(ShipArt.MAST));
+      if (!broken) { mb.Box((b0 + b1) / 2 + Vector3.up * 0.08f, new Vector3(0.14f, 0.12f, (b1 - b0).magnitude + 0.02f), SafeRot.Look(b1 - b0, Quaternion.identity) /* gamedev_t8: zero-length spar segments at build time (12 warnings per launch) */, U(ShipArt.MAST));
         if (i % 2 == 0) mb.Box(b0 + Vector3.up * 0.3f, new Vector3(0.09f, 0.45f, 0.09f), U(ShipArt.MAST)); }
       if (i % 1 == 0 && !(broken && rnd.Next(2) == 0)) mb.Box(Vector3.Lerp(a0, b0, 0.5f) + new Vector3(side * 0.03f, 0, 0), new Vector3(0.13f, 0.13f, 0.13f), U(ShipArt.BRASS)); }
     if (!pirate) {
@@ -155,3 +155,9 @@ public static class Dhow {
     m.SetVertices(v); m.SetUVs(0, uv); m.SetTriangles(t, 0); m.RecalculateBounds();
     var g = new GameObject("Wake"); g.transform.SetParent(ship, false); g.AddComponent<MeshFilter>().sharedMesh = m; g.AddComponent<MeshRenderer>().sharedMaterial = mat; }
 }
+
+/* gamedev_t8: LookRotation guard - a zero-length direction logs "Look rotation viewing vector is zero" and returns identity; callers pass a fallback instead */
+public static class SafeRot { /* gamedev_t8 */
+  public static Quaternion Look(Vector3 f, Quaternion fallback) => f.sqrMagnitude > 1e-10f ? Quaternion.LookRotation(f) : fallback; /* gamedev_t8 */
+  public static Quaternion Look(Vector3 f, Vector3 up, Quaternion fallback) => f.sqrMagnitude > 1e-10f && Vector3.Cross(f, up).sqrMagnitude > 1e-12f ? Quaternion.LookRotation(f, up) : Look(f, fallback); /* gamedev_t8 */
+} /* gamedev_t8 */

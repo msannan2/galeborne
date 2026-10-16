@@ -13,7 +13,7 @@ public partial class Game {
 
   public void OpenSheet(int g) {
     CloseSheet(); sheetGood = g; var gd = S.goods[g];
-    sheet = R(root, "Sheet", 0, 0, 1, 1);
+    sheet = R(root, "Sheet", 0, 0, 1, 1); { var sh = sheet; PushBack("Price sheet", () => sh != null && sheet == sh, CloseSheet); } /* final modal_queue_back: DISMISSABLE */
     var dim = R(sheet, "dim", 0, 0, 1, 1); var di = dim.gameObject.AddComponent<Image>(); di.color = new Color(0, 0, 0, 0.45f); dim.gameObject.AddComponent<Button>().onClick.AddListener(CloseSheet);
     var pnl = Px(Bottom1920(sheet, "b"), "panel", 0, 960, 1080, 960); Box(pnl, T.ledgerBg, T.frame); pnl.gameObject.AddComponent<Button>().transition = Selectable.Transition.None; // eat taps
     var ic = Px(pnl, "icon", 36, 36, 130, 130).gameObject.AddComponent<Image>(); ic.sprite = Icons.For(gd.id, UITheme.C(T.ledgerInk));
@@ -64,7 +64,7 @@ public partial class Game {
       if (buy) { if (!Buy(g)) break; }
       else { int v = SellPrice(g); if (!Sell(g)) break; SaleFx(sSell.rectTransform.position + new Vector3(0, 0, 0)); }
       done++; Refresh(); UpdateSheet(false); yield return new WaitForSeconds(buy ? 0.03f : 0.1f); }
-    msg = buy ? $"Bought {done} {S.goods[g].name}." : $"Sold {done} {S.goods[g].name}. Next sells for {SellPrice(g)}.";
+    msg = buy ? $"Bought {GoodCount(g, done)}." /* gamedev_t9 */ : $"Sold {GoodCount(g, done)}. Next sells for {SellPrice(g)}.";
     busy = false; Refresh(); UpdateSheet(true);
   }
   public void CloseSheet() { if (sheet) Destroy0(sheet.gameObject); sheet = null; priceTexts.Remove(sheetGood); }

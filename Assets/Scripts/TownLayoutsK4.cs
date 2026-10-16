@@ -53,6 +53,7 @@ public static class TownLayoutsK4 {
       float s = 0.6f + (float)r.NextDouble() * 1.4f; Boulder(mb, tu, c, new Vector3(s, s * 0.7f, s), r, tones[i % tones.Length], 99f); } // scree at the foot
   }
   /// Noisy lat-long rock: per-vertex radial jitter + 3 lumps, squashed and clipped flat at maxY.
+  public static void BoulderShared(MeshB mb, Func<int, Rect> tu, Vector3 c, Vector3 rad, System.Random r, int cell, float maxY) { Boulder(mb, tu, c, rad, r, cell, maxY); } /* designer_arrival_shores */
   static void Boulder(MeshB mb, Func<int, Rect> tu, Vector3 c, Vector3 rad, System.Random r, int cell, float maxY) {
     const int SEG = 24, RING = 14; var uv = tu(cell); var P = new Vector3[RING + 1, SEG + 1];
     var lumps = new Vector3[3]; for (int k = 0; k < 3; k++) lumps[k] = new Vector3((float)r.NextDouble() - 0.5f, (float)r.NextDouble() - 0.3f, (float)r.NextDouble() - 0.5f).normalized;
@@ -132,9 +133,13 @@ public static class TownLayoutsK4 {
   // ---------------- Muscat: horseshoe cove, dark crags both sides, 2 whitewash levels, white fort on RIGHT crag + gatehouse ----------------
   static void Muscat(MeshB mb, Func<int, Rect> tu) {
     // horseshoe of dark rock: arms reach toward the sea on both sides
+    var armR = new System.Random(4242); // seeded → identical every run
     for (int s = -1; s <= 1; s += 2) for (int i = 0; i < 5; i++) {
-      float z = -10f + i * 6f, x = s * (21f - i * 0.6f), h = 9f + i * 2f + (s > 0 ? 3f : 0);
-      mb.Box(new Vector3(x, h * 0.5f - 1f, z), new Vector3(7f, h, 7f), Quaternion.Euler(0, i * 13 * s, s * 5), tu(Rock)); }
+      /* k4 fort_frame: arms sit fully outside the approach frame (cam (0,10,-60), FOV 55, half-width tan 0.24/m depth; inner edge >= 1.07) instead of cut at its edges;
+         right arm no longer +3 taller, so no crag peak competes with the fort (tallest arm top now y16 at i=4, x~24). */
+      float z = -10f + i * 6f, x = s * Mathf.Max(21f - i * 0.6f, 0.24f * (z + 60f) + 6f), h = 9f + i * 2f;
+      /* k4 fix: was a flat 7x7 Box; with Muscat's flat Rock skin (#9A9283) the back arms (i 3-4, x~±19, z 8-14) framed as grey slabs at both edges of the approach view. Noisy crag instead, same footprint/height. */
+      Boulder(mb, tu, new Vector3(x, h * 0.5f - 1f, z), new Vector3(3.6f, h * 0.5f, 3.6f), armR, i % 2 == 0 ? Rock : Dark, 99f); }
     // back of the cove: low pale-limestone (#B8AE9A via Muscat skin) ridge, top y≈8.5, so the fort on its right-crag base (y16, z56) shows in full;
     // horseshoe kept by the tall side arms. Two offset slabs + a dip on the right under the fort.
     mb.Box(new Vector3(-9f, 3.2f, 32f), new Vector3(26f, 10.5f, 7f), Quaternion.Euler(0, 4, 0), tu(Marble));
@@ -145,11 +150,14 @@ public static class TownLayoutsK4 {
       var p = new Vector3(Mathf.Sin(a) * r, lv * 3.6f, 10f + (1 - Mathf.Cos(a)) * -6f + lv * 6f);
       if (Mathf.Abs(p.x) < 2.2f) continue;
       House(mb, tu, p, new Vector3(3.6f, 3.2f, 3.2f), Whitewash, Whitewash, k % 3 == 0 ? Gold : DarkTeak, a * Mathf.Rad2Deg); }
-    // round white crenellated fort on the RIGHT crag
-    var f = new Vector3(19f, 14f, 6f);
+    // round white crenellated fort on its own flat-topped crag, right of centre above the gatehouse
+    /* k4 fort_frame: was (19,14,6): x 1.2 half-widths off the approach frame and sunk among the right-arm crag peaks (y16-20).
+       Now (11.5,9,22): approach view x 0.46-0.76, top y 14.8; plinth below is flattened exactly at y9 so the drum sits on rock. */
+    var f = new Vector3(11.5f, 9f, 22f);
+    Boulder(mb, tu, new Vector3(f.x, 4.4f, f.z + 0.5f), new Vector3(4.6f, 4.8f, 4.2f), armR, Rock, f.y); // fort plinth, flat ledge at f.y
     mb.Cyl(f, f + Vector3.up * 5f, 3f, 2.8f, 14, tu(Whitewash));
     for (int i = 0; i < 12; i++) { float a = i * Mathf.PI / 6; mb.Box(f + new Vector3(Mathf.Cos(a) * 2.7f, 5.4f, Mathf.Sin(a) * 2.7f), new Vector3(0.7f, 0.8f, 0.5f), tu(Whitewash)); }
-    mb.Box(f + new Vector3(-3.5f, -2f, 1f), new Vector3(4f, 3f, 3f), tu(Whitewash)); // curtain wall down the crag
+    mb.Box(f + new Vector3(0f, -2.2f, -3.3f), new Vector3(3.4f, 4.4f, 1.6f), tu(Whitewash)); // curtain wall: plinth face down to the gatehouse roof (y 4.6-9), embedded in rock
     // gatehouse below the fort leading to the palace
     var gh = new Vector3(13f, 0, 16f);
     mb.Box(gh + Vector3.up * 2.5f, new Vector3(6f, 5f, 3f), tu(Whitewash));

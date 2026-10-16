@@ -159,6 +159,8 @@ public partial class Game {
     if (j.oneShot) oneShotUsed.Add(j.id);
     msg = "You decline. Perhaps another time."; if (playthrough) PLog2("job decline", j.id);
   }
+  /* art_t10_fixes: Journal tab styling. Selected = parchment #F5ECD8 on panelAlt #2B2018 (~13:1), gold border; unselected = textMuted #C9B896 on button #2A1E14 (~8.5:1), dimmer but legible */
+  void JTab(Button b, bool sel) { if (!b) return; var t = b.GetComponentInChildren<Text>(); if (t) { t.color = UITheme.C(sel ? T.parchment : T.textMuted); t.font = sel ? T.bold : T.regular; } }
   void CompleteJob(ActiveJob a) {
     a.status = "done"; coins += a.coins; honor += a.honorReward; fear += a.fearReward; sultanStanding += a.sultanReward;
     if (a.sultanReward != 0) rep[Muscat] += a.sultanReward * 3;
@@ -198,9 +200,41 @@ public partial class Game {
     }
   }
 
+  /* gamedev_t8: Journal opening goal lines (Game Designer), by storyStep - edit text here only */
+  /* gamedev_t9: explicit singular/plural per good id for count lines (Lost/Paid/Bought...). gamedev_t10_forms: final Game Researcher forms, full plural - callers must not add " of X". Never strips or adds "s". */
+  static readonly Dictionary<string, (string one, string many)> GoodForms = new Dictionary<string, (string, string)> {
+    { "cotton", ("bale of cotton", "bales of cotton") }, { "salt", ("sack of salt", "sacks of salt") }, { "dates", ("basket of dates", "baskets of dates") },
+    { "copper", ("copper ingot", "copper ingots") }, { "coffee", ("sack of coffee", "sacks of coffee") }, { "tea", ("chest of tea", "chests of tea") },
+    { "pepper", ("sack of pepper", "sacks of pepper") }, { "indigo", ("cake of indigo", "cakes of indigo") }, { "incense", ("sack of incense", "sacks of incense") /* gamedev_t10_forms: on-screen name is "Incense" (settings json), so keep the word incense */ },
+    { "silk", ("bolt of silk", "bolts of silk") }, { "pearls", ("pearl", "pearls") }, { "rugs", ("rug", "rugs") }, { "gunpowder", ("keg of gunpowder", "kegs of gunpowder") } };
+  public string GoodName(int g, int n) => GoodForms.TryGetValue(S.goods[g].id, out var f) ? (n == 1 ? f.one : f.many) : S.goods[g].name.ToLower(); /* gamedev_t9 */
+  public string GoodCount(int g, int n) => $"{n} {GoodName(g, n)}"; /* gamedev_t9 */
+  static readonly string[] JournalOpeningGoals = { /* gamedev_t8 */
+    "Buy dates or salt in the market. Debal will pay well for them.",
+    "Sail to Debal with your cargo.",
+    "Sell all your dates and salt in Debal.",
+    "Visit the Debal tavern and listen for news.",
+    "Buy gunpowder before the ban bites, then make for Muscat.",
+    "Sail to Muscat with your gunpowder.",
+    "Sell your gunpowder in Muscat.",
+    "Stop at a tavern. Someone has a letter for you." }; /* gamedev_t8 */
+  const string JournalSealLine = "Earn Yusuf's seal in Muscat."; /* gamedev_t8 */
+  /* gamedev_t10_next: Next = the MEDIUM goal for this storyStep (never the following step; never names the gunpowder ban before the Debal tavern rumour, step 4+) */
+  static readonly string[] OpeningMediumGoals = {
+    "Turn a profit on your first run to Debal.",
+    "Turn a profit on your first run to Debal.",
+    "Turn a profit on your first run to Debal.",
+    "Find your next trade in Debal.",
+    "Make a fortune running gunpowder to Muscat.",
+    "Make a fortune running gunpowder to Muscat.",
+    "Make a fortune running gunpowder to Muscat.",
+    "Find out who wrote to you." };
+  public string OpeningMediumGoalAt(int st) => OpeningMediumGoals[Mathf.Clamp(st, 0, OpeningMediumGoals.Length - 1)]; /* gamedev_t10_next */
+  public string OpeningGoalLine() => OpeningGoalLineAt(storyStep); public string OpeningGoalLineAt(int st) => JournalOpeningGoals[Mathf.Clamp(st, 0, JournalOpeningGoals.Length - 1)]; /* gamedev_t9 */ /* gamedev_t8: ONE shared step line - Journal + Next hints */
+  string JournalOpeningGoal => OpeningGoalLine() + (openingGpSold && !yusufSeal ? "\n" + JournalSealLine : ""); /* gamedev_t8 */
   void OpenJournal() { StartCoroutine(JournalCo()); }
   IEnumerator JournalCo() {
-    bool done = false; int shownTab = -1;
+    bool done = false; int shownTab = -1; var jbe = PushBack("Journal", () => !done, () => done = true); /* final modal_queue_back: DISMISSABLE, closes via its own done path */
     while (!done) {
       if (shownTab != journalTab || dialog == null) {
         if (dialog) Destroy0(dialog.gameObject);
@@ -208,13 +242,13 @@ public partial class Game {
         dialog = R(root, "Journal", 0, 0, 1, 1); dialog.offsetMin = new Vector2(20, 40); dialog.offsetMax = new Vector2(-20, -40);
         Box(dialog, T.panel, T.gold);
         var inner = Stretch(dialog, "in", 28, 28, 28, 28);
-        Label(inner, "Journal", 20, 10, 700, 60, T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
-        Btn(inner, "Active", 20, 80, 220, 70, () => { journalTab = 0; shownTab = -1; }, journalTab != 0, journalTab == 0);
-        Btn(inner, "Done", 260, 80, 220, 70, () => { journalTab = 1; shownTab = -1; }, journalTab != 1, journalTab == 1);
-        Btn(inner, "Close", 740, 10, 220, 70, () => { done = true; });
+        Label(inner, "Journal", 100, 14, 600, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
+        JTab(Btn(inner, "Active", 110, 100, 220, 70, /* art_t9_journal: inset below/right of top-left bracket */ () => { journalTab = 0; shownTab = -1; }, true, journalTab == 0), journalTab == 0); /* art_t10_fixes: selected tab no longer drawn disabled (#5A4F44, ~2.3:1) */
+        JTab(Btn(inner, "Done", 350, 100, 220, 70, /* art_t9_journal: shifted with Active, clear of Close (660) */ () => { journalTab = 1; shownTab = -1; }, true, journalTab == 1), journalTab == 1);
+        Btn(inner, "Close", 660, 10, 220, 70, /* art_t8_brackets: clear of the top-right bracket */ () => { done = true; });
         var list = journalTab == 0 ? journal.Where(j => j.status == "active").ToList() : journal.Where(j => j.status != "active").Take(10).ToList();
-        float y = 170;
-        if (!JournalUnlocked) Label(inner, "The journal opens after the Muscat sale and Yusuf's seal.", 20, y, 960, 80, T.fontSize, T.textMuted);
+        float y = 190; /* art_t9_journal: below the moved tabs */
+        if (!JournalUnlocked) { Label(inner, "Goal", 110, y, 780, 52, T.fontSize, "#C9A55A" /* art_t9_journal: light brass on dark panel */, TextAnchor.MiddleLeft, true); Label(inner, JournalOpeningGoal, 110, y + 56, 780, 170, T.fontSize, T.parchment, TextAnchor.UpperLeft); /* art_t9_journal: body size, parchment, wraps inside brackets */ } /* gamedev_t8: gold Goal heading + muted opening goal line(s) instead of the locked note */
         else if (list.Count == 0) Label(inner, journalTab == 0 ? "No active jobs. Talk to keepers for offers." : "No finished jobs yet.", 20, y, 960, 80, T.fontSize, T.textMuted);
         else foreach (var a in list) {
           var card = Px(inner, "e", 20, y, 960, 200); Box(card, T.panelAlt, T.brass);
@@ -230,23 +264,23 @@ public partial class Game {
       }
       yield return null;
     }
-    if (dialog) { Destroy0(dialog.gameObject); dialog = null; }
+    backStack.Remove(jbe); if (dialog) { Destroy0(dialog.gameObject); dialog = null; }
     { var dq = root.Find("QuestDim"); if (dq) Destroy0(dq.gameObject); }
     Refresh();
   }
 
   IEnumerator QuestMenu(string building, string keeperName) {
     var offers = OffersFor(building);
-    bool closed = false;
+    bool closed = false, rebuild = false; RectTransform my = null, myDim = null; /* final joboffer_freeze: this menu owns and closes only its own panel AND its own dimmer */
     while (!closed) {
-      if (dialog) Destroy0(dialog.gameObject);
+      if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null;
       /* v0.6k: ink panel sized to cards; title fully inside with headroom */
       int n = Mathf.Max(1, offers.Count); float pad = 24f;
       float panelH = Mathf.Clamp(160 + n * 368 + 110, 400, 1700); /* k4: taller offer cards */
       float panelW = 940f; float left = (1080f - panelW) * 0.5f;
       float top = 100f; /* fully cover keeper "Innkeeper of the Salt &…" title */
-      var dimQ = R(root, "QuestDim", 0, 0, 1, 1); var di = dimQ.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.72f); di.raycastTarget = true;
-      dialog = Px(root, "QuestMenu", left, top, panelW, panelH); Box(dialog, T.ink, T.gold); dialog.SetAsLastSibling();
+      var dimQ = R(root, "QuestDim", 0, 0, 1, 1); myDim = dimQ; var di = dimQ.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.72f); di.raycastTarget = true;
+      my = Px(root, "QuestMenu", left, top, panelW, panelH); dialog = my; { var qm = my; PushBack("Job offer", () => qm != null && !closed, () => closed = true); } /* gamedev_t8: Back = Leave (Jeff) */ Box(dialog, T.ink, T.gold); dialog.SetAsLastSibling();
       string title = keeperName ?? ""; if (title.Length > 36) title = title.Substring(0, 34) + "…";
       float iw = panelW - pad * 2;
       Label(dialog, title, pad, 36, iw, 56, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
@@ -266,13 +300,16 @@ public partial class Game {
         Label(row, dl, 16, 202, iw - 32, 40, T.fontSizeSmall - 2, T.textMuted); FitLine(row);
         bool full = ActiveJobCount >= JobCap; var jj = j;
         Btn(row, "Accept", 16, 252, (iw - 48) * 0.5f, 84, () => { if (!full) { AcceptJob(jj); closed = true; } }, !full, true);
-        Btn(row, "Decline", 16 + (iw - 48) * 0.5f + 16, 252, (iw - 48) * 0.5f, 84, () => { DeclineJob(jj); closed = true; });
+        Btn(row, "Decline", 16 + (iw - 48) * 0.5f + 16, 252, (iw - 48) * 0.5f, 84, () => { DeclineJob(jj); offers.Remove(jj); if (offers.Count == 0) closed = true; else rebuild = true; }); /* designer_decline_one: Decline closes only that job; other offers stay */
         y += 368;
       }
       Btn(dialog, "Leave", pad, panelH - 96, iw, 80, () => { closed = true; });
-      while (dialog != null && !closed) yield return null;
+      while (my != null && dialog == my && !closed && !rebuild) yield return null;
+      if (rebuild) { rebuild = false; continue; }
+      if (!closed && (my == null || dialog != my)) closed = true; /* panel replaced/destroyed elsewhere: stop, still clean up our dimmer */
     }
-    if (dialog) { Destroy0(dialog.gameObject); dialog = null; }
+    if (my) Destroy0(my.gameObject); if (dialog == my) dialog = null;
+    if (myDim) Destroy0(myDim.gameObject); /* was never destroyed: the 0.72 dimmer (raycastTarget) stayed on top and ate every real tap; bot ExecuteEvents clicks bypass raycasts */
     Refresh();
   }
 
