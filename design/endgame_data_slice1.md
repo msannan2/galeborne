@@ -1,0 +1,111 @@
+# Galeborne endgame data, slice 1 (draft for Game Designer review)
+
+Sources: endgame_sketch.md (1a0477a, 4d0b0d1), contract_card_and_rival.md (0082a5a), galeborne_settings.json. Machine-readable twin: `endgame_data_slice1.json`.
+
+## Ranks
+| Rank | Renown | Unlocks | Promotion line |
+|---|---|---|---|
+| Deckhand | 0 | One starter contract on each board. | - |
+| Trader | 100 | Full board: 3 contracts, rush jobs open. | The harbour knows your name now. Trader. |
+| Merchant | 300 | Second cargo deck at the Shipwright. Tier 2 contracts. | Guilds open their books to you. Merchant. |
+
+Rashid on the Trader card: "So the harbour talks about you now. Enjoy it while it lasts."
+
+**Open question for Game Designer:** the sketch puts the contract board at Trader, but the pace target needs contracts to reach Trader. Proposal: Deckhand boards show 1 starter delivery; Trader opens the full 3-card board and rush jobs.
+
+## Renown values
+| Source | Renown |
+|---|---|
+| Delivery done | +20 |
+| Rush done | +30 |
+| Fight won | +5 |
+| Bounty (Captain+, later) | +40 |
+| First sale of a good at a port | +3 (once each, max 39 total) |
+| Selling otherwise | 0 |
+| Delivery failed | -10 + deposit |
+| Rush failed | -15 + deposit |
+
+Renown never drops below your current rank's threshold (no demotion).
+
+## Pace math
+Pirate encounters: chance 0.333 per sail after 2 free sails, win chance ~0.55, so ~1 won fight every 5-6 sails. A contract run is ~2 sails (out and back).
+
+- **Trader (100):** 4 contracts = 3 delivery + 1 rush = 90, + ~1-2 fights won (8 sails) = 5-10, + ~2 first sales = 6. Total ~101-106. Contracts alone: 4 deliveries = 80, so a pure-delivery player needs a 5th; a rush-heavy player gets there in 4.
+- **Merchant (300):** 12 contracts = 8 delivery + 4 rush = 280, + ~4 fights won (24 sails) = 20, + ~5 first sales = 15, - one failed delivery = -10. Total ~305.
+- First-sale bonus is capped at 39 lifetime, so exploring helps but can't carry a rank (<14% of Merchant).
+
+## Coin scale
+Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of cargo mid value for delivery, 100% for rush). Rush = half time, about double the premium. Deposit 15% (delivery) / 20% (rush), rounded to 10. Start coins 1,000, hold 20, max 2 active contracts, so qty stays 3-12.
+
+## Card strings
+- `accept`: Accept
+- `notNow`: Not now
+- `moonsLeft1`: 1 moon left
+- `moonsLeftN`: {n} moons left
+- `lastWeek`: Last week
+- `taken`: Taken by Rashid
+- `cargo`: Cargo
+- `deliverTo`: Deliver to
+- `deadline`: Deadline
+- `reward`: {coins} coins · +{renown} Renown
+- `deposit`: Deposit {d} coins, returned on delivery
+- `delivered`: Delivered. +{coins} coins, +{renown} Renown.
+- `failed`: The buyer found another captain. {renown} Renown, deposit lost.
+- `full`: You can hold 2 contracts.
+- `nextRank`: Next rank: {rank}, {cur} / {need} Renown
+- `firstSale`: First {good} sold here. +{renown} Renown.
+- `listRow`: {type} · {dest} · {moons} · {coins} coins
+
+## Gwadar — Plain-spoken fishers and salt men
+
+### Delivery (2 moons)
+| Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
+|---|---|---|---|---|---|---|---|
+| Salt for Debal's pickling yards | *Salt's salt. Get it there dry.* | 12 salt | Debal | 940 | +20 | 140 | Rain at sea can spoil an open hold. |
+| Dates for the Debal bazaar | *My cousin waits. Don't make him wait long.* | 12 dates | Debal | 840 | +20 | 130 | Pirates watch the open water past the coast. |
+| Copper for Muscat's smiths | *Heavy load. Honest pay. That's all.* | 8 copper | Muscat | 1,260 | +20 | 190 | Customs in Muscat search some ships. |
+| Pearls for a Debal jeweller | *Divers bled for these. Mind them.* | 4 pearls | Debal | 2,620 | +20 | 390 | Pearls draw pirates like gulls to bait. |
+
+### Rush (1 moon)
+| Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
+|---|---|---|---|---|---|---|---|
+| Salt before the Debal feast | *Feast's soon. Sail now, not tomorrow.* | 10 salt | Debal | 1,010 | +30 | 200 | A storm could eat the days you have. |
+| Copper, fast, for Muscat | *Forge is cold. They pay double, quick.* | 6 copper | Muscat | 1,220 | +30 | 240 | Head winds can cost a week. |
+| Dates for a Debal wedding | *No dates, no wedding. Hurry, friend.* | 10 dates | Debal | 900 | +30 | 180 | One bad storm and the wedding is over. |
+| Pearls for a Debal buyer | *He sails home soon. Catch him.* | 3 pearls | Debal | 2,530 | +30 | 510 | Pirates and storms both slow a rush run. |
+
+## Debal — Fast-talking spice and cloth brokers
+
+### Delivery (2 moons)
+| Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
+|---|---|---|---|---|---|---|---|
+| Pepper for Gwadar's kitchens | *Finest pepper, finest price, go go!* | 8 pepper | Gwadar | 1,610 | +20 | 240 | Pirates like a hold that smells of spice. |
+| Cotton for Muscat's weavers | *Bolts of cloud, my friend. Muscat loves it.* | 12 cotton | Muscat | 1,260 | +20 | 190 | Customs in Muscat search some ships. |
+| Indigo for a Gwadar dyer | *Blue like the sea, worth more than the sea!* | 6 indigo | Gwadar | 1,470 | +20 | 220 | Rain can stain a careless cargo. |
+| Tea for the Muscat court | *Court tea! Court pay! You'll thank me.* | 8 tea | Muscat | 1,470 | +20 | 220 | Open water past the coast draws pirates. |
+
+### Rush (1 moon)
+| Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
+|---|---|---|---|---|---|---|---|
+| Pepper before the price drops | *Quick, quick! The price won't wait.* | 6 pepper | Gwadar | 1,550 | +30 | 310 | A storm could cost you the margin. |
+| Cotton for a rush order | *Muscat wants it yesterday. Can you?* | 10 cotton | Muscat | 1,350 | +30 | 270 | Head winds can cost a week. |
+| Tea for a waiting caravan | *Caravan leaves at dawn. Be there!* | 6 tea | Muscat | 1,420 | +30 | 280 | Storms and searches both eat time. |
+| Indigo for a festival | *Festival blue! Late is worthless!* | 5 indigo | Gwadar | 1,580 | +30 | 320 | One storm and the festival is gone. |
+
+## Muscat — Guarded and formal
+
+### Delivery (2 moons)
+| Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
+|---|---|---|---|---|---|---|---|
+| Incense for Debal's temples | *The temples expect this. Do not fail them.* | 5 incense | Debal | 1,920 | +20 | 290 | Pirates know what incense is worth. |
+| Coffee for Gwadar's traders | *A gift of good faith. Treat it so.* | 8 coffee | Gwadar | 1,400 | +20 | 210 | The coastal run is calm, but storms come. |
+| Pearls for a Debal house | *Discretion, captain. Speak of this to no one.* | 4 pearls | Debal | 2,620 | +20 | 390 | Pearls draw pirates on open water. |
+| Dates for Debal's poor | *The Sultan's charity. Carry it well.* | 12 dates | Debal | 840 | +20 | 130 | Rain at sea can spoil an open hold. |
+
+### Rush (1 moon)
+| Title | Giver line | Cargo | To | Coins | Renown | Deposit | Risk |
+|---|---|---|---|---|---|---|---|
+| Incense for a funeral | *There is no second day for this. Go.* | 4 incense | Debal | 1,980 | +30 | 400 | A storm would make you late for the dead. |
+| Coffee for a guest of state | *The guest arrives soon. So must you.* | 6 coffee | Gwadar | 1,350 | +30 | 270 | Head winds can cost a week. |
+| Pearls for a betrothal | *The family is waiting. Do not keep them.* | 3 pearls | Debal | 2,530 | +30 | 510 | Pirates and storms both slow a rush run. |
+| Dates before the fast ends | *When the fast ends, they eat. Be there.* | 10 dates | Debal | 900 | +30 | 180 | One storm could cost the whole run. |
