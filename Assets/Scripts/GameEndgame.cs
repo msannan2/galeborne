@@ -42,7 +42,7 @@ public partial class Game {
   void EgRefreshBoards(bool force = false) { /* gamedev_end1: new notices every moon (and at rank-up) */
     if (!force && eg.boardMoon == Moon) return; eg.boardMoon = Moon; eg.board.RemoveAll(b => b.status == "offer");
     int n = eg.rank >= ED.FullBoardRank ? ED.BoardSize : ED.StarterBoardSize; var stats = new List<string>();
-    foreach (var pn in ED.BoardPorts) { var pool = ED.Templates.Where(t => t.port == pn && (eg.rank >= ED.FullBoardRank || t.kind == "delivery") && G(t.good) >= 0 && PortIdx(t.dest) >= 0 && !eg.active.Any(a => a.tpl == t.id)).OrderBy(_ => Rnd.value).Take(n).ToList();
+    foreach (var pn in ED.BoardPorts) { var pool = ED.Templates.Where(t => t.port == pn && t.dest != pn && (eg.rank >= ED.FullBoardRank || t.kind == "delivery") && G(t.good) >= 0 && PortIdx(t.dest) >= 0 && !eg.active.Any(a => a.tpl == t.id)).OrderBy(_ => Rnd.value).Take(n).ToList();
       foreach (var t in pool) { int pay = Mathf.Min(t.coins, ED.Cap(t.kind)); /* design cap, clamped in code */
         eg.board.Add(new EgContract { id = "eg" + (++eg.seq), tpl = t.id, kind = t.kind, from = pn, to = t.dest, title = t.title, giver = t.giver, risk = t.risk, good = G(t.good), qty = t.qty, pay = pay, renown = t.renown, deposit = Mathf.Min(t.deposit, pay), failRenown = t.failRenown, moons = t.moons }); }
       stats.Add(pn + "=" + pool.Count); }
@@ -131,7 +131,7 @@ public partial class Game {
     hold[c.good] += c.qty; port = PortIdx(c.to); int c1 = coins; EgOnDock(); Chk(eg.renown == c.renown && coins == c1 + c.pay + c.deposit && c.status == "done", $"delivered: renown {eg.renown}, coins +{coins - c1}");
     AddRenown(ED.RankRenown(1) - eg.renown, "test top-up"); Chk(eg.rank == 1 && RankName == "Trader", "rank up to Trader at " + eg.renown);
     yield return Bar("trader"); /* gamedev_badge1 */
-    EgRefreshBoards(); Chk(eg.board.Count(b => b.from == "Gwadar") == 3, "Trader: full 3-card board at Gwadar");
+    EgRefreshBoards(); Chk(eg.board.Count(b => b.from == "Gwadar") == 3, "Trader: full 3-card board at Gwadar"); Chk(eg.board.All(b => b.to != b.from), $"no board offers a delivery to its own port ({eg.board.Count} cards)"); /* gamedev_selfdel */
     var r = eg.board.FirstOrDefault(b => b.kind == "rush") ?? eg.board[0]; port = PortIdx(r.from); int rn = eg.renown; var held = (int[])hold.Clone(); EgAccept(r);
     for (int i = 0; i < r.moons * Wpm; i++) NewWeek(); Chk(r.status == "failed" && eg.renown == Mathf.Max(ED.RankRenown(1), rn + r.failRenown) && hold.SequenceEqual(held), $"rush {r.kind} failed after {r.moons} moon(s): renown {rn}->{eg.renown} (floor {ED.RankRenown(1)}), cargo untouched");
     { /* gamedev_end1c checks */ EgRefreshBoards(); var rr = eg.board.FirstOrDefault(b => b.kind == "rush" && b.moons == 1);
@@ -151,7 +151,8 @@ public partial class Game {
         yield return ShotCo(System.IO.Path.Combine(bd, "rankup_merchant.png")); yield return new WaitForSeconds(0.4f); EgTestCloseCard(); yield return null; yield return null; }
       while (egCards.Count > 0) egCards.Dequeue(); }
     var lt = ED.Templates.OrderByDescending(t => t.giver.Length).First(); L($"longest giver line {lt.giver.Length} chars ({lt.id}): {lt.giver}");
-    var shot = new EgContract { title = lt.title, giver = lt.giver, risk = lt.risk, kind = lt.kind, to = lt.dest, good = G(lt.good), qty = lt.qty, pay = Mathf.Min(lt.coins, ED.Cap(lt.kind)), renown = lt.renown, deposit = lt.deposit, moons = lt.moons, status = "offer" };
+    { int dp = PortIdx(lt.port); if (dp < 0 || lt.port == lt.dest) dp = ED.BoardPorts.Select(PortIdx).First(i => i >= 0 && S.ports[i].name != lt.dest); port = dp; Chk(S.ports[port].name != lt.dest, $"longest card: docked at {S.ports[port].name}, delivering to {lt.dest}"); } /* gamedev_selfdel */
+    var shot = new EgContract { from = S.ports[port].name, title = lt.title, giver = lt.giver, risk = lt.risk, kind = lt.kind, to = lt.dest, good = G(lt.good), qty = lt.qty, pay = Mathf.Min(lt.coins, ED.Cap(lt.kind)), renown = lt.renown, deposit = lt.deposit, moons = lt.moons, status = "offer" };
     var dim = ModalDim("EgDim"); var card = EgCard(shot, () => { }, () => { }); yield return null; yield return null;
     var gt = card.GetComponentsInChildren<Text>().First(t => t.text.Contains(lt.giver)); Chk(gt.preferredHeight <= gt.rectTransform.rect.height + 1 || gt.cachedTextGenerator.lineCount <= 2, $"giver line fits: lines={gt.cachedTextGenerator.lineCount} prefH={gt.preferredHeight:0} boxH={gt.rectTransform.rect.height:0}");
     string dir = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(dir); yield return ShotCo(System.IO.Path.Combine(dir, "contract_card_longest.png")); yield return new WaitForSeconds(0.5f); Destroy0(card.gameObject); Destroy0(dim.gameObject); dialog = null; yield return null; /* gamedev_title1: clear the card before the title shots */
