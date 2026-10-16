@@ -37,13 +37,18 @@
    "name": "Deckhand",
    "renown": 0,
    "unlock": "One starter contract on each board.",
-   "promo": null
+   "heading": null,
+   "button": null,
+   "promo": null,
+   "note": "Starting rank, no rank-up card"
   },
   {
    "id": "trader",
    "name": "Trader",
    "renown": 100,
    "unlock": "Full board: 3 contracts, rush jobs open.",
+   "heading": "Your name carries on the quay",
+   "button": "Onward",
    "promo": "The harbour knows your name now. Trader.",
    "rival": "So the harbour talks about you now. Enjoy it while it lasts."
   },
@@ -52,10 +57,14 @@
    "name": "Merchant",
    "renown": 300,
    "unlock": "Second cargo deck at the Shipwright. Tier 2 contracts.",
+   "heading": "The guilds open their ledgers",
+   "button": "To sea",
    "promo": "Guilds open their books to you. Merchant."
   }
  ],
  "strings": {
+  "rankUpTitle": "Raised in rank",
+  "rankUpButton": "Onward",
   "accept": "Accept",
   "notNow": "Not now",
   "moonsLeft1": "1 moon left",

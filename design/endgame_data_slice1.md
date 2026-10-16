@@ -3,11 +3,11 @@
 Sources: endgame_sketch.md (1a0477a, 4d0b0d1), contract_card_and_rival.md (0082a5a), galeborne_settings.json. Machine-readable twin: `endgame_data_slice1.json`.
 
 ## Ranks
-| Rank | Renown | Unlocks | Promotion line |
-|---|---|---|---|
-| Deckhand | 0 | One starter contract on each board. | - |
-| Trader | 100 | Full board: 3 contracts, rush jobs open. | The harbour knows your name now. Trader. |
-| Merchant | 300 | Second cargo deck at the Shipwright. Tier 2 contracts. | Guilds open their books to you. Merchant. |
+| Rank | Renown | Unlocks | Card heading | Button | Promotion line |
+|---|---|---|---|---|---|
+| Deckhand | 0 | One starter contract on each board. | - | - | - |
+| Trader | 100 | Full board: 3 contracts, rush jobs open. | Your name carries on the quay | Onward | The harbour knows your name now. Trader. |
+| Merchant | 300 | Second cargo deck at the Shipwright. Tier 2 contracts. | The guilds open their ledgers | To sea | Guilds open their books to you. Merchant. |
 
 Rashid on the Trader card: "So the harbour talks about you now. Enjoy it while it lasts."
 
@@ -39,6 +39,8 @@ Reward caps (Game Designer): delivery 900, rush 1,200 coins. Over-cap templates 
 Reward = cargo value (qty × mid price × 1.25 want-mult) + premium (50% of cargo mid value for delivery, 100% for rush). Rush = half time, about double the premium. Deposit 15% (delivery) / 20% (rush), rounded to 10. Start coins 1,000, hold 20, max 2 active contracts, so qty stays 3-12.
 
 ## Card strings
+- `rankUpTitle`: Raised in rank
+- `rankUpButton`: Onward
 - `accept`: Accept
 - `notNow`: Not now
 - `moonsLeft1`: 1 moon left
