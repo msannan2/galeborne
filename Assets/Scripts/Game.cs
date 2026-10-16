@@ -515,7 +515,8 @@ public partial class Game : MonoBehaviour {
   /* final modal_queue_back: Ask() = FORCED (Back ignored). AskD() = DISMISSABLE (Back closes it through its own done path, finally cleanup runs). */
   IEnumerator Ask(string title, string body, params (string, Action)[] opts) => AskCore(false, title, body, opts);
   IEnumerator AskD(string title, string body, params (string, Action)[] opts) => AskCore(true, title, body, opts);
-  IEnumerator AskCore(bool dismissable, string title, string body, (string, Action)[] opts) {
+  public float askGuardSec; /* gamedev_board: set before a boarding card - its buttons ignore taps for this long after it opens */
+  IEnumerator AskCore(bool dismissable, string title, string body, (string, Action)[] opts) { float askGuard = askGuardSec, askOpenT = Time.unscaledTime; askGuardSec = 0;
     if (title != "Sail on the horizon") PasserHide("card:" + title); /* gamedev_t11_passer: any other Ask card hides the lateen */
     while (CardBusy) yield return null; /* final modal_queue_back: queue - wait for any open card (Ask/AskCard/Credits/QuestMenu); checked before this card exists, so it never waits on itself */
     /* v0.6k3: panel height fits title+body+buttons (no half-empty storm/voyage card) */
@@ -531,7 +532,8 @@ public partial class Game : MonoBehaviour {
     Label(my, body, 130, 132 + tf.extra /* gamedev_title1 */, 640, bodyH, /* art_t10_fixes */ /* art_t5_fixes: x 100–800, clear of both side bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
     y = 132 + tf.extra + bodyH + 20; /* gamedev_title1 */ float bx = wide ? 120f : 100f /* art_t5_fixes */, w = ((wide ? 660f : 700f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
     Debug.Log("GB CARD show " + title); /* gamedev_t9 */
-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; bool oen = !o.Item1.StartsWith(AskOff); string olb = oen ? o.Item1 : o.Item1.Substring(AskOff.Length); /* gamedev_blockade_warning: "~off~" prefix = greyed option */ Btn(my, olb, bx + i * (w + 16), y, w, 84, () => { Debug.Log("GB CARD choose " + title + " " + olb); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, oen, i == 0 && oen); }
+    askOpenT = Time.unscaledTime; /* gamedev_board: guard starts when the card is on screen */
+    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; bool oen = !o.Item1.StartsWith(AskOff); string olb = oen ? o.Item1 : o.Item1.Substring(AskOff.Length); /* gamedev_blockade_warning: "~off~" prefix = greyed option */ Btn(my, olb, bx + i * (w + 16), y, w, 84, () => { if (Time.unscaledTime - askOpenT < askGuard) { Debug.Log("GB CARD tap ignored (card just opened) " + title); return; } Debug.Log("GB CARD choose " + title + " " + olb); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, oen, i == 0 && oen); }
     try { while (!done) yield return null; }
     finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
   }

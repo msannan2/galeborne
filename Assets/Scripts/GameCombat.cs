@@ -89,6 +89,7 @@ public partial class Game {
   string FireBlockReason() {
     var H = core.H; var P = core.P; if (H.reloadT > 0) return "Reloading…"; if (H.gunHp <= 0) return "Your guns are wrecked.";
     if (H.ammo == 3 && H.fireLeft <= 0) return "No fire shot left.";
+    if (!core.InFireRange(H, P)) return OutOfRangeMsg(); /* gamedev_msgprio (Game Tester): range first - the arc only matters once in range */
     if (!core.InArc(H, P)) return "Not in arc: turn to bring them abeam (within 50°)."; return OutOfRangeMsg(); } /* gamedev_ring: same source as the ring */
   /// gamedev_ambush: both numbers, the distance exactly as the plaque shows it (ceil) and the loaded shot's reach
   public string OutOfRangeMsg() => $"Out of range: {Mathf.CeilToInt(core.FireDist(core.H, core.P))} m, {S.combat.ammo[core.H.ammo].name} reaches {core.FireRange(core.H):0} m";
@@ -100,7 +101,7 @@ public partial class Game {
         yield return Ask("She goes down", $"The pirate dhow settles by the stern. You fish {q} {pg} and {coinsWon} coins from the wreckage." + (crateBonus > 0 ? $"\n\n{crateBonus} floating crates hauled aboard: +{AddCargo(pirateGood2, crateBonus)} {S.goods[pirateGood2].name} and {crateBonus * 25} coins." : ""), ("Continue", null)); if (crateBonus > 0) coins += crateBonus * 25; crateBonus = 0; break; }
       case Outcome.Surrender:
       case Outcome.Disabled: { bool board = false;
-        yield return Ask("Colours struck", (o == Outcome.Surrender ? "Her crew is broken and hauls down the flag." : "Crippled and outnumbered, the pirate hauls down her flag.") +
+        askGuardSec = BoardInputGuardSec; yield return Ask("Colours struck", (o == Outcome.Surrender ? "Her crew is broken and hauls down the flag." : "Crippled and outnumbered, the pirate hauls down her flag.") +
           "\n\nSurrender: their hold and the ship.\nBoard: also the captain, his strongbox and a charm — but you must win the duel.", ("Accept surrender", null), ("Board", () => board = true));
         if (board) { yield return BoardFlow(); break; } EgFightWon("surrender"); /* gamedev_end1 */
         int q = AddCargo(pirateGood, pirateQty) + AddCargo(pirateGood2, pirateQty2); coins += (int)c.prizeShipCoins; string extra = "";
@@ -313,6 +314,7 @@ public partial class Game {
     if (clangSrc == null) clangSrc = gameObject.AddComponent<AudioSource>();
     clangSrc.PlayOneShot(clangClip, 0.8f); Debug.Log("GB DUEL clang");
   }
+  public const float BoardInputGuardSec = 0.5f; public int duelTapsIgnored; /* gamedev_board (Game Designer): every boarding card ignores input for 0.5 s after it opens */
   const float DuelMinWindowSec = 0.5f; /* gamedev_duel1: minimum STRIKE window in repel/board duels */
   IEnumerator Duel(bool attacking) {
     var c = S.combat; float zone = core.DuelZone(), zoneBase = zone; /* gamedev_duel1: zoneBase = un-widened zone */ int need = c.duelRounds / 2 + 1, won = 0, lost = 0;
@@ -326,7 +328,7 @@ public partial class Game {
     goldR.rectTransform.pivot = new Vector2(.5f, .5f); goldR.rectTransform.anchoredPosition = new Vector2(185, -185); /* art_t13_ring: scale about the disc centre (Px pivot is top-left) */ goldR.rectTransform.localScale = Vector3.one * (0.5f + zone / 2);
     var closing = Px(arena, "closing", 0, 0, 370, 370) /* art_t13_ring */.gameObject.AddComponent<Image>(); closing.sprite = Ring(0.95f, 1); closing.color = UITheme.C(T.parchment); closing.rectTransform.pivot = new Vector2(.5f, .5f); closing.rectTransform.anchoredPosition = new Vector2(185, -185); /* art_t13_ring: closing ring shrinks to the disc centre */
     var res = Label(pnl, "", 490, 280, /* art_t12_cards: +60 */ 500, 80, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
-    bool tapped = false; Btn(pnl, "STRIKE", 490, 390, /* art_t12_cards: +60 */ 500, 190, () => tapped = true, true, true);
+    bool tapped = false; float duelOpenT = Time.unscaledTime; Btn(pnl, "STRIKE", 490, 390, /* art_t12_cards: +60 */ 500, 190, () => { if (Time.unscaledTime - duelOpenT < BoardInputGuardSec) { duelTapsIgnored++; Debug.Log("GB DUEL tap ignored (card just opened)"); return; } tapped = true; }, true, true); /* gamedev_board: FIRE taps can't fall through onto STRIKE */
     bool paced = duelsFought > 0; /* gamedev_t13_duelpace: repel/board only, prologue unchanged */
     for (int round = 0; won < need && lost < need; round++) {
       score.text = $"Round {round + 1}   You {won} – {lost} Pirate"; tapped = false; res.text = ""; float hitAt = -1;

@@ -88,7 +88,9 @@ public class CombatCore {
   public float Accuracy(CShip a, CShip b) {
     var am = C.ammo[a.ammo]; float acc = C.baseAcc + (Upwindness(a) > Upwindness(b) ? C.upwindAccBonus : 0) + (a.aim == Match(a.ammo) || (a.ammo == 0 && a.aim == Part.Guns) ? C.matchAccBonus : 0);
     if (a == P) acc += PT.accBonus; if (a == H && b == P && aimAssist && a.ammo == 0 && a.aim == Part.Hull && BreachOpen) acc += DF.aimAssistAcc * AssistScale(); /* shot drifts toward the glowing breach */ float past = Dist(a, b) - am.range / 2; if (past > 0) acc -= past / 10 * C.accPenaltyPer10mPastHalf; return Math.Max(C.minAcc, Math.Min(0.98f, acc)); }
-  public bool BoardAllowed(CShip a, CShip b) => Dist(a, b) <= C.boardRange && (SpeedOf(b) < SpeedOf(a) || b.Disabled(C)) && a.hull > 0;
+  public const float StoryBoardHullFrac = 0.75f; /* gamedev_board (Game Designer): story fog fight - no boarding (either way) until the pirate hull is at or below 75% */
+  public bool StoryBoardOk => !storyBalance || P.hull <= P.hull0 * StoryBoardHullFrac + 1e-4f;
+  public bool BoardAllowed(CShip a, CShip b) => StoryBoardOk && Dist(a, b) <= C.boardRange && (SpeedOf(b) < SpeedOf(a) || b.Disabled(C)) && a.hull > 0;
   public float DuelZone() {
     float z = noviceZoneBonus + C.duelZoneBase + (C.hasanCombat - PT.captainCombat) * C.duelZonePerCombat + (C.hasanHasBlade ? C.bladeBonus : 0) + (P.crew < H.crew ? C.crewAdvantageBonus : 0); return z; }
   float ReloadTime(CShip s) { float r = s.st.reload * (1 + (1 - s.crew / s.crew0) * C.crewReloadPenalty); if (s.injured) r *= C.injuredReloadMult; return r; }
