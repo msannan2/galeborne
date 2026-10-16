@@ -111,13 +111,42 @@ public partial class Game {
       saveSeq = 0; ok = Load();
       Chk(rc && ok && port == mu && customsPending == -1 && !sailing, $"Continue replays the customs card, then docks at Muscat with nothing pending ({S.ports[port].name}, pending {customsPending})"); bans.RemoveAll(b => b.good == gp && b.port == mu && b.end == int.MaxValue / 2);
       tab = -1; Refresh(); yield return null; }
+    // ---- gamedev_blockade_warning: guaranteed departure rumour, map icon after hearing, amber route preview, pay-off / let-take / greyed card ----
+    { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"), db = PortIdx("Debal"); int c0 = coins, h0 = hold[cu]; port = db; customsPending = -1;
+      blockGood[mu] = cu; blockEnd[mu] = week + 50; blockStart[mu] = week; blockKnown[mu] = false; blockHeard[mu] = null; hold[cu] = 8; Refresh(); yield return null;
+      RectTransform BNamed(string nm) => FindObjectsByType<RectTransform>(FindObjectsSortMode.None).Where(r => r.gameObject.activeInHierarchy).FirstOrDefault(r => r.name == nm);
+      bool AnyT(string s0) => FindObjectsByType<Text>(FindObjectsSortMode.None).Any(t => t.gameObject.activeInHierarchy && t.text.Contains(s0));
+      var vars = BlkRumourVariants(); Chk(vars.Count == 3, $"3 blockade rumour variants load from v06_events_content ({vars.Count})");
+      Chk(BlkS.ContainsKey("arrivalCard") && BlkRoutePreview(mu) == "Blockade at Muscat: your copper will be seized.", $"blockade_strings.json loads via Resources ({BlkRoutePreview(mu)})");
+      chartCenterOn = mu; chartCentered = false; chartDest = mu; tab = 4; Refresh(); yield return null; yield return null;
+      Chk(BNamed("blockade Muscat") == null, "sea map: no blockade icon before the player has heard of it");
+      Chk(AnyT("Blockade at Muscat: your copper will be seized."), "route preview to Muscat with copper aboard shows the amber blockade line"); yield return Shot("blk_route_preview");
+      hold[cu] = 0; Refresh(); yield return null; Chk(!AnyT("your copper will be seized"), "route preview has no blockade line when the hold has no copper"); hold[cu] = 8;
+      int present = 0; for (int k = 0; k < 6; k++) { tab = -1; Refresh(); yield return null; OpenBuilding(8); yield return null; yield return null; var br = BNamed("BlockadeRumour"); if (br != null && vars.Any(v => br.GetComponent<Text>().text.Contains(v))) present++; if (k == 0) yield return Shot("blk_tavern_rumour"); }
+      Chk(present == 6, $"blockade rumour is always in the departure port's tavern while active ({present}/6 opens)");
+      Chk(blockKnown[mu], "hearing the tavern rumour marks the blockade as known");
+      tab = -1; Refresh(); yield return null; chartCentered = false; chartDest = -1; tab = 4; Refresh(); yield return null; yield return null;
+      var ic = BNamed("blockade Muscat"); Chk(ic != null && Mathf.Abs(ic.rect.width - 44) < 1 && ic.GetComponent<Image>().sprite != null, $"sea map: blockade icon shown at Muscat after hearing (44 px, sprite {(ic ? ic.GetComponent<Image>().sprite?.name : "-")})"); yield return Shot("blk_map_icon");
+      if (ic) { ic.GetComponent<Button>().onClick.Invoke(); yield return null; yield return null; Chk(dialog != null && AnyT("Blockade: copper seized"), "tapping the icon shows 'Blockade: copper seized'"); yield return Shot("blk_map_plaque"); EgTestCloseCard(); yield return null; }
+      blockKnown[mu] = false; bool hr = BlkHailReveal(); Chk(hr && blockKnown[mu] && msg.Contains("Soldiers search copper at Muscat"), $"Hail her warning reveals the blockade ({msg})");
+      tab = -1; chartCenterOn = -1; chartCentered = false; Refresh(); yield return null;
+      port = mu; blockStart[mu] = week - 1; OnDockV06(); Chk(blockPending == mu, "docking at Muscat with copper during a known blockade queues the blockade card");
+      int fee = BlkFee(mu); Chk(fee == Mathf.CeilToInt(0.30f * 8 * price[mu, cu]) && fee > 0, $"fee = ceil(0.30 x copper value) = {fee}");
+      coins = fee + 500; StartCoroutine(BlockadeCard()); yield return null; yield return null; yield return Shot("blk_bribe_affordable");
+      var pb = Find("Pay them off (" + fee + " coins)"); Chk(pb != null && pb.interactable && AnyT("Soldiers board to seize your copper."), "arrival card: 'Blockade at Muscat' with an enabled Pay them off button");
+      if (pb) pb.onClick.Invoke(); yield return null; yield return null; Chk(hold[cu] == 8 && coins == 500 && blockPending == -1, $"pay them off: fee paid, copper kept (copper {hold[cu]}, coins {coins})");
+      blockPending = mu; StartCoroutine(BlockadeCard()); yield return null; yield return null; EgTestCloseCard(); yield return null; yield return null; Chk(hold[cu] == 0 && coins == 500 && msg.Contains("seize"), $"let them take it: copper seized, no coins taken (copper {hold[cu]}, coins {coins})");
+      hold[cu] = 8; fee = BlkFee(mu); coins = fee - 1; blockPending = mu; StartCoroutine(BlockadeCard()); yield return null; yield return null; yield return Shot("blk_bribe_unaffordable");
+      var ub = Find("Pay them off (" + fee + " coins)"); Chk(ub != null && !ub.interactable && AnyT("Not enough coins"), "unaffordable pay-off is greyed with 'Not enough coins'");
+      EgTestCloseCard(); yield return null; yield return null; Chk(hold[cu] == 0 && coins == fee - 1, "greyed card still lets them take it");
+      blockGood[mu] = -1; blockKnown[mu] = false; blockPending = -1; port = db; coins = c0; hold[cu] = h0; tab = -1; dialog = null; Refresh(); yield return null; }
     // ---- gamedev_continue: blockade seizure on docking is never silent; HUD Next shows the urgent contract ----
-    { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; safeUntilSail = sails + 100; Refresh(); yield return null;
+    { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; blockStart[mu] = -1000; blockKnown[mu] = true; safeUntilSail = sails + 100; Refresh(); yield return null;
       StartCoroutine(Voyage(mu)); bool card = false; float tq = Time.realtimeSinceStartup;
       while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true; if (blockGood[mu] != cu) blockGood[mu] = cu;
         if (dialog != null) { if (dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("Blockade at Muscat"))) { card = true; break; } EgTestCloseCard(); }
         yield return null; }
-      yield return Shot("cont_blockade_card"); Chk(card && hold[cu] == 0, $"blockade seizure on docking shows a 'Blockade at Muscat' card (copper now {hold[cu]})");
+      yield return Shot("cont_blockade_card"); if (card) { EgTestCloseCard(); yield return null; } /* gamedev_blockade_warning: Let them take it */ Chk(card && hold[cu] == 0, $"blockade seizure on docking shows a 'Blockade at Muscat' card (copper now {hold[cu]})");
       for (int k = 0; k < 40 && sailing; k++) { EgTestCloseCard(); yield return null; } blockGood[mu] = -1;
       Chk(msg.Contains("seize"), $"after the card the dock message still names the seizure ({msg})");
       if (eg.active.Count == 0) { coins += 5000; EgRefreshBoards(); foreach (var b in eg.board.ToList()) { if (eg.active.Count >= 1) break; EgAccept(b); } }

@@ -13,7 +13,7 @@ public partial class Game {
   // ---- story / opening ----
   public int storyStep; public bool firstRun = true; public int rumorHeard, gpBanStart = -1; public bool fallbackFired, storyAmbushDone, qarinLetter, boardedStoryPirate, spareGunpowder; public int jackpotStartCoins = -1;
   // ---- market ----
-  public int[,] stock, stockMax; public float[,] evMult; public int[,] evEnd; string[] lastEv; public string[] townHint; public int[] hintEnd; public int[] blockGood, blockEnd;
+  public int[,] stock, stockMax; public float[,] evMult; public int[,] evEnd; string[] lastEv; public string[] townHint; public int[] hintEnd; public int[] blockGood, blockEnd; public int[] blockStart; public bool[] blockKnown; public string[] blockHeard; public int blockPending = -1; int chartCenterOn = -1; /* gamedev_blockade_warning */
   public int foreignPort = -1, foreignGood = -1; List<(int p, Dictionary<string, object> e, int g, int start)> pendingEv = new List<(int, Dictionary<string, object>, int, int)>();
   // ---- ship damage ----
   public float hullNow = -1, sailsNow = -1;
@@ -37,7 +37,7 @@ public partial class Game {
 
   void InitV06() {
     int np = S.ports.Length, ng = S.goods.Length; bans.Clear(); storyStep = 0; firstRun = true; rumorHeard = 0; gpBanStart = -1; fallbackFired = storyAmbushDone = qarinLetter = boardedStoryPirate = false; jackpotStartCoins = -1; openingGpSold = false;
-    stock = new int[np, ng]; stockMax = new int[np, ng]; evMult = new float[np, ng]; evEnd = new int[np, ng]; lastEv = new string[np]; townHint = new string[np]; hintEnd = new int[np]; blockGood = Enumerable.Repeat(-1, np).ToArray(); blockEnd = new int[np];
+    stock = new int[np, ng]; stockMax = new int[np, ng]; evMult = new float[np, ng]; evEnd = new int[np, ng]; lastEv = new string[np]; townHint = new string[np]; hintEnd = new int[np]; blockGood = Enumerable.Repeat(-1, np).ToArray(); blockEnd = new int[np]; blockStart = new int[np]; blockKnown = new bool[np]; blockHeard = new string[np]; blockPending = -1;
     for (int p = 0; p < np; p++) for (int g = 0; g < ng; g++) { evMult[p, g] = 1; var id = S.goods[g].id; stockMax[p, g] = S.ports[p].cheap.Contains(id) ? 40 : S.ports[p].want.Contains(id) ? 12 : AlleySells(p).Contains(id) ? 15 : 20; stock[p, g] = stockMax[p, g]; }
     foreignPort = foreignGood = -1; pendingEv.Clear(); hullNow = sailsNow = -1; EnsureDesignBans();
   }
@@ -57,7 +57,7 @@ public partial class Game {
   float EvMult(int p, int g) => evMult == null ? 1f : evMult[p, g];
   void TickMarketV06(bool newMoon) {
     if (stock == null) return; int np = S.ports.Length, ng = S.goods.Length;
-    for (int p = 0; p < np; p++) { for (int g = 0; g < ng; g++) if (evMult[p, g] != 1 && week >= evEnd[p, g]) evMult[p, g] = 1; if (blockGood[p] >= 0 && week >= blockEnd[p]) blockGood[p] = -1; if (week >= hintEnd[p]) townHint[p] = null; }
+    for (int p = 0; p < np; p++) { for (int g = 0; g < ng; g++) if (evMult[p, g] != 1 && week >= evEnd[p, g]) evMult[p, g] = 1; if (blockGood[p] >= 0 && week >= blockEnd[p]) { blockGood[p] = -1; blockKnown[p] = false; blockHeard[p] = null; } if (week >= hintEnd[p]) townHint[p] = null; }
     int refill = (int)Design.F(DZ.Path(DZ.market, "priceDrift.restockWeeks"), 3); if (week % Mathf.Max(1, refill) == 0) for (int p = 0; p < np; p++) for (int g = 0; g < ng; g++) stock[p, g] = Mathf.Max(stock[p, g], stockMax[p, g]);
     foreach (var pe in pendingEv.Where(x => x.start <= week).ToList()) { StartEvent(pe.p, pe.e, pe.g); pendingEv.Remove(pe); }
     if (newMoon) { int rolls = (int)Design.F(DZ.Path(DZ.market, "rollsPerPortPerMoon"), 1); int lead = (int)Design.F(DZ.Path(DZ.market, "rumorLeadWeeks"), 1);
@@ -72,12 +72,12 @@ public partial class Game {
   Dictionary<string, object> Content(string id) => ((List<object>)DZ.content["marketEvents"]).Select(Design.D).FirstOrDefault(x => (string)x["id"] == id) ?? new Dictionary<string, object>();
   string Fill(string s, int p, int g, int n = 0) => (s ?? "").Replace("{port}", p >= 0 ? S.ports[p].name : "").Replace("{good}", g >= 0 ? S.goods[g].name.ToLower() : "goods").Replace("{n}", n.ToString());
   /// vague tavern talk a week ahead of the event (rumorsAreVague)
-  void Rumor(int p, string id, int g) { var rs = ((List<object>)DZ.content["rumors"]).Select(Design.D).Where(x => (string)x["type"] == (id == "glut" ? "glut" : id == "shortage" || id == "blockade" ? "shortage" : "x")).ToList();
-    string t = rs.Count > 0 ? Fill((string)rs[Rnd.Range(0, rs.Count)]["text"], p, g) : id == "festival" || id == "sultanWedding" ? $"Lantern-makers in {S.ports[p].name} are working through the night." : $"Something is stirring in {S.ports[p].name}.";
+  void Rumor(int p, string id, int g) { var rs = ((List<object>)DZ.content["rumors"]).Select(Design.D).Where(x => (string)x["type"] == (id == "glut" ? "glut" : id == "shortage" ? "shortage" : id == "blockade" ? "blockade" /* gamedev_blockade_warning: own rumours, not shortage */ : "x")).ToList();
+    string t = rs.Count > 0 ? (id == "blockade" ? BlkFill((string)rs[Rnd.Range(0, rs.Count)]["text"], p, g) : Fill((string)rs[Rnd.Range(0, rs.Count)]["text"], p, g)) : id == "festival" || id == "sultanWedding" ? $"Lantern-makers in {S.ports[p].name} are working through the night." : $"Something is stirring in {S.ports[p].name}.";
     news.Insert(0, $"Rumor ({DateStr}): {t}"); }
   public void StartEvent(int p, Dictionary<string, object> e, int g) {
     string id = (string)e["id"]; int dur = (int)Design.F(e.ContainsKey("durationWeeks") ? e["durationWeeks"] : null, 2); var c = Content(id);
-    if (id == "blockade") { blockGood[p] = g; blockEnd[p] = week + dur; }
+    if (id == "blockade") { blockGood[p] = g; blockEnd[p] = week + dur; blockStart[p] = week; blockKnown[p] = false; blockHeard[p] = null; } /* gamedev_blockade_warning: seizure only from the week after the start, so the departure-port rumour exists one voyage ahead */
     else if ((string)e["target"] == "luxuries") { float m = Design.F(e["priceMult"], 1.5f); foreach (var lid in Design.SL(e["luxuries"])) { int lg = G(lid); if (lg < 0) continue; SetEv(p, lg, m, week + dur); } }
     else if (g >= 0) { var pm = e["priceMult"]; float m = pm is Dictionary<string, object> d ? (d.ContainsKey("min") ? Rnd.Range(Design.F(d["min"]), Design.F(d["max"])) : Design.F(d["max"])) : Design.F(pm, 1);
       SetEv(p, g, m, week + dur); if (e.ContainsKey("stockMult")) stock[p, g] = Mathf.RoundToInt(stockMax[p, g] * Design.F(e["stockMult"])); }
@@ -93,7 +93,7 @@ public partial class Game {
     if (fe != null && Rnd.value < Design.F(fe["weight"]) && !InOpening) { var pool = Design.SL(fe["pool"]); int g = G(pool[Rnd.Range(0, pool.Count)]);
       foreignPort = port; foreignGood = g; stock[port, g] = (int)Design.F(fe["stockUnits"], 20); price[port, g] = lastPrice[port, g] = basePrice[port, g] * Design.F(fe["buyPriceMult"], 0.6f);
       var c = Content("foreignShip"); townHint[port] = "foreignShipInHarbor"; hintEnd[port] = week + 1; news.Insert(0, Fill((string)c["headline"], port, g) + ". " + Fill((string)c["text"], port, g)); }
-    if (blockGood[port] >= 0 && hold[blockGood[port]] > 0 && !StoryGoods().Contains(blockGood[port]) /* gamedev_t16_seizesafe */) { int q = hold[blockGood[port]]; hold[blockGood[port]] = 0; msg = $"Soldiers on the quay seize your {GoodCount(blockGood[port], q)}." /* gamedev_t9 */; dockSeizeMsg = msg + $" {S.ports[port].name} is under a blockade on {S.goods[blockGood[port]].name}."; Debug.Log($"GB DOCK blockade seized {q}x{S.goods[blockGood[port]].id} at {S.ports[port].name}"); } /* gamedev_continue: the seizure gets its own card + log (it was silent: the dock message was overwritten by later dock lines such as the contract NeedCargo) */
+    if (blockGood[port] >= 0 && week > blockStart[port] && hold[blockGood[port]] > 0 && !StoryGoods().Contains(blockGood[port]) /* gamedev_t16_seizesafe */) { blockPending = port; Debug.Log($"GB DOCK blockade at {S.ports[port].name}: {hold[blockGood[port]]}x{S.goods[blockGood[port]].id} aboard, fee {BlkFee(port)}"); } /* gamedev_blockade_warning: the arrival card (pay off / let them take it) decides; see BlockadeCard */
   }
 
   // ---------------- ambush ----------------
@@ -339,7 +339,7 @@ public partial class Game {
     if (town3D) town3D.gameObject.SetActive(false); sea3D.gameObject.SetActive(false); backdrop.color = new Color(0.16f, 0.12f, 0.08f); dimmer.gameObject.SetActive(false); TopBar();
     var tex = Resources.Load<Texture2D>("Art/chart"); float top = 172, full = Mathf.Max(1800, root.rect.height), cardH = chartDest >= 0 ? Mathf.Round((full - top) * 0.25f) : 210, H = full - top - cardH - 16, W = 1080;
     float mapW = W * ChartScale, mapH = H * ChartScale;
-    if (!chartCentered) { var g0 = ChartGeo.TryGetValue(S.ports[port].name, out var gg) ? gg : new Vector2(0.5f, 0.5f); chartPanPx = new Vector2(W * 0.5f - g0.x * mapW, g0.y * mapH - H * 0.5f); chartCentered = true; } /* v0.6k3: open centred on current port */
+    if (!chartCentered) { var g0 = ChartGeo.TryGetValue(S.ports[chartCenterOn >= 0 ? chartCenterOn : port].name, out var gg) ? gg : new Vector2(0.5f, 0.5f); chartPanPx = new Vector2(W * 0.5f - g0.x * mapW, g0.y * mapH - H * 0.5f); chartCentered = true; } /* v0.6k3: open centred on current port */
     chartPanPx.x = Mathf.Clamp(chartPanPx.x, W - mapW, 0f); chartPanPx.y = Mathf.Clamp(chartPanPx.y, 0f, mapH - H); /* pivot top: +y reveals the bottom (Muscat) */
     var viewport = Px(content, "MapView", 0, top, W, H); viewport.gameObject.AddComponent<RectMask2D>();
     var map = Px(viewport, "Map", 0, 0, mapW, mapH); map.anchoredPosition = chartPanPx; /* pivot (0,1): clamp keeps map covering the viewport */
@@ -360,6 +360,7 @@ public partial class Game {
       var nb = Px(map, "plaque " + kv.Key, Mathf.Clamp(p.x - 140, 8, mapW - 288), p.y + 50, 280, 64); Box(nb, known ? "#C9A050" : "#B0A080", "#4A2A10"); var nin = Stretch(nb, "in", 5, 5, 5, 5); Box(nin, known ? "#E2BE6E" : "#CDBF9E", "#8A6224");
       Txt(R(nin, "t", 0, 0, 1, 1), kv.Key + (pi == port ? " (here)" : known ? "" : " · uncharted"), T.fontSizeSmall - 2, "#1A120A", TextAnchor.MiddleCenter, true);
       { var fl = known ? (EgMapFlag(pi) ?? GpMapFlag(pi)) : null; /* research_gp1 */ if (fl != null) { var fb = Px(map, "egflag " + kv.Key, p.x - 120, p.y - 104, 240, 52); Box(fb, "#2A1E14", "#C9A050"); Txt(R(fb, "t", 0, 0, 1, 1), fl, T.fontSizeSmall - 4, "#E6C27A", TextAnchor.MiddleCenter, true); } } /* gamedev_end1: brass flag with moons left */
+      if (known && blockGood[pi] >= 0 && blockKnown[pi]) BlkMapIcon(map, pi, p); /* gamedev_blockade_warning */
       if (known && pi != port) { int k = pi; foreach (var go in new[] { m.gameObject, nb.gameObject }) { var bt = go.AddComponent<Button>(); bt.onClick.AddListener(() => { chartDest = k; Refresh(); }); } } }
     /* v0.6i: you-are-here ship marker (~64px at 1080), rotated toward destination or NE */
     { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 104; /* k4: bigger you-are-here marker */
@@ -380,7 +381,8 @@ public partial class Game {
     Label(ci, danger, 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSize, T.text); y += 62; if (fogAhead) { Label(ci, $"<color={T.gold}>Fog banks reported on this route</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 50, T.fontSizeSmall, T.text); y += 54; }
     var bannedHere = Enumerable.Range(0, S.goods.Length).Where(g => Banned(g, dp) || bans.Any(b => b.good == g && b.port == dp && b.start <= week + 1 && b.end > week)).Select(g => S.goods[g].name).ToList();
     Label(ci, bannedHere.Count > 0 ? $"Banned on arrival (back alley pays ×{S.contraband.bannedSellMult:0}): " + string.Join(", ", bannedHere) : "No bans reported.", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 58;
-    if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.text); y += 58; }
+    if (blockGood[dp] >= 0 && hold[blockGood[dp]] > 0) { Label(ci, $"<color={BlkAmber}>{BlkRoutePreview(dp)}</color>", 100, y, 848, 56, T.fontSizeSmall, T.text); y += 58; } /* gamedev_blockade_warning: amber route preview */
+    else if (blockGood[dp] >= 0 && blockKnown[dp]) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.text); y += 58; }
     bool carries = Enumerable.Range(0, S.goods.Length).Any(g => hold[g] > 0 && bannedHere.Contains(S.goods[g].name));
     if (carries) { Label(ci, CustomsWaveReason(dp) == "papers" ? $"<color={T.up}>Customs: waved through (Farida's papers)</color>" /* gamedev_l366 */ : (InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Customs: likely waved through</color>" /* art_t5_fixes */ : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>", 100, y, 848, 56, T.fontSizeSmall, T.textMuted); y += 58; } /* art_t5_fixes: customs/Farida line on its own row so "Prices unknown" never squeezes against it */
     Label(ci, "Prices unknown until you dock." /* art_t5_fixes */ + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 70;
