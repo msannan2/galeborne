@@ -111,4 +111,29 @@ public partial class Game {
   string EgMapFlag(int pi) { /* gamedev_end1: brass flag text on the sea map for a contract destination */
     var cs = eg.active.Where(c => PortIdx(c.to) == pi).ToList(); if (cs.Count == 0) return null; var c = cs.OrderBy(EgWeeksLeft).First();
     return $"<color={EgMoonsColor(c)}>⚑ {EgMoonsText(c)}</color>"; }
+
+  /* gamedev_end1: -gbforce endgame_test (with -gbsavedir under /tmp): scripted smoke test of the slice, logs "GB EGTEST ...", screenshots the card, quits.
+     -gbforce endgame (any run): opens the board before the opening ends. */
+  IEnumerator EgSelfTest() {
+    int fails = 0; void L(string s) => Debug.Log("GB EGTEST " + s); void Chk(bool ok, string what) { if (!ok) fails++; L((ok ? "PASS " : "FAIL ") + what); }
+    if (!SaveDirIsolated) { L("REFUSED: needs -gbsavedir"); Application.Quit(4); yield break; }
+    yield return new WaitForSeconds(1f); onTitle = false; Init(); storyStep = StDone; coins = 3000; port = PortIdx("Gwadar"); tab = 8; Refresh(); yield return null;
+    EgRefreshBoards(true); Chk(eg.board.Count == 3 && eg.board.All(b => b.kind == "delivery"), $"Deckhand boards: 1 starter delivery per port (got {eg.board.Count})");
+    Chk(ED.Templates.Count == 24, $"24 templates loaded (got {ED.Templates.Count})");
+    Chk(ED.Templates.All(t => Mathf.Min(t.coins, ED.Cap(t.kind)) <= (t.kind == "rush" ? 1200 : 900)), $"reward caps delivery {ED.CapDelivery} rush {ED.CapRush}");
+    var c = eg.board.First(b => b.from == "Gwadar"); int c0 = coins; Chk(EgAccept(c), $"accept {c.title} deposit {c.deposit}"); Chk(coins == c0 - c.deposit, "deposit taken");
+    hold[c.good] += c.qty; port = PortIdx(c.to); int c1 = coins; EgOnDock(); Chk(eg.renown == c.renown && coins == c1 + c.pay + c.deposit && c.status == "done", $"delivered: renown {eg.renown}, coins +{coins - c1}");
+    AddRenown(ED.RankRenown(1) - eg.renown, "test top-up"); Chk(eg.rank == 1 && RankName == "Trader", "rank up to Trader at " + eg.renown);
+    EgRefreshBoards(); Chk(eg.board.Count(b => b.from == "Gwadar") == 3, "Trader: full 3-card board at Gwadar");
+    var r = eg.board.FirstOrDefault(b => b.kind == "rush") ?? eg.board[0]; port = PortIdx(r.from); int rn = eg.renown; var held = (int[])hold.Clone(); EgAccept(r);
+    for (int i = 0; i < r.moons * Wpm; i++) NewWeek(); Chk(r.status == "failed" && eg.renown == Mathf.Max(ED.RankRenown(1), rn + r.failRenown) && hold.SequenceEqual(held), $"rush {r.kind} failed after {r.moons} moon(s): renown {rn}->{eg.renown} (floor {ED.RankRenown(1)}), cargo untouched");
+    EgRefreshBoards(); var a2 = eg.board.First(); EgAccept(a2); Save(); int sr = eg.renown, sa = eg.active.Count; eg = new EgState(); Load(); Chk(eg.renown == sr && eg.active.Count == sa && eg.rank == 1, $"save/load: renown {eg.renown}, active {eg.active.Count}");
+    while (egCards.Count > 0) egCards.Dequeue();
+    var lt = ED.Templates.OrderByDescending(t => t.giver.Length).First(); L($"longest giver line {lt.giver.Length} chars ({lt.id}): {lt.giver}");
+    var shot = new EgContract { title = lt.title, giver = lt.giver, risk = lt.risk, kind = lt.kind, to = lt.dest, good = G(lt.good), qty = lt.qty, pay = Mathf.Min(lt.coins, ED.Cap(lt.kind)), renown = lt.renown, deposit = lt.deposit, moons = lt.moons, status = "offer" };
+    var dim = ModalDim("EgDim"); var card = EgCard(shot, () => { }, () => { }); yield return null; yield return null;
+    var gt = card.GetComponentsInChildren<Text>().First(t => t.text.Contains(lt.giver)); Chk(gt.preferredHeight <= gt.rectTransform.rect.height + 1 || gt.cachedTextGenerator.lineCount <= 2, $"giver line fits: lines={gt.cachedTextGenerator.lineCount} prefH={gt.preferredHeight:0} boxH={gt.rectTransform.rect.height:0}");
+    string dir = System.IO.Path.Combine(SaveDir, "egtest"); System.IO.Directory.CreateDirectory(dir); yield return ShotCo(System.IO.Path.Combine(dir, "contract_card_longest.png")); yield return new WaitForSeconds(0.5f);
+    L(fails == 0 ? "ALL PASS" : fails + " FAIL"); yield return new WaitForSeconds(0.5f); Application.Quit(fails == 0 ? 0 : 1);
+  }
 }
