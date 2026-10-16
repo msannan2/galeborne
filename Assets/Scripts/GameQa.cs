@@ -527,13 +527,14 @@ yield return Shot("polish_blk_greyed_button"); }
       lastBuyQty = 1; /* a new session */ yield return QOpen(cg); int q1 = sheet ? (int)qty.value : -1;
       Chk(q1 == 1 && BL(sBuyBtn) == "Buy 1" && sBuyBtn.interactable && !sSellBtn.interactable && sSellPrev.text == "None held", $"research_qty: first-ever buy defaults to 1 (slider {q1}, '{BL(sBuyBtn)}'); Sell greyed with 'None held'");
       qty.value = 2; yield return null; yield return QTap(sBuyBtn); int afterBuy = (int)qty.value;
+      Chk(afterBuy == hold[cg] && hold[cg] == 2 && BL(sSellBtn) == "Sell 2" && sSellBtn.interactable, $"research_qty: right after the buy (no reopen) the slider defaults to all held ({afterBuy}, '{BL(sSellBtn)}')");
       Chk(hold[cg] == 2 && lastBuyQty == 2 && afterBuy <= qty.maxValue && qty.maxValue == Mathf.Max(BuyMax(cg), hold[cg]), $"research_qty: bought 2 by tapping 'Buy 2'; slider re-clamped to max {qty.maxValue} (value {afterBuy})");
       yield return QOpen(sg); int q2 = (int)qty.value; Chk(q2 == 2 && BL(sBuyBtn) == "Buy 2", $"research_qty: reopening Buy on another good defaults to the last bought quantity (slider {q2}, '{BL(sBuyBtn)}')");
       coins = Mathf.CeilToInt(price[port, sg]) + 5; yield return QOpen(sg); int q3 = (int)qty.value; qty.value = qty.maxValue; yield return null; yield return Shot("qty_buy_clamped_coins");
       Chk(q3 == 1 && qty.maxValue == 1 && BuyMax(sg) == 1 && BL(sBuyBtn) == "Buy 1" && sBuyBtn.interactable, $"research_qty: Buy clamped by coins ({coins} coins → slider max {qty.maxValue}, default {q3}, '{BL(sBuyBtn)}')");
       coins = 5000; int dg = G("dates"); hold[dg] = S.holdSize - HoldUsed - 1; yield return QOpen(sg); int q4 = (int)qty.value; int mx4 = (int)qty.maxValue;
       Chk(q4 == 1 && mx4 == 1 && BuyMax(sg) == 1, $"research_qty: Buy clamped by hold space (1 free → slider max {mx4}, default {q4}, last buy was 2)");
-      hold[dg] = 0; coins = 0; yield return QOpen(sg); Chk(!sBuyBtn.interactable && sBuyPrev.text == "Can't afford / no room", $"research_qty: max 0 greys Buy with the reason line ('{sBuyPrev.text}')"); coins = 5000;
+      hold[dg] = 0; coins = 0; yield return QOpen(sg); Chk(!sBuyBtn.interactable && BL(sBuyBtn) == "Buy" && sBuyPrev.text == "Can't afford / no room", $"research_qty: max 0 greys Buy, reading plain '{BL(sBuyBtn)}', with the reason line ('{sBuyPrev.text}')"); coins = 5000;
       // sell after a partial sale: default = hq = max of what Sell can do, Sell stays enabled
       yield return QOpen(cg); qty.value = 5; yield return null; yield return QTap(sBuyBtn); int hq = hold[cg]; /* 7 */
       yield return QOpen(cg); int q5 = (int)qty.value; Chk(q5 == hq && BL(sSellBtn) == $"Sell {hq}", $"research_qty: Sell defaults to everything held ({hq}; slider {q5}, '{BL(sSellBtn)}')");

@@ -55,7 +55,7 @@ public partial class Game {
     sQty.text = $"Quantity  {q}";
     sBuyPrev.text = bmax > 0 ? $"Cost {CostOf(g, qb):N0}" + (q > bmax ? $" · max {bmax}" : "") : (ban ? "Banned here" : "Can't afford / no room");
     sSellPrev.text = smax > 0 ? $"Earn ~{RevenueOf(g, qs):N0}" + (q > smax ? $" · max {smax}" : "") : (ban ? "Sell in the Back Alley" : "None held");
-    SetBtn(sBuyBtn, $"Buy {Mathf.Max(1, qb)}", bmax > 0 && !busy); SetBtn(sSellBtn, $"Sell {Mathf.Max(1, qs)}", smax > 0 && !busy);
+    SetBtn(sBuyBtn, bmax > 0 ? $"Buy {Mathf.Max(1, qb)}" : "Buy", bmax > 0 && !busy); /* Game Tester: greyed Buy reads plain */ SetBtn(sSellBtn, $"Sell {Mathf.Max(1, qs)}", smax > 0 && !busy);
   }
   public int lastBuyQty = 1; /* research_qty (Game Designer): session memory only, not saved */
   int QtyDefault(int bmax, int smax) => smax > 0 ? smax : Mathf.Clamp(Mathf.Min(lastBuyQty, bmax), 1, Mathf.Max(1, Mathf.Max(bmax, smax)));
@@ -68,7 +68,7 @@ public partial class Game {
       else { int v = SellPrice(g); if (!Sell(g)) break; SaleFx(sSell.rectTransform.position + new Vector3(0, 0, 0)); }
       done++; Refresh(); UpdateSheet(false); yield return new WaitForSeconds(buy ? 0.03f : 0.1f); }
     msg = buy ? $"Bought {GoodCount(g, done)}." /* gamedev_t9 */ : $"Sold {GoodCount(g, done)}. Next sells for {SellPrice(g)}.";
-    if (buy && done > 0) lastBuyQty = done; busy = false; Refresh(); UpdateSheet(!buy); if (!buy) { var sc = new Vector3[4]; sSell.rectTransform.GetWorldCorners(sc); ProfitEnd((sc[0] + sc[2]) / 2); } /* research_profit */
+    if (buy && done > 0) lastBuyQty = done; busy = false; Refresh(); UpdateSheet(true); /* Game Tester: after a buy too, Sell's default refreshes to all held */ if (!buy) { var sc = new Vector3[4]; sSell.rectTransform.GetWorldCorners(sc); ProfitEnd((sc[0] + sc[2]) / 2); } /* research_profit */
   }
   public void CloseSheet() { if (sheet) Destroy0(sheet.gameObject); sheet = null; priceTexts.Remove(sheetGood); }
 }
