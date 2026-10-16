@@ -12,7 +12,8 @@ public partial class Game {
     TextGenerationSettings St(int s) => new TextGenerationSettings { font = T.bold, fontSize = s, lineSpacing = 1, richText = true, scaleFactor = 1, textAnchor = TextAnchor.UpperLeft, generationExtents = new Vector2(w, 4000f), pivot = Vector2.zero, generateOutOfBounds = true, horizontalOverflow = HorizontalWrapMode.Wrap, verticalOverflow = VerticalWrapMode.Overflow, updateBounds = true, color = Color.white, fontStyle = FontStyle.Normal };
     gen.Populate(title ?? "", St(baseSize)); if (gen.lineCount <= 1) return new TitleFit { size = baseSize, lines = 1, h = 52, extra = 0 }; /* unchanged one-line title */
     int min = Mathf.CeilToInt(baseSize * TitleMinFrac), pick = min;
-    for (int s = baseSize; s >= min; s--) { gen.Populate(title, St(s)); if (gen.lineCount <= 1) { return new TitleFit { size = s, lines = 1, h = 52, extra = 0 }; } if (gen.lineCount <= 2) { pick = s; break; } } /* largest size that fits in 2 lines (one line if shrinking gets it there) */
+    for (int s = baseSize - 1; s >= min; s--) { gen.Populate(title, St(s)); if (gen.lineCount <= 1) return new TitleFit { size = s, lines = 1, h = 52, extra = 0 }; } /* 1st: shrink to ONE line, down to 85% */
+    for (int s = baseSize; s >= min; s--) { gen.Populate(title, St(s)); if (gen.lineCount <= 2) { pick = s; break; } } /* only then: largest size that fits in 2 lines */
     var g2 = new TextGenerator(); g2.Populate(title, St(pick)); float h = Mathf.Max(52f, g2.GetPreferredHeight(title, St(pick)) + 6f);
     float rule = 40 + h + 8; return new TitleFit { size = pick, lines = Mathf.Min(2, g2.lineCount), h = h, extra = rule - 100f }; /* old: rule y100 = 40 + 52 + 8 */
   }
