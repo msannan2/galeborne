@@ -1,0 +1,48 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -323,7 +323,7 @@
+     Label(led, DateStr, 640, 30, 360, 44, T.fontSizeSmall - 2, T.ledgerMuted, TextAnchor.MiddleRight);
+     Box(Px(led, "rule", 20, 96, 992, 3), T.ledgerRule);
+     var vp = Stretch(led, "Viewport", 8, 104, 8, 8); vp.gameObject.AddComponent<RectMask2D>();
+-    var mg = MarketGoods(port); float rh = 150; var list = Px(vp, "Rows", 0, 0, 1032, rh * mg.Count);
++    var mg = MarketGoods(port); float rh = 150; var list = Px(vp, "Rows", 0, 0, 1032, rh * mg.Count + 140); /* art_t6_fixes: room for Ask about work after the last row */
+     marketSR = led.gameObject.AddComponent<ScrollRect>(); marketSR.viewport = vp; marketSR.content = list; marketSR.horizontal = false; marketSR.movementType = ScrollRect.MovementType.Clamped;
+     marketSR.scrollSensitivity = 40; marketSR.verticalNormalizedPosition = marketScroll; marketSR.onValueChanged.AddListener(v => marketScroll = v.y);
+     priceTexts.Clear();
+@@ -350,7 +350,7 @@
+       Label(row, "›", 960, 20, 60, 110, T.fontSizeTitle + 24, T.ledgerMuted, TextAnchor.MiddleCenter, true);
+     }
+     /* v0.6j: market guild jobs — button sits below the scroll list on the ledger */
+-    QuestBtn(led, "market", "Guild factor of " + S.ports[port].name, 1200);
++    QuestBtn(list, "market", "Guild factor of " + S.ports[port].name, rh * mg.Count + 16); /* art_t6_fixes: scrolls with the list, below the last good (was fixed y 1200 over Pearls) */
+   }
+   void DoSell(int g, RectTransform from) {
+     int before = Mathf.RoundToInt(price[port, g]); int v = SellPrice(g);
+@@ -511,7 +511,7 @@
+     float bodyH = CardBodyH(body, 700f); /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
+-    float panelH = y + 84 + (wide ? 40 : 20); /* tight to buttons — no half-empty card */
++    float panelH = y + 84 + (wide ? 40 : opts.Length == 3 ? 110 : 20); /* art_t6_fixes: 3-button cards (difficulty) clear the bottom brackets; 1–2 and 4+ button cards unchanged */ /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -292,13 +292,13 @@
+   void ShowCredits() {
+     if (creditsCard != null) return; /* final credits_modal: a second open while one is showing is ignored (double tap stacked two panels) */
+     const string body = "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.";
+-    float bodyH = CardBodyH(body, 780f), by = 106 + bodyH + 20, panelH = by + 84 + 28; /* final credits_modal: 780 like Ask() */
++    float bodyH = CardBodyH(body, 700f), by = 106 + bodyH + 20, panelH = by + 84 + 110; /* art_t6_fixes: body measured at x 100–800; Close lifted ~110 px off the bottom brackets */ /* final credits_modal: 780 like Ask() */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var dim = ModalDim("CreditsDim"); creditsDim = dim; /* final modal_queue_back: shared ModalDimColor */ /* blocks Options/Journal taps behind the card */
+     var cp = Px(root, "Dialog", 90, top, 900, panelH); creditsCard = cp; dialog = cp; Box(cp, T.panel, T.gold); dim.SetAsLastSibling(); cp.SetAsLastSibling();
+     Label(cp, "Credits", 100, 16, 700, 52, /* final2: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
+-    Label(cp, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
+-    Btn(cp, "Close", 150, by, 600, 84, () => CloseCredits(), true, true); PushBack("Credits", () => creditsCard != null, CloseCredits); /* final modal_queue_back: DISMISSABLE */
++    Label(cp, body, 100, 106, 700, bodyH, /* art_t6_fixes: like Ask() */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
++    Btn(cp, "Close", 250, by, 400, 84, /* art_t6_fixes: centred, x 250–650 */ () => CloseCredits(), true, true); PushBack("Credits", () => creditsCard != null, CloseCredits); /* final modal_queue_back: DISMISSABLE */
+   }
+ }
+ public partial class Game {

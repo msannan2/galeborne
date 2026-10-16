@@ -1,0 +1,46 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -536,7 +536,7 @@
+   void HandleBack() {
+     if (lastBackFrame == Time.frameCount) return; lastBackFrame = Time.frameCount; /* once per frame */
+     backStack.RemoveAll(e => e.alive == null || !e.alive());
+-    if (backStack.Count == 0) { Debug.Log("Back pressed, ignored (" + (onTitle ? "title screen" : sailing ? "sea map" : fighting ? "combat" : "town, nothing open") + ")"); return; }
++    if (backStack.Count == 0) { Debug.Log("Back pressed, ignored (" + (onTitle ? "title screen" : fighting ? "combat" : (sailing || tab == 4) ? "sea map" : "town, nothing open" /* back_market_t6: chart (tab 4) logs as sea map; behaviour unchanged */) + ")"); return; }
+     var top = backStack[backStack.Count - 1];
+     if (top.close == null) { Debug.Log("Back pressed, ignored (" + top.name + ", forced)"); return; }
+     Debug.Log("Back pressed, closing " + top.name); top.close();
+--- a/Assets/Scripts/GameSave.cs
++++ b/Assets/Scripts/GameSave.cs
+@@ -65,7 +65,7 @@
+     bool has = HasSave; float y = 280;
+     if (saveBroken) { has = false; Label(pnl, "Both voyage logs are damaged. Start a new voyage, or wait until we can mend them.", 40, 250, 720, 80, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 80; }
+     if (has) { Btn(pnl, "Continue", 120, y, 560, 110, () => { if (!Load()) { saveBroken = true; ShowTitle(); return; } onTitle = false; Refresh(); }, true, true); y += 140; }
+-    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); difficulty = 1; /* final ask_modal: new game defaults to Captain (middle) even if the difficulty card is never answered */ prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
++    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); difficulty = 1; Save(); /* back_market_t6: old save overwritten at once with the fresh Captain game, so a quit before the difficulty card cannot Continue on Hard */ /* final ask_modal: new game defaults to Captain (middle) even if the difficulty card is never answered */ prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
+       ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }, true, !has);
+     float cy = y + 130; Btn(pnl, "Credits", 250, cy, 300, 62, () => ShowCredits()); /* art_t5_fixes: 20 px under New Game */
+     pnl.sizeDelta = new Vector2(800, Mathf.Max(620f, cy + 62 + 110)); /* art_t5_fixes: frame grows so Credits clears the ~110 px bottom brackets */
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -282,15 +282,17 @@
+     QualitySettings.shadows = q == 0 ? ShadowQuality.Disable : ShadowQuality.All; if (urp) urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; Application.targetFrameRate = q == 2 ? 60 : 30; if (cam) { cam.allowMSAA = q > 0; var cd = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(); if (cd) { cd.renderShadows = q > 0; cd.renderPostProcessing = q == 2; } } msg = $"Graphics: {QNames[q]}."; Debug.Log($"GB QUALITY {q} renderScale {(urp ? urp.renderScale : -1)} shadows {QualitySettings.shadows}"); if (town3D) { var h = town3D.Find("Hills"); if (h) h.gameObject.SetActive(q > 0); foreach (var f in folk) if (f.t) f.t.gameObject.SetActive(q > 0 || f.idx % 2 == 0); } }
+   int DefaultQuality() => SystemInfo.systemMemorySize < 3000 ? 0 : SystemInfo.systemMemorySize < 6000 ? 1 : 2;
+   void OptionsMenu() { StartCoroutine(AskD("Options", $"Difficulty: {S.combat.difficulties[difficulty].name}\nGraphics: {QNames[Mathf.Max(0, quality)]}", ("Difficulty", () => OptionsDialog()), ("Graphics", () => StartCoroutine(AskD("Graphics quality", "High: full resolution, shadows, 60 fps.\nMedium: 85% resolution, short shadows.\nLow: 70% resolution, no shadows, fewer townsfolk.",
+-      ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits()), ("Close", null))); }
++      ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits(true)), ("Close", null))); } /* back_market_t6: Credits from Options returns to Options */
+   /* final: Credits gets its own card (same look as Ask) with a centred 600 px Close, so the button ends clear the bottom corner brackets (~95 px each).
+      Ask() is untouched; this panel owns and closes only itself. */
+   RectTransform creditsCard, creditsDim; /* final credits_modal: Credits owns its panel AND its dimmer (same pattern as the job-offer myDim fix) */
++  bool creditsFromOptions; /* back_market_t6 */
+   void CloseCredits() {
+     var cp = creditsCard; if (cp) Destroy0(cp.gameObject); if (creditsDim) Destroy0(creditsDim.gameObject);
+-    if (cp != null && dialog == cp) dialog = null; creditsCard = null; creditsDim = null; }
+-  void ShowCredits() {
+-    if (creditsCard != null) return; /* final credits_modal: a second open while one is showing is ignored (double tap stacked two panels) */
++    if (cp != null && dialog == cp) dialog = null; creditsCard = null; creditsDim = null;
++    if (cp != null && creditsFromOptions && !onTitle) { creditsFromOptions = false; OptionsMenu(); } creditsFromOptions = false; } /* back_market_t6: reopen Options (its own fresh dim + Back entry; the old Options card already closed) */
++  void ShowCredits(bool fromOptions = false) { /* back_market_t6 */
++    if (creditsCard != null) return; creditsFromOptions = fromOptions; /* back_market_t6 */ /* final credits_modal: a second open while one is showing is ignored (double tap stacked two panels) */
+     const string body = "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.";
+     float bodyH = CardBodyH(body, 780f), by = 106 + bodyH + 20, panelH = by + 84 + 28; /* final credits_modal: 780 like Ask() */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);

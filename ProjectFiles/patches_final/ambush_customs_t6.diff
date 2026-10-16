@@ -1,0 +1,57 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -488,8 +488,10 @@
+     if (arrivalShown && !fighting) { string an = S.ports[to].name; arrivalTarget = (seaMarks.TryGetValue(an, out var lmg) && lmg ? lmg.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * 5f; arrivalPanT0 = Time.time; /* k4merge2 */
+       Debug.Log("GB ARRIVAL hold start " + an + " t=" + Time.time.ToString("F2")); /* gwadar_arrival_hold */ float ps = Time.time + ArrivalPanDur * 0.5f; while (arrivalPanT0 >= 0 && Time.time < ps) yield return null; /* gwadar_arrival_hold: tap-skip honoured before the shot too */ if (playthrough && arrivalPanT0 >= 0) yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{week}.png"));
+       float pe = arrivalPanT0 + ArrivalPanDur; while (arrivalPanT0 >= 0 && Time.time < pe) yield return null; arrivalPanT0 = -1; Debug.Log("GB ARRIVAL hold end " + an + " t=" + Time.time.ToString("F2")); /* gwadar_arrival_hold */ }
+-    NewWeek(); port = to; ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); adsThisVisit = 0;
+-    if (CarriesBanned(port)) yield return Customs(); else msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
++    NewWeek(); port = to; adsThisVisit = 0; bool atCustoms = CarriesBanned(port); /* ambush_customs_t6 */
++    if (atCustoms) { if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(port); backdrop.color = Color.clear; yield return Customs(); } /* ambush_customs_t6: customs card over the port arrival view (+ shared ModalDim from Ask), not blank sand */
++    ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); /* ambush_customs_t6 */
++    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
+     tithe = false; sailing = false; crewInjured = false; tab = -1; Refresh(); Save();
+   }
+   bool ff, skipVoyage; Text ffTxt;
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -121,11 +121,11 @@
+ 
+   public IEnumerator AmbushEncounter(string type) {
+     var card = ((List<object>)DZ.content["ambushCards"]).Select(Design.D).First(x => (string)x["type"] == type);
+-    ambushMood = type; ApplyMood(type); yield return AmbushApproach();
++    lastAmbushOutcome = ""; /* ambush_customs_t6 */ ambushMood = type; ApplyMood(type); yield return AmbushApproach();
+     var ir = Design.D(DZ.Path(DZ.ambush, "playerResponses.intimidate")); float fleeAt = Design.F(ir["fleeAtStrengthRatio"], 2), from = Design.F(ir["chanceScalesFromRatio"], 1);
+     bool desperate = type == "nightRaid" && ir["namedAndDesperateNeverFlee"] is bool nd && nd; float ratio = StrengthRatio;
+     float scare = desperate || ambushForced ? 0 : ratio >= fleeAt ? 1 : Mathf.Clamp01((ratio - from) / (fleeAt - from));
+-    if (Rnd.value < scare) { yield return AskCard("They turn away", (string)DZ.content["intimidated"], ("Sail on", null)); msg = "Intimidated, the pirate sheers off."; EndMood(); yield break; }
++    if (Rnd.value < scare) { yield return AskCard("They turn away", (string)DZ.content["intimidated"], ("Sail on", null)); msg = "Intimidated, the pirate sheers off."; lastAmbushOutcome = "turned"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
+     int cargo = HoldUsed, toll = Mathf.CeilToInt(cargo * S.combat.tollCargoPct); float wind = Rnd.value;
+     float flee = Mathf.Clamp01((S.combat.encounterFleeBase + S.combat.fleeWindWeight * wind) * (type == "fog" ? 0.7f : type == "nightRaid" ? 1.2f : 1f));
+     float baitPct = Design.F(DZ.Path(DZ.ambush, "playerResponses.bait.minCostPctOfHold"), 0.1f); int baitCost = Mathf.CeilToInt(HoldValue * baitPct);
+@@ -134,15 +134,20 @@
+     yield return AskCard(type == "fog" ? "Ambush in the fog" : type == "nightRaid" ? "Night raid" : "False distress", body,
+       ("Fight", (Action)(() => choice = 0)), ($"Run {flee * 100:0}%", (Action)(() => choice = 1)), (cargo > 0 ? "Pay toll" : "Pay nothing", (Action)(() => choice = 2)), canBluff ? ($"Bluff {Cunning * 100:0}%", (Action)(() => choice = 3)) : ((string, Action))(null, null), baitCost > 0 ? ("Bait", (Action)(() => choice = 4)) : ((string, Action))(null, null));
+     lastAmbushChoice = choice;
+-    if (choice == 2) { PayCargo(toll); msg = toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off."; EndMood(); yield break; }
+-    if (choice == 1 && Rnd.value < flee) { msg = "Hasan catches the gust and the pirate falls astern."; EndMood(); yield break; }
+-    if (choice == 3 && Rnd.value < Cunning) { msg = "Hasan roars about the navy squadron just over the horizon. They believe him and bear away."; EndMood(); yield break; }
+-    if (choice == 4) { DumpForBait(baitCost); msg = "Bales hit the water and the pirates turn to fish them out. You slip away."; EndMood(); yield break; }
++    if (choice == 2) { PayCargo(toll); msg = toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off."; lastAmbushOutcome = "toll"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
++    if (choice == 1 && Rnd.value < flee) { msg = "Hasan catches the gust and the pirate falls astern."; lastAmbushOutcome = "run"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
++    if (choice == 3 && Rnd.value < Cunning) { msg = "Hasan roars about the navy squadron just over the horizon. They believe him and bear away."; lastAmbushOutcome = "bluff"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
++    if (choice == 4) { DumpForBait(baitCost); msg = "Bales hit the water and the pirates turn to fish them out. You slip away."; lastAmbushOutcome = "bait"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ yield return PirateSailsOff(); /* ambush_customs_t6: pirate turns for the bales and leaves the view */ EndMood(); yield break; }
+     if (choice == 1 || choice == 3) msg = "It doesn't work. They close to fight!";
+     spareGunpowder = firstRun && !storyAmbushDone && DZ.Path(DZ.settings, "opening.spareGunpowderOnFirstAmbushLoss") is bool sg && sg;
+-    yield return Fight(); spareGunpowder = false; storyAmbushDone = true; EndMood();
++    lastAmbushOutcome = choice == 1 || choice == 3 ? "fled_fail" : "fight"; /* ambush_customs_t6 */ yield return Fight(); spareGunpowder = false; storyAmbushDone = true; Save(); /* ambush_customs_t6: also covers fight after failed Run/Bluff */ EndMood();
+   }
+   public int lastAmbushChoice; public bool ambushForced;
++  /* ambush_customs_t6: explicit outcome of the last AmbushEncounter, read by AmbushWithResult (designer_ambush_customs) instead of msg text */
++  public string lastAmbushOutcome = ""; /* ambush_customs_t6 */
++  IEnumerator PirateSailsOff() { if (pirateShip == null || !pirateShip.gameObject.activeSelf) yield break; Vector3 p0 = pirateShip.position; float y0 = pirateShip.eulerAngles.y; /* ambush_customs_t6 */
++    for (float t = 0; t < 2.4f; t += Time.deltaTime) { float k = Mathf.SmoothStep(0, 1, t / 2.4f); pirateShip.rotation = Quaternion.Euler(0, Mathf.LerpAngle(y0, 60f, Mathf.Clamp01(t / 0.8f)), Mathf.Sin(t * 1.1f) * 4); pirateShip.position = p0 + new Vector3(70f, 0, 45f) * k; yield return null; } /* ambush_customs_t6 */
++    pirateShip.gameObject.SetActive(false); } /* ambush_customs_t6 */
+   void DumpForBait(int worth) { int gp = G("gunpowder"); while (worth > 0 && HoldUsed > 0) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !(spareGunpowder && g == gp)).OrderBy(g => price[port, g]).ToList(); if (held.Count == 0) break; hold[held[0]]--; worth -= Mathf.CeilToInt(price[port, held[0]]); } }
+ 
+   /// card sits in the bottom third so the pirate stays visible above it

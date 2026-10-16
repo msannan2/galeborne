@@ -1,0 +1,67 @@
+Unity Editor version:    6000.3.26f1 (de8167e7440c)
+Branch:                  6000.3/staging
+Build type:              Release
+Batch mode:              YES
+System name:             Linux
+Distro version:          #1 SMP PREEMPT_DYNAMIC Tue Oct  6 06:02:30 UTC 2026
+Kernel version:          6.12.94+
+Architecture:            x86_64
+Available memory:        16013 MB
+Date:                    2026-10-14T14:57:40Z
+VBCSCompilerServerWatchdog: watching VBCSCompiler (PID 745334)
+[Licensing::Module] Trying to connect to existing licensing client channel...
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-box" at "2026-10-14T14:57:40.36245Z"
+[SignatureVerifier] Application signature verification not supported on this platform.
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.18.3+d7ffd15
+  Session Id:              3a9b39008d764d7399a916d119b592f4
+  Correlation Id:          0af7d518e520c142ca2b7984de449e42
+  External correlation Id: 7538789740922206486
+  Machine Id:              AYuJBUoC4tSFWiuZYzoHgVhXF4U=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-box" (connect: 0.00s, validation: 0.09s, handshake: 0.00s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-box-notifications" at "2026-10-14T14:57:40.454661Z"
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-XPQJ-G78U-BJ3X-42FT-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: 2026-11-20T15:56:09Z
+[Licensing::Module] License group:
+  Id: 6012349-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.01
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-XPQJ-G78U-BJ3X-42FT-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: 2026-11-20T15:56:09Z
+[Licensing::Module] License group:
+  Id: 6012349-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Module] Licensing Background thread has ended after 0.15s
+Selected window backend: (null) 
+
+(Unity:745308): dbind-WARNING **: 19:57:54.296: AT-SPI: Error retrieving accessibility bus address: org.freedesktop.DBus.Error.ServiceUnknown: The name org.a11y.Bus was not provided by any .service files
+Desktop is 1920 x 1200 @ 60 Hz
+Initialize udev device monitor.
+
+COMMAND LINE ARGUMENTS:
+/home/box/Unity/Hub/Editor/6000.3.26f1/Editor/Unity
+-batchmode
+-quit
+-projectPath
+.
+-executeMethod
+Builder.BuildLinux
+-logFile
+logs/c1.log
+Couldn't set project path to: /workspace/galeborne-unity/Assets/Scripts/.
+
+SDL leaked 2 allocations
+VBCSCompilerServerWatchdog: requested VBCSCompiler shutdown

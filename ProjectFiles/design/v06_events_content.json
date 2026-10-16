@@ -1,0 +1,27 @@
+{
+ "_note": "Content layer for v0.6. Numbers live in v06_settings.json; this file holds text, town hints and moods. {good}, {port}, {n} are filled at runtime.",
+ "marketEvents": [
+  {"id":"shortage","effect":"shortage","townHint":"emptyStalls","headline":"Shortage of {good}!","text":"The stalls of {port} stand bare. Merchants whisper about {good}, and pay double to anyone who has it."},
+  {"id":"glut","effect":"glut","townHint":"pilesOnDock","headline":"{good} piled on the docks","text":"Three ships arrived at once. {port} is drowning in {good}, and nobody wants to buy."},
+  {"id":"festival","effect":"festival","townHint":"bannersLanterns","headline":"Festival in {port}","text":"Lanterns in every window. The wealthy want silk, pearls and incense, and they won't haggle tonight."},
+  {"id":"blockade","effect":"closeGood","townHint":"soldiersOnQuay","headline":"{port} closes its gates to {good}","text":"Soldiers on the quay. Bring {good} here and it will be seized, whatever your papers say."},
+  {"id":"foreignShip","effect":"rareGood","townHint":"foreignShipInHarbor","headline":"A foreign ship in the harbor","text":"Strange sails, strange sailors, and in their hold, {good}. They leave on the next tide."},
+  {"id":"sultanWedding","effect":"festival","townHint":"bannersLanterns","headline":"The Sultan's wedding","text":"The Sultan marries next moon. Every perfumer, weaver and pearl diver in {port} has doubled their prices, and so should you."}
+ ],
+ "rumors": [
+  {"source":"tavern","type":"ban","text":"A drunk customs clerk swears {port} will ban {good} next moon."},
+  {"source":"tavern","type":"shortage","text":"Sailors from {port} say the {good} harvest failed. Someone will get rich."},
+  {"source":"tavern","type":"glut","text":"Don't take {good} to {port}. Half the coast had the same idea."},
+  {"source":"tavern","type":"pirates","text":"Black sails seen off {port}. Rich holds make tempting targets."},
+  {"source":"astrologer","type":"weather","text":"The stars warn of a storm on the road to {port}. Sail slow, or sail brave."},
+  {"source":"astrologer","type":"adversary","text":"A scorched seal crosses your path near {port}. Qarin's agents are close."},
+  {"source":"astrologer","type":"caravan","text":"The charm caravan turns toward {port} with the new moon."}
+ ],
+ "ambushCards": [
+  {"type":"fog","mood":"cold grey","warning":"The fog is too thick, and too quiet.","reveal":"Black sails loom out of the mist, close enough to hear their oars!","options":["fight","run","payToll","bluff","dumpCargo"]},
+  {"type":"falseDistress","mood":"warm gold","warning":"A wreck flying a distress flag drifts ahead.","reveal":"The 'survivors' draw blades. It was bait!","options":["fight","run","payToll","bluff","dumpCargo"]},
+  {"type":"nightRaid","mood":"deep indigo","warning":"Lanterns where no lanterns should be.","reveal":"Small boats close in under the dark, then the muzzle flashes begin!","options":["fight","run","payToll","bluff","dumpCargo"]}
+ ],
+ "dangerSigns": ["Spyglass glints on the horizon.","Black gulls circling astern.","The crew has gone quiet."],
+ "intimidated": "Their spyglass catches your guns. The black flag drops, and they turn and run."
+}

@@ -1,0 +1,33 @@
+--- a/Assets/Scripts/Game.cs	2026-10-16 12:28:42.788789716 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 12:28:42.792789716 +0500
+@@ -175,8 +175,8 @@
+       float near = sailing ? 1f : 0f;
+       cam.transform.position = Vector3.Lerp(new Vector3(-18f, 10f, -30f), new Vector3(-9f, 6.2f, -14f), near) + new Vector3(Mathf.Sin(t * 0.2f) * 0.6f, Mathf.Sin(t * 0.5f) * 0.15f, 0);
+       cam.transform.LookAt(new Vector3(0, sailing ? 3.2f : 4.5f, 1f));
+-      if (arrivalPanT0 >= 0 && (Input.GetMouseButtonDown(0) || Input.touchCount > 0)) { arrivalPanT0 = -1; Debug.Log("GB ARRIVAL pan skipped by tap"); } /* k4merge2: tap skips, camera returns at once */
+-      if (arrivalPanT0 >= 0) { float u = (Time.time - arrivalPanT0) / ArrivalPanDur; if (u >= 1f) arrivalPanT0 = -1; else { float k = Mathf.SmoothStep(0, 1, Mathf.Clamp01(u / 0.4f)) * (1f - Mathf.SmoothStep(0, 1, Mathf.Clamp01((u - 0.6f) / 0.4f))); var look = Quaternion.LookRotation(arrivalTarget - cam.transform.position); cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, look, k); } } /* k4merge2: arrival pan toward shore landmark, eased out and back */
++      if (arrivalPanT0 >= 0 && Time.time > arrivalPanT0 + 0.15f && (Input.GetMouseButtonDown(0) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))) /* gwadar_arrival_hold: only a fresh tap skips (not the held/same-frame tap that closed a card) */ { arrivalPanT0 = -1; Debug.Log("GB ARRIVAL pan skipped by tap"); } /* k4merge2: tap skips, camera returns at once */
++      if (arrivalPanT0 >= 0) { float u = (Time.time - arrivalPanT0) / ArrivalPanDur; if (u >= 1f) arrivalPanT0 = -1; else { float k = Mathf.SmoothStep(0, 1, Mathf.Clamp01(u / 0.12f)) * (1f - Mathf.SmoothStep(0, 1, Mathf.Clamp01((u - 0.9f) / 0.1f))) /* gwadar_arrival_hold: ease in ~0.35 s, hold, ease out last 0.3 s */; var look = Quaternion.LookRotation(arrivalTarget - cam.transform.position); cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, look, k); } } /* k4merge2: arrival pan toward shore landmark, eased out and back */
+       if (passShip != null && passShip.gameObject.activeInHierarchy) { passShip.position += new Vector3(Time.deltaTime * 4.5f, 0, Time.deltaTime * 1.2f); if (passShip.position.x > 80) passShip.gameObject.SetActive(false); } }
+   }
+ 
+@@ -486,8 +486,8 @@
+     if (passShip) passShip.gameObject.SetActive(false);
+     if (!arrivalShown && !fighting) { arrivalShown = true; if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(to); Debug.Log("GB ARRIVAL landmark " + S.ports[to].name + " (late: card/fight covered the window)"); } // k4merge: arrival landmark ShowSeaLandmark(portIndex)
+     if (arrivalShown && !fighting) { string an = S.ports[to].name; arrivalTarget = (seaMarks.TryGetValue(an, out var lmg) && lmg ? lmg.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * 5f; arrivalPanT0 = Time.time; /* k4merge2 */
+-      yield return new WaitForSeconds(ArrivalPanDur * 0.5f); if (playthrough) yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{week}.png"));
+-      float pe = Time.time + ArrivalPanDur; while (arrivalPanT0 >= 0 && Time.time < pe) yield return null; arrivalPanT0 = -1; }
++      Debug.Log("GB ARRIVAL hold start " + an + " t=" + Time.time.ToString("F2")); /* gwadar_arrival_hold */ float ps = Time.time + ArrivalPanDur * 0.5f; while (arrivalPanT0 >= 0 && Time.time < ps) yield return null; /* gwadar_arrival_hold: tap-skip honoured before the shot too */ if (playthrough && arrivalPanT0 >= 0) yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{week}.png"));
++      float pe = arrivalPanT0 + ArrivalPanDur; while (arrivalPanT0 >= 0 && Time.time < pe) yield return null; arrivalPanT0 = -1; Debug.Log("GB ARRIVAL hold end " + an + " t=" + Time.time.ToString("F2")); /* gwadar_arrival_hold */ }
+     NewWeek(); port = to; ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); adsThisVisit = 0;
+     if (CarriesBanned(port)) yield return Customs(); else msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
+     tithe = false; sailing = false; crewInjured = false; tab = -1; Refresh(); Save();
+@@ -539,7 +539,7 @@
+     if (top.close == null) { Debug.Log("Back pressed, ignored (" + top.name + ", forced)"); return; }
+     Debug.Log("Back pressed, closing " + top.name); top.close();
+   }
+-  float arrivalPanT0 = -1f; Vector3 arrivalTarget; const float ArrivalPanDur = 1.0f; /* k4merge2: arrival pan */
++  float arrivalPanT0 = -1f; Vector3 arrivalTarget; const float ArrivalPanDur = 3.0f; /* gwadar_arrival_hold: every port holds ~3 s after the voyage, independent of the in-voyage window (was 1.0 s → late-path ports e.g. Gwadar showed <0.7 s) */ /* k4merge2: arrival pan */
+   public float lastVoyageAmbushChance;
+   /// v0.6i soft mid-voyage choices (not ambushes): sail on horizon, storm front, wreckage
+   IEnumerator VoyageDecision() {

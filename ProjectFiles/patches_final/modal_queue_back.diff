@@ -1,0 +1,194 @@
+diff -ru a/Game.cs b/Game.cs
+--- a/Assets/Scripts/Game.cs	2026-10-16 12:16:11.268789716 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 12:16:11.296789716 +0500
+@@ -161,7 +161,7 @@
+ 
+   float sailT; int hasanTris;
+   void Update() {
+-    if (creditsCard != null && Input.GetKeyDown(KeyCode.Escape)) { if (dialog == creditsCard || dialog == null) CloseCredits(); } /* final credits_modal: Android Back / Esc closes Credits only when it is on top */
++    if (Input.GetKeyDown(KeyCode.Escape)) HandleBack(); /* final modal_queue_back: general Back handler (replaces the Credits-only Escape line) */
+     if (prologuePending && dialog == null && !fighting) { prologuePending = false; StartCoroutine(Prologue()); }
+     if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) lastInput = Time.unscaledTime;
+     if (InOpening && !onTitle && !sailing && !fighting && tab < 0 && dialog == null && Time.unscaledTime - lastInput > 45f) { lastInput = Time.unscaledTime; Nudge(); }
+@@ -500,23 +500,44 @@
+     if (AdsUnlocked) Btn(bar, "Skip ▶ ad", 540, 12, 238, 84, () => StartCoroutine(ShowAd("skipVoyage", () => skipVoyage = true)), AdBlockReason() == null);
+     var trackBg = Px(bar, "track", 24, 120, 1000, 12); Box(trackBg, T.ink, T.brass); var fill = Px(trackBg, "fill", 0, 0, 0, 12); Box(fill, T.gold); return fill; }
+   void UpdateFF() { if (ffTxt) { ffTxt.text = ff ? "▶▶ 2× on" : "▶▶ 2×"; ffTxt.color = UITheme.C(ff ? T.gold : T.buttonText); } }
+-  IEnumerator Ask(string title, string body, params (string, Action)[] opts) {
++  /* final modal_queue_back: Ask() = FORCED (Back ignored). AskD() = DISMISSABLE (Back closes it through its own done path, finally cleanup runs). */
++  IEnumerator Ask(string title, string body, params (string, Action)[] opts) => AskCore(false, title, body, opts);
++  IEnumerator AskD(string title, string body, params (string, Action)[] opts) => AskCore(true, title, body, opts);
++  IEnumerator AskCore(bool dismissable, string title, string body, (string, Action)[] opts) {
++    while (CardBusy) yield return null; /* final modal_queue_back: queue - wait for any open card (Ask/AskCard/Credits/QuestMenu); checked before this card exists, so it never waits on itself */
+     /* v0.6k3: panel height fits title+body+buttons (no half-empty storm/voyage card) */
+     float bodyH = CardBodyH(body, 780f); /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     float panelH = y + 84 + 20; /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+-    var myDim = R(root, "AskDim", 0, 0, 1, 1); var mdi = myDim.gameObject.AddComponent<Image>(); mdi.color = new Color(0.05f, 0.03f, 0.02f, 0.55f); mdi.raycastTarget = true; modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+-    var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
++    var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
++    var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+     Label(my, title, 100, 16, 700, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass); /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
+     Label(my, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
+     y = 106 + bodyH + 20; float w = (710f - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
+     for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, 95 + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+-    finally { if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
++    finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
+   }
+   int modalDepth; /* final ask_modal: >0 while any Ask/AskCard card is up; HUD taps are ignored */
+   bool ModalUp => modalDepth > 0;
++  /* final modal_queue_back: one card at a time - Ask/AskCard queue behind any open card (Journal excluded: it is a screen, not a card) */
++  bool CardBusy => modalDepth > 0 || creditsCard != null || (dialog != null && dialog.name == "QuestMenu");
++  /* final modal_queue_back: one dim colour for Ask, AskCard and Credits (= creditsDim's original 0.05,0.03,0.02,0.6) */
++  static readonly Color ModalDimColor = new Color(0.05f, 0.03f, 0.02f, 0.6f);
++  RectTransform ModalDim(string n) { var d = R(root, n, 0, 0, 1, 1); var im = d.gameObject.AddComponent<Image>(); im.color = ModalDimColor; im.raycastTarget = true; return d; }
++  /* final modal_queue_back: Back (Android) / Escape registry. close == null => FORCED (Back ignored). */
++  class BackEntry { public string name; public Func<bool> alive; public Action close; }
++  readonly List<BackEntry> backStack = new List<BackEntry>(); int lastBackFrame = -1;
++  BackEntry PushBack(string n, Func<bool> alive, Action close) { var e = new BackEntry { name = n, alive = alive, close = close }; backStack.Add(e); return e; }
++  void HandleBack() {
++    if (lastBackFrame == Time.frameCount) return; lastBackFrame = Time.frameCount; /* once per frame */
++    backStack.RemoveAll(e => e.alive == null || !e.alive());
++    if (backStack.Count == 0) { Debug.Log("Back pressed, ignored (" + (onTitle ? "title screen" : sailing ? "sea map" : fighting ? "combat" : "town, nothing open") + ")"); return; }
++    var top = backStack[backStack.Count - 1];
++    if (top.close == null) { Debug.Log("Back pressed, ignored (" + top.name + ", forced)"); return; }
++    Debug.Log("Back pressed, closing " + top.name); top.close();
++  }
+   float arrivalPanT0 = -1f; Vector3 arrivalTarget; const float ArrivalPanDur = 1.0f; /* k4merge2: arrival pan */
+   public float lastVoyageAmbushChance;
+   /// v0.6i soft mid-voyage choices (not ambushes): sail on horizon, storm front, wreckage
+diff -ru a/GameAct1.cs b/GameAct1.cs
+--- a/Assets/Scripts/GameAct1.cs	2026-10-16 12:16:11.268789716 +0500
++++ b/Assets/Scripts/GameAct1.cs	2026-10-16 12:16:11.304789716 +0500
+@@ -41,7 +41,8 @@
+   Texture2D ArtSlot(string path, string fallback = null) => Resources.Load<Texture2D>(path) ?? (fallback != null ? Resources.Load<Texture2D>(fallback) : null);
+   /// a story card with a portrait slot on the right (AskCard + portrait, body narrowed so text never runs under it)
+   IEnumerator PortraitCard(string title, string body, Texture2D face, params (string, Action)[] opts) {
+-    var co = AskCard(title, body, opts); bool more = co.MoveNext();
++    int seq0 = cardSeq; var co = AskCard(title, body, opts); bool more = co.MoveNext();
++    while (more && cardSeq == seq0) { yield return co.Current; more = co.MoveNext(); } /* final modal_queue_back: AskCard may be queued; attach the portrait only to its own card */
+     if (dialog != null && face != null) { var inner = dialog.Find("in") as RectTransform; if (inner) { foreach (var t in inner.GetComponentsInChildren<Text>()) if (t.GetComponentInParent<Button>() == null && t.rectTransform.sizeDelta.y > 200) t.rectTransform.sizeDelta = new Vector2(700, t.rectTransform.sizeDelta.y);
+         var fr = Px(inner, "Portrait", 752, 100, 222, 296); var teak = fr.gameObject.AddComponent<Image>(); teak.color = new Color(0.24f, 0.14f, 0.08f); teak.raycastTarget = false;
+         var brass = Px(fr, "brass", 7, 7, 208, 282).gameObject.AddComponent<Image>(); brass.color = new Color(0.72f, 0.56f, 0.3f); brass.raycastTarget = false;
+diff -ru a/GameSheet.cs b/GameSheet.cs
+--- a/Assets/Scripts/GameSheet.cs	2026-10-16 12:16:11.268789716 +0500
++++ b/Assets/Scripts/GameSheet.cs	2026-10-16 12:16:11.304789716 +0500
+@@ -13,7 +13,7 @@
+ 
+   public void OpenSheet(int g) {
+     CloseSheet(); sheetGood = g; var gd = S.goods[g];
+-    sheet = R(root, "Sheet", 0, 0, 1, 1);
++    sheet = R(root, "Sheet", 0, 0, 1, 1); { var sh = sheet; PushBack("Price sheet", () => sh != null && sheet == sh, CloseSheet); } /* final modal_queue_back: DISMISSABLE */
+     var dim = R(sheet, "dim", 0, 0, 1, 1); var di = dim.gameObject.AddComponent<Image>(); di.color = new Color(0, 0, 0, 0.45f); dim.gameObject.AddComponent<Button>().onClick.AddListener(CloseSheet);
+     var pnl = Px(Bottom1920(sheet, "b"), "panel", 0, 960, 1080, 960); Box(pnl, T.ledgerBg, T.frame); pnl.gameObject.AddComponent<Button>().transition = Selectable.Transition.None; // eat taps
+     var ic = Px(pnl, "icon", 36, 36, 130, 130).gameObject.AddComponent<Image>(); ic.sprite = Icons.For(gd.id, UITheme.C(T.ledgerInk));
+diff -ru a/GameTown.cs b/GameTown.cs
+--- a/Assets/Scripts/GameTown.cs	2026-10-16 12:16:11.268789716 +0500
++++ b/Assets/Scripts/GameTown.cs	2026-10-16 12:16:11.304789716 +0500
+@@ -540,7 +540,7 @@
+   public float AmbushChance() => AmbushChanceFor(chartDest >= 0 && chartDest != port ? chartDest : (port + 1) % S.ports.Length); /* v06_ambush_data roll, see GameV06 */
+ 
+   // ---- difficulty ----
+-  void OptionsDialog() { StartCoroutine(Ask("Options · difficulty", $"Current: {S.combat.difficulties[difficulty].name}.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
++  void OptionsDialog() { StartCoroutine(AskD("Options · difficulty", $"Current: {S.combat.difficulties[difficulty].name}.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
+     ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }
+ }
+ public partial class Game {
+diff -ru a/GameV06.cs b/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 12:16:11.268789716 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 12:16:11.304789716 +0500
+@@ -148,17 +148,19 @@
+   /// card sits in the bottom third so the pirate stays visible above it
+   IEnumerator AskCard(string title, string body, params (string, Action)[] opts) {
+     opts = opts.Where(o => o.Item1 != null).ToArray(); bool done = false;
++    while (CardBusy) yield return null; /* final modal_queue_back: queue (never waits on itself) */
+     int perRow = opts.Length > 3 ? 3 : opts.Length, rows = Mathf.Max(1, (opts.Length + perRow - 1) / Mathf.Max(1, perRow)); /* final: card sized to its measured body (was a fixed 330 px body box, leaving a gap above the buttons) */
+     float bodyH = Mathf.Min(330f, CardBodyH(body, 940f)), btnY = 104 + bodyH + 24, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 30);
+-    var myDim = R(root, "CardDim", 0, 0, 1, 1); var mdi = myDim.gameObject.AddComponent<Image>(); mdi.color = new Color(0.05f, 0.03f, 0.02f, 0.55f); mdi.raycastTarget = true; modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+-    var my = R(root, "Card", 0, 0, 1, 0); dialog = my; my.pivot = new Vector2(0.5f, 0); my.offsetMin = new Vector2(30, 30); my.offsetMax = new Vector2(-30, 30 + cardH); Box(my, T.panel, T.gold);
++    var myDim = ModalDim("CardDim"); modalDepth++; cardSeq++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
++    var my = R(root, "Card", 0, 0, 1, 0); dialog = my; my.pivot = new Vector2(0.5f, 0); my.offsetMin = new Vector2(30, 30); my.offsetMax = new Vector2(-30, 30 + cardH); Box(my, T.panel, T.gold); var be = PushBack(title, () => my != null, null); /* final modal_queue_back: AskCard is always FORCED */
+     var inner = R(my, "in", 0.5f, 1, 0.5f, 1); inner.sizeDelta = new Vector2(1000, cardH); inner.pivot = new Vector2(0.5f, 1); inner.anchoredPosition = Vector2.zero;
+     Label(inner, title, 100, 20, 800, 64, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(inner, "rule", 30, 90, 940, 2), T.brass);
+     Label(inner, body, 30, 104, 940, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft);
+     float w = (810f - (perRow - 1) * 16) / Mathf.Max(1, perRow); /* final2: title and buttons inset to x 95–905 so no button corner sits on a brass bracket (5-button ambush) */
+     for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; Btn(inner, o.Item1, 95 + col * (w + 16), btnY + row * 124, w, 108, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+-    finally { if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } } /* final ask_modal: own panel + own dim only (was: destroyed whatever dialog pointed at) */
++    finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } }
++  int cardSeq; /* final modal_queue_back: bumped when an AskCard actually builds its card (PortraitCard waits for it) */ /* final ask_modal: own panel + own dim only (was: destroyed whatever dialog pointed at) */
+ 
+   Light seaSun; Color sunCol0; float sunInt0; Color amb0, fog0; float fogS0, fogE0;
+   void ApplyMood(string type) {
+@@ -274,7 +276,7 @@
+     if (urp) { urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; urp.msaaSampleCount = q == 0 ? 1 : q == 1 ? 2 : 4; urp.shadowDistance = q == 0 ? 0 : q == 1 ? 40 : 70; }
+     QualitySettings.shadows = q == 0 ? ShadowQuality.Disable : ShadowQuality.All; if (urp) urp.renderScale = q == 0 ? 0.7f : q == 1 ? 0.85f : 1f; Application.targetFrameRate = q == 2 ? 60 : 30; if (cam) { cam.allowMSAA = q > 0; var cd = cam.GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(); if (cd) { cd.renderShadows = q > 0; cd.renderPostProcessing = q == 2; } } msg = $"Graphics: {QNames[q]}."; Debug.Log($"GB QUALITY {q} renderScale {(urp ? urp.renderScale : -1)} shadows {QualitySettings.shadows}"); if (town3D) { var h = town3D.Find("Hills"); if (h) h.gameObject.SetActive(q > 0); foreach (var f in folk) if (f.t) f.t.gameObject.SetActive(q > 0 || f.idx % 2 == 0); } }
+   int DefaultQuality() => SystemInfo.systemMemorySize < 3000 ? 0 : SystemInfo.systemMemorySize < 6000 ? 1 : 2;
+-  void OptionsMenu() { StartCoroutine(Ask("Options", $"Difficulty: {S.combat.difficulties[difficulty].name}\nGraphics: {QNames[Mathf.Max(0, quality)]}", ("Difficulty", () => OptionsDialog()), ("Graphics", () => StartCoroutine(Ask("Graphics quality", "High: full resolution, shadows, 60 fps.\nMedium: 85% resolution, short shadows.\nLow: 70% resolution, no shadows, fewer townsfolk.",
++  void OptionsMenu() { StartCoroutine(AskD("Options", $"Difficulty: {S.combat.difficulties[difficulty].name}\nGraphics: {QNames[Mathf.Max(0, quality)]}", ("Difficulty", () => OptionsDialog()), ("Graphics", () => StartCoroutine(AskD("Graphics quality", "High: full resolution, shadows, 60 fps.\nMedium: 85% resolution, short shadows.\nLow: 70% resolution, no shadows, fewer townsfolk.",
+       ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits()), ("Close", null))); }
+   /* final: Credits gets its own card (same look as Ask) with a centred 600 px Close, so the button ends clear the bottom corner brackets (~95 px each).
+      Ask() is untouched; this panel owns and closes only itself. */
+@@ -287,11 +289,11 @@
+     const string body = "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.";
+     float bodyH = CardBodyH(body, 780f), by = 106 + bodyH + 20, panelH = by + 84 + 28; /* final credits_modal: 780 like Ask() */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+-    var dim = R(root, "CreditsDim", 0, 0, 1, 1); creditsDim = dim; var di = dim.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.6f); di.raycastTarget = true; /* blocks Options/Journal taps behind the card */
++    var dim = ModalDim("CreditsDim"); creditsDim = dim; /* final modal_queue_back: shared ModalDimColor */ /* blocks Options/Journal taps behind the card */
+     var cp = Px(root, "Dialog", 90, top, 900, panelH); creditsCard = cp; dialog = cp; Box(cp, T.panel, T.gold); dim.SetAsLastSibling(); cp.SetAsLastSibling();
+     Label(cp, "Credits", 100, 16, 700, 52, /* final2: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
+     Label(cp, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
+-    Btn(cp, "Close", 150, by, 600, 84, () => CloseCredits(), true, true);
++    Btn(cp, "Close", 150, by, 600, 84, () => CloseCredits(), true, true); PushBack("Credits", () => creditsCard != null, CloseCredits); /* final modal_queue_back: DISMISSABLE */
+   }
+ }
+ public partial class Game {
+@@ -356,12 +358,12 @@
+     Label(ci, $"To {S.ports[dp].name}", 100, 16, 440, 76, /* final3: title starts 100 px in, clear of the ~95–110 px top-left bracket */ T.fontSizeTitle + 4, T.parchment, TextAnchor.MiddleLeft, true);
+     bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 548, 26, 400, 60, /* final3: ends at x 948, clear of the top-right bracket */ T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight);
+     float y = 100; bool fogAhead = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; string danger = fogAhead ? $"<color={T.gold}>Moderate pirate danger (25%)</color>" : DangerLabel(ap, sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail);
+-    Label(ci, danger, 26, y, 1000, 56, T.fontSize, T.text); y += 62; if (fogAhead) { Label(ci, $"<color={T.gold}>Fog banks reported on this route</color>", 26, y, 1000, 50, T.fontSizeSmall, T.text); y += 54; }
++    Label(ci, danger, 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSize, T.text); y += 62; if (fogAhead) { Label(ci, $"<color={T.gold}>Fog banks reported on this route</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 50, T.fontSizeSmall, T.text); y += 54; }
+     var bannedHere = Enumerable.Range(0, S.goods.Length).Where(g => Banned(g, dp) || bans.Any(b => b.good == g && b.port == dp && b.start <= week + 1 && b.end > week)).Select(g => S.goods[g].name).ToList();
+-    Label(ci, bannedHere.Count > 0 ? $"Banned on arrival (back alley pays ×{S.contraband.bannedSellMult:0}): " + string.Join(", ", bannedHere) : "No bans reported.", 26, y, 1000, 56, T.fontSizeSmall, T.textMuted); y += 58;
+-    if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 26, y, 1000, 56, T.fontSizeSmall, T.text); y += 58; }
++    Label(ci, bannedHere.Count > 0 ? $"Banned on arrival (back alley pays ×{S.contraband.bannedSellMult:0}): " + string.Join(", ", bannedHere) : "No bans reported.", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 58;
++    if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.text); y += 58; }
+     bool carries = Enumerable.Range(0, S.goods.Length).Any(g => hold[g] > 0 && bannedHere.Contains(S.goods[g].name));
+-    Label(ci, (carries ? ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Farida's papers: customs will wave you through this time</color>   " : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>   ") : "") + "Prices unknown until you dock." + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 26, y, 1000, 56, T.fontSizeSmall, T.textMuted); y += 70;
++    Label(ci, (carries ? ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Farida's papers: customs will wave you through this time</color>   " : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>   ") : "") + "Prices unknown until you dock." + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 70;
+     float routeH = Mathf.Max(cardH, y + 140 + 24); card.offsetMax = new Vector2(-16, 16 + routeH); ci.sizeDelta = new Vector2(1048, routeH); /* final2: card sized to its content (was fixed 640 with Set Sail pinned at 470 → big empty gap); never shorter than the chart cut-out */
+     SetSailBtn(ci, 100, y, 848, 140, /* final3: x 100–948 so the rope ends clear the bottom brackets */ $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
+   }
+diff -ru a/GameV06j.cs b/GameV06j.cs
+--- a/Assets/Scripts/GameV06j.cs	2026-10-16 12:16:11.268789716 +0500
++++ b/Assets/Scripts/GameV06j.cs	2026-10-16 12:16:11.304789716 +0500
+@@ -200,7 +200,7 @@
+ 
+   void OpenJournal() { StartCoroutine(JournalCo()); }
+   IEnumerator JournalCo() {
+-    bool done = false; int shownTab = -1;
++    bool done = false; int shownTab = -1; var jbe = PushBack("Journal", () => !done, () => done = true); /* final modal_queue_back: DISMISSABLE, closes via its own done path */
+     while (!done) {
+       if (shownTab != journalTab || dialog == null) {
+         if (dialog) Destroy0(dialog.gameObject);
+@@ -230,7 +230,7 @@
+       }
+       yield return null;
+     }
+-    if (dialog) { Destroy0(dialog.gameObject); dialog = null; }
++    backStack.Remove(jbe); if (dialog) { Destroy0(dialog.gameObject); dialog = null; }
+     { var dq = root.Find("QuestDim"); if (dq) Destroy0(dq.gameObject); }
+     Refresh();
+   }
+@@ -246,7 +246,7 @@
+       float panelW = 940f; float left = (1080f - panelW) * 0.5f;
+       float top = 100f; /* fully cover keeper "Innkeeper of the Salt &…" title */
+       var dimQ = R(root, "QuestDim", 0, 0, 1, 1); myDim = dimQ; var di = dimQ.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.72f); di.raycastTarget = true;
+-      my = Px(root, "QuestMenu", left, top, panelW, panelH); dialog = my; Box(dialog, T.ink, T.gold); dialog.SetAsLastSibling();
++      my = Px(root, "QuestMenu", left, top, panelW, panelH); dialog = my; { var qm = my; PushBack("Job offer", () => qm != null && !closed, null); } /* final modal_queue_back: FORCED */ Box(dialog, T.ink, T.gold); dialog.SetAsLastSibling();
+       string title = keeperName ?? ""; if (title.Length > 36) title = title.Substring(0, 34) + "…";
+       float iw = panelW - pad * 2;
+       Label(dialog, title, pad, 36, iw, 56, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);

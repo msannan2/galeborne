@@ -1,0 +1,52 @@
+diff -ru a/Assets/Resources/keeper_lines.json b/Assets/Resources/keeper_lines.json
+--- a/Assets/Resources/keeper_lines.json	2026-10-16 11:37:46.458487482 +0500
++++ b/Assets/Resources/keeper_lines.json	2026-10-16 11:37:46.470487482 +0500
+@@ -31,6 +31,12 @@
+  "innkeeper": [
+   { "trigger": "greet", "mood": "neutral", "text": "Sit, nakhuda. The tea is hot, the fish is fresh, and the gossip costs extra." }
+  ],
++ "priest": [
++  { "trigger": "greet", "mood": "neutral", "text": "Leave your sandals and your hurry at the door. The sea waits for no one, but God waits for everyone." }
++ ],
++ "harbourmaster": [
++  { "trigger": "greet", "mood": "neutral", "text": "Name of your dhow, nakhuda, and what is in her hold. Mooring is paid before the tide turns." }
++ ],
+  "farida": [
+   {"trigger":"greet","mood":"suspicious","text":"You walked in like a customs man. Walk out like a friend."},
+   {"trigger":"buyContraband","mood":"neutral","text":"Gunpowder? I see only... very angry sand."},
+diff -ru a/Assets/Scripts/GameTown.cs b/Assets/Scripts/GameTown.cs
+--- a/Assets/Scripts/GameTown.cs	2026-10-16 11:37:46.454487482 +0500
++++ b/Assets/Scripts/GameTown.cs	2026-10-16 11:37:46.470487482 +0500
+@@ -6,7 +6,7 @@
+ using Rnd = UnityEngine.Random;
+ 
+ [Serializable] public class KeeperLine { public string trigger, mood, text; }
+-[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida, innkeeper; }
++[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida, innkeeper, priest, harbourmaster; }
+ 
+ /// v0.6: tall scrolling 3D town with tappable buildings, keepers with mood faces, bank, money lender, shipwright, tavern, palace, chart-table map.
+ public partial class Game {
+@@ -422,14 +422,20 @@
+   public void Say(string trig) { keeperTrig = trig; }
+   const float KeeperH = 400;
+   bool KeeperHeader(int tab) {
+-    if (!Keepers.TryGetValue(tab, out var k)) return false; var line = Line(k.key, keeperTrig); int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
++    if (!Keepers.TryGetValue(tab, out var k)) return false;
++    bool harbour = tab == 7 && (S.ports[port].name == "Muscat" || ShipwrightMode(S.ports[port].name) == "none"); /* designer: same rule as the "Harbour Master" plaque */
++    if (tab == 3) k.key = "priest"; else if (harbour) { k.key = "harbourmaster"; k.name = "Harbour master"; } /* own lines + optional own portrait instead of Bashir's */
++    var line = Line(k.key, keeperTrig); int mood = Mathf.Max(0, Array.IndexOf(Moods, line.mood));
+     var r = Px(content, "Keeper", 16, 172, 1048, KeeperH); Box(r, T.ledgerBg, T.frame);
+     var fr = Px(r, "face", 14, 14, KeeperH - 28, KeeperH - 28); Box(fr, T.ink, T.gold);
+     /* v0.6h4: ally Farida until turned in; rival portrait from FaridaState == 2 */
+     var tex = k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}");
+-    bool innVariant = k.key == "innkeeper" && Resources.Load<Texture2D>("Art/Portraits/innkeeper") == null; if (k.key == "innkeeper" && !innVariant) tex = Resources.Load<Texture2D>("Art/Portraits/innkeeper");
++    /* designer: optional own portraits, Assets/Resources/Art/Portraits/<file>.png (Builder.cs:115 import rule); until painted, the borrowed face is mirrored + tinted */
++    string own = k.key == "innkeeper" ? "innkeeper" : k.key == "priest" ? "priest" : k.key == "harbourmaster" ? "harbourmaster" : null;
++    var ownTex = own != null ? Resources.Load<Texture2D>("Art/Portraits/" + own) : null; if (ownTex) tex = ownTex;
++    Color tint = k.key == "innkeeper" ? new Color(0.78f, 0.84f, 0.95f) /* cool lamplight */ : k.key == "priest" ? new Color(1f, 0.93f, 0.78f) /* warm candle */ : new Color(0.82f, 0.95f, 0.86f) /* sea-green dock light */;
+     if (tex) { var im = Px(fr, "img", 5, 5, KeeperH - 38, KeeperH - 38).gameObject.AddComponent<RawImage>(); im.texture = tex;
+-      if (innVariant) { im.uvRect = new Rect(1, 0, -1, 1); im.color = new Color(0.78f, 0.84f, 0.95f); } } /* stop-gap until innkeeper art: mirrored, cool lamplit tint so he isn't Jalal's twin */
++      if (own != null && !ownTex) { im.uvRect = new Rect(1, 0, -1, 1); im.color = tint; } }
+     float tx = KeeperH + 6, tw = 1048 - tx - 20;
+     var kn = Label(r, tab == 7 && S.ports[port].name == "Muscat" ? "Harbour master, dock patch" : k.name, tx, 12, tw, 72, T.fontSizeTitle - 8, T.ledgerInk, TextAnchor.UpperLeft, true); kn.horizontalOverflow = HorizontalWrapMode.Wrap; kn.verticalOverflow = VerticalWrapMode.Overflow; /* v0.6k: long keeper titles wrap inside panel */
+     Label(r, line.mood, tx, 88, tw, 36, T.fontSizeSmall - 4, T.ledgerMuted);

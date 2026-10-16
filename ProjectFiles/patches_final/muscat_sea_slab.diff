@@ -1,0 +1,12 @@
+diff -ruN a/Assets/Scripts/GameV06k.cs b/Assets/Scripts/GameV06k.cs
+--- a/Assets/Scripts/GameV06k.cs	2026-10-16 11:09:58.818487482 +0500
++++ b/Assets/Scripts/GameV06k.cs	2026-10-16 11:09:58.830487482 +0500
+@@ -68,7 +68,7 @@
+     var crag = new MeshB(); crag.Cyl(new Vector3(2f, -3f, 2f), new Vector3(2f, 0.4f, 2f), 27f, 21f, 16, w);                  // wide low crag at the waterline
+     crag.Box(new Vector3(-11f, -0.4f, 12f), new Vector3(13f, 2.6f, 11f), Quaternion.Euler(0, 20f, 4f), w);                       // shoulder of the headland
+     var shelf = new MeshB(); shelf.Cyl(new Vector3(2f, 0.4f, 2f), new Vector3(2f, 0.9f, 2f), 21f, 19f, 16, w);               // shore shelf
+-    shelf.Box(new Vector3(-16f, -0.3f, -7f), new Vector3(11f, 1.2f, 9f), Quaternion.Euler(0, 25f, 0), w);                      // final: top at +0.3, sits in the surf instead of hovering                        // beach spit toward the ship
++    shelf.Box(new Vector3(-16f, -1.5f, -7f), new Vector3(11f, 2.2f, 9f), Quaternion.Euler(0, 25f, 0), w);                      // final: spit spans −2.6..−0.4 local → bottom under water at every arrival y (1.2–1.5), top ~0.7 above; was a floating slab (bottom +0.3–0.6 world)
+     /* final: short shore strip (~56 wide) that stays inside the arrival frame; sloped rock ends (lying cones), not square slabs */
+     crag.Box(new Vector3(2f, -0.6f, 24f), new Vector3(36f, 3.4f, 12f), w);                                                     // low headland behind the landmark
+     crag.Cyl(new Vector3(-16f, -0.6f, 24f), new Vector3(-27f, -0.9f, 24f), 6f, 0.6f, 10, w);                                   // left end slopes into the sea

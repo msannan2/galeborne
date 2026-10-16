@@ -1,0 +1,23 @@
+{
+  "version": "0.6k-strings",
+  "credits": {
+    "title": "Credits",
+    "lines": [
+      "Galeborne",
+      "A remake of Tradewinds Legends",
+      "",
+      "Ship models: Watercraft Kit by Kenney (kenney.nl)",
+      "Character models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)",
+      "Both are released under CC0 1.0 (public domain). Thank you for sharing them freely.",
+      "",
+      "Ships repainted with the Galeborne colour palette.",
+      "Made with Unity."
+    ]
+  },
+  "strings": {
+    "muscat_shipyard_title": "Muscat Harbour",
+    "muscat_shipyard_subtitle": "No shipwright here. The dock can patch your hull.",
+    "debal_small_hulls": "Small hulls (coming soon)",
+    "topbar_format": "{town} · {coins} coins · Hull {hull}% · Moon {moon}"
+  }
+}

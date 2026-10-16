@@ -1,0 +1,66 @@
+diff -ruN a/Assets/Scripts/GameV06k.cs b/Assets/Scripts/GameV06k.cs
+--- a/Assets/Scripts/GameV06k.cs	2026-10-16 12:19:20.816789716 +0500
++++ b/Assets/Scripts/GameV06k.cs	2026-10-16 12:19:20.828789716 +0500
+@@ -34,6 +34,7 @@
+     seaMarks["Muscat"] = BuildLandmarkMesh("LM_Muscat_Arrive", landmarksSea, LandmarkMuscat, new Vector3(18f, 1.5f, 80f), 0.95f);  // right crag
+     /* k4art patch: arrival copies stand on a low headland, not in open water (matte crag/sand, no glow) */
+     ShoreBase(seaMarks["Gwadar"], "#8A5A3C", "#6B4430"); ShoreBase(seaMarks["Debal"], "#C9A46A", "#A9844F"); ShoreBase(seaMarks["Muscat"], "#ECE6D8", "#B8AE9A");
++    ShorePort(seaMarks["Gwadar"], "Gwadar"); ShorePort(seaMarks["Debal"], "Debal"); ShorePort(seaMarks["Muscat"], "Muscat"); /* designer_arrival_shores */
+ 
+     foreach (var tn in new[] { "Gwadar", "Debal", "Muscat" }) townLayouts[tn] = TownLayoutsK4.Build(tn, townLayoutsRoot, townMat, TU); // k4 layouts (Game Designer)
+ 
+@@ -92,6 +93,43 @@
+     Part("ShoreCrag", crag, cragHex); Part("ShoreShelf", shelf, topHex);
+   }
+ 
++  /* designer_arrival_shores */ /// per-port arrival dressing (children of the arrival copy, built once, matte, static): no two towns alike from sea
++  void ShorePort(GameObject lm, string port) { /* designer_arrival_shores */
++    var src = lm.GetComponent<MeshRenderer>().sharedMaterial; var r = new System.Random(port.GetHashCode() & 0xffff); /* designer_arrival_shores */
++    void Part(string n, MeshB mb, string hex) { var m = new Material(src); ColorUtility.TryParseHtmlString(hex, out var c); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c); if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.08f); if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black); /* designer_arrival_shores */
++      var g = new GameObject(n); g.transform.SetParent(lm.transform, false); g.AddComponent<MeshFilter>().sharedMesh = mb.Build(); g.AddComponent<MeshRenderer>().sharedMaterial = m; } /* designer_arrival_shores */
++    void Hide(string n) { var t = lm.transform.Find(n); if (t) t.gameObject.SetActive(false); } /* designer_arrival_shores */
++    if (port == "Muscat") { /* designer_arrival_shores */ // steep dark cove, cliff behind the houses, no beach, forts high on crags either side of the entrance
++      Hide("ShoreShelf"); /* designer_arrival_shores */ // no beach / quay shelf
++      var mf = lm.GetComponent<MeshFilter>(); var vs = mf.sharedMesh.vertices; for (int i = 0; i < vs.Length; i++) vs[i] += new Vector3(-6f, 8f, 4f); mf.sharedMesh.vertices = vs; mf.sharedMesh.RecalculateBounds(); /* designer_arrival_shores */ // one-time: lift landmark fort onto the left crag top (local y 8)
++      var crag = new MeshB(); var dark = new MeshB(); /* designer_arrival_shores */
++      TownLayoutsK4.BoulderShared(crag, TU, new Vector3(-6f, 2f, 6f), new Vector3(7f, 7f, 6f), r, 6, 8f); /* designer_arrival_shores */ // left entrance crag, flat top at y 8 = fort seat
++      TownLayoutsK4.BoulderShared(dark, TU, new Vector3(17f, 1.5f, 6f), new Vector3(6f, 7f, 5.5f), r, 9, 7f); /* designer_arrival_shores */ // right entrance crag (second fort)
++      TownLayoutsK4.BoulderShared(dark, TU, new Vector3(-19f, 2f, 30f), new Vector3(9f, 10f, 6f), r, 9, 99f); /* designer_arrival_shores */ // cliff straight behind left houses
++      TownLayoutsK4.BoulderShared(crag, TU, new Vector3(4f, 2f, 33f), new Vector3(12f, 11f, 6f), r, 6, 99f); /* designer_arrival_shores */ // cove back wall
++      TownLayoutsK4.BoulderShared(dark, TU, new Vector3(22f, 2f, 30f), new Vector3(8f, 10f, 6f), r, 9, 99f); /* designer_arrival_shores */ // cliff behind right houses
++      var tw = new MeshB(); Rect w = TU((int)TCell.Whitewash); /* designer_arrival_shores */
++      tw.Cyl(new Vector3(17f, 6.6f, 6f), new Vector3(17f, 10.6f, 6f), 1.7f, 1.5f, 10, w); /* designer_arrival_shores */ // small round tower on the right crag
++      for (int k = 0; k < 6; k++) { float a = k * Mathf.PI / 3f; tw.Box(new Vector3(17f + Mathf.Cos(a) * 1.4f, 11f, 6f + Mathf.Sin(a) * 1.4f), new Vector3(0.6f, 0.8f, 0.6f), w); } /* designer_arrival_shores */ // crenels
++      Part("ArrivalCragRock", crag, "#5E574C"); Part("ArrivalCragDark", dark, "#3B3630"); Part("ArrivalTower", tw, "#ECE6D8"); /* designer_arrival_shores */
++    } else if (port == "Gwadar") { /* designer_arrival_shores */ // hammerhead: tall flat-topped cliff block on the left, low narrow sandy neck, low sand right
++      var cliff = new MeshB(); var sand = new MeshB(); /* designer_arrival_shores */
++      TownLayoutsK4.BoulderShared(cliff, TU, new Vector3(-17f, 0f, 20f), new Vector3(9f, 11f, 7f), r, 6, 9f); /* designer_arrival_shores */ // hammerhead block, flat top y 9
++      sand.Box(new Vector3(-5f, -1f, 14f), new Vector3(10f, 1.8f, 3f), Quaternion.Euler(0, -12f, 0), TU((int)TCell.Whitewash)); /* designer_arrival_shores */ // narrow neck, top ~-0.1 → barely above water
++      sand.Box(new Vector3(16f, -1.2f, 12f), new Vector3(16f, 1.9f, 6f), TU((int)TCell.Whitewash)); /* designer_arrival_shores */ // low sand flat right side
++      Part("ArrivalHammerhead", cliff, "#7A4E33"); Part("ArrivalNeck", sand, "#C8A878"); /* designer_arrival_shores */
++    } else if (port == "Debal") { /* designer_arrival_shores */ // flat delta, no rock: low mud/sand banks + dark mangrove scrub on the waterline
++      Hide("ShoreCrag"); /* designer_arrival_shores */ // drop the rock headland entirely
++      var mud = new MeshB(); var mang = new MeshB(); Rect w = TU((int)TCell.Whitewash); /* designer_arrival_shores */
++      mud.Box(new Vector3(2f, -1.3f, 24f), new Vector3(52f, 1.7f, 12f), w); /* designer_arrival_shores */ // flat delta bank where the headland was (top ~+0.4)
++      mud.Box(new Vector3(-14f, -1.4f, 9f), new Vector3(14f, 1.6f, 4f), Quaternion.Euler(0, 8f, 0), w); /* designer_arrival_shores */ // mud flat left
++      mud.Box(new Vector3(17f, -1.4f, 9f), new Vector3(15f, 1.6f, 4f), Quaternion.Euler(0, -6f, 0), w); /* designer_arrival_shores */ // mud flat right
++      for (int k = 0; k < 14; k++) { float x = -24f + k * 3.8f + (float)r.NextDouble(); if (x > -6f && x < 8f) continue; float s = 1.1f + (float)r.NextDouble() * 0.8f; /* designer_arrival_shores */
++        TownLayoutsK4.BoulderShared(mang, TU, new Vector3(x, 0.9f, 13.5f + (float)r.NextDouble() * 2f), new Vector3(s * 1.5f, s * 0.8f, s), r, 13, 2.2f); } /* designer_arrival_shores */ // low scrub clumps, tops ≤2.2 local
++      Part("ArrivalMudBanks", mud, "#8C7350"); Part("ArrivalMangrove", mang, "#2E4A2A"); /* designer_arrival_shores */
++    } /* designer_arrival_shores */
++  } /* designer_arrival_shores */
++
+   void ShowTownLandmark() {
+     if (townMarks.Count == 0) return;
+     string here = S != null && port >= 0 && port < S.ports.Length ? S.ports[port].name : "Gwadar";
+diff -ruN a/Assets/Scripts/TownLayoutsK4.cs b/Assets/Scripts/TownLayoutsK4.cs
+--- a/Assets/Scripts/TownLayoutsK4.cs	2026-10-16 12:19:20.816789716 +0500
++++ b/Assets/Scripts/TownLayoutsK4.cs	2026-10-16 12:19:20.828789716 +0500
+@@ -53,6 +53,7 @@
+       float s = 0.6f + (float)r.NextDouble() * 1.4f; Boulder(mb, tu, c, new Vector3(s, s * 0.7f, s), r, tones[i % tones.Length], 99f); } // scree at the foot
+   }
+   /// Noisy lat-long rock: per-vertex radial jitter + 3 lumps, squashed and clipped flat at maxY.
++  public static void BoulderShared(MeshB mb, Func<int, Rect> tu, Vector3 c, Vector3 rad, System.Random r, int cell, float maxY) { Boulder(mb, tu, c, rad, r, cell, maxY); } /* designer_arrival_shores */
+   static void Boulder(MeshB mb, Func<int, Rect> tu, Vector3 c, Vector3 rad, System.Random r, int cell, float maxY) {
+     const int SEG = 24, RING = 14; var uv = tu(cell); var P = new Vector3[RING + 1, SEG + 1];
+     var lumps = new Vector3[3]; for (int k = 0; k < 3; k++) lumps[k] = new Vector3((float)r.NextDouble() - 0.5f, (float)r.NextDouble() - 0.3f, (float)r.NextDouble() - 0.5f).normalized;

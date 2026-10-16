@@ -1,0 +1,237 @@
+{
+  "_note": "v0.6 additions, same shape as galeborne_settings.json. All sections approved by Jeff on Oct 14.",
+  "weeklyDriftMax": 0.1,
+  "encounterChance": 0.333,
+  "pirateFreeSails": 2,
+  "ambush": {
+    "perThousandCargo": 0.01,
+    "perThousandCoinsAboard": 0.01,
+    "contrabandBonus": 0.05,
+    "fameBonusPerLevel": 0.01,
+    "riskyRouteMult": 2.0,
+    "cap": 0.5,
+    "capAppliedLast": true,
+    "baitMinHoldValuePct": 0.1,
+    "bluffUsesCunning": true,
+    "types": [
+      "fog",
+      "falseDistress",
+      "nightRaid"
+    ],
+    "noRepeatInARow": true,
+    "intimidateFleeAtRatio": 2.0,
+    "intimidateScaleFromRatio": 1.0,
+    "namedAndDesperateNeverFlee": true,
+    "fledPiratesDropLoot": false,
+    "fightCapSeconds": 60,
+    "dangerLabels": {
+      "low": 0.15,
+      "moderate": 0.3,
+      "high": 0.45
+    },
+    "dangerLabelZeroOnPirateFree": true
+  },
+  "market": {
+    "pendingApproval": false,
+    "goodsPerPortMin": 6,
+    "goodsPerPortMax": 8,
+    "alwaysListCarriedGoods": true,
+    "contrabandOnlyInBackAlley": true,
+    "pricesVisibleOnMap": false,
+    "eventsPerPortPerMoon": 1,
+    "shortageMultMin": 2.0,
+    "shortageMultMax": 4.0,
+    "glutMultMax": 0.5,
+    "festivalLuxuryMult": 1.5,
+    "stockRefillWeeks": 3,
+    "foreignShipChance": 0.125,
+    "rumorsAreVague": true
+  },
+  "bank": {
+    "pendingApproval": false,
+    "interestPerMoon": 0.01,
+    "otherPortWithdrawFee": 0.03,
+    "safeFromSinkAndRobbery": true
+  },
+  "moneyLender": {
+    "pendingApproval": false,
+    "firstLoanCap": 500,
+    "maxLoanCap": 20000,
+    "startRatePerMoon": 0.15,
+    "termMoons": 3,
+    "onTimeRaisesCap": true,
+    "onTimeLowersRate": true,
+    "lateSeizesWarehouseFirst": true,
+    "lateSendsDebtCollector": true
+  },
+  "shipwright": {
+    "pendingApproval": false,
+    "repairPerHullPoint": 5,
+    "adRepairDiscount": 0.5,
+    "adRepairPerPortVisit": 1,
+    "resalePct": 0.6,
+    "upgradeTiers": 3,
+    "upgradeKinds": [
+      "hull",
+      "sails",
+      "guns",
+      "hold"
+    ],
+    "tier3DockWeeksMin": 1,
+    "tier3DockWeeksMax": 2,
+    "specialties": {
+      "Gwadar": "hull",
+      "Venice": "guns",
+      "SouthChinaSea": "sails"
+    }
+  },
+  "portGoods": {
+    "Gwadar": {
+      "cheap": [
+        "salt",
+        "dates",
+        "copper",
+        "pearls"
+      ],
+      "want": [
+        "cotton",
+        "indigo",
+        "coffee",
+        "pepper"
+      ]
+    },
+    "Debal": {
+      "cheap": [
+        "cotton",
+        "indigo",
+        "pepper",
+        "tea"
+      ],
+      "want": [
+        "incense",
+        "pearls",
+        "salt",
+        "dates"
+      ]
+    },
+    "Muscat": {
+      "cheap": [
+        "incense",
+        "coffee",
+        "pearls",
+        "dates"
+      ],
+      "want": [
+        "cotton",
+        "silk",
+        "copper",
+        "tea"
+      ]
+    },
+    "_backAlley": {
+      "sells": {
+        "Gwadar": [
+          "gunpowder"
+        ],
+        "Debal": [
+          "rugs"
+        ]
+      },
+      "buysBanned": {
+        "Muscat": [
+          "gunpowder",
+          "rugs"
+        ]
+      }
+    },
+    "_note": "Silk has a buyer in Muscat but no cheap port among these three; it arrives via the foreign ship or the next region."
+  },
+  "adPlacements": [
+    "skipVoyage",
+    "halfPriceRepairOncePerPortVisit",
+    "earlyRumor",
+    "instantTowToPort"
+  ],
+  "ads": {
+    "maxPerPortVisit": 1,
+    "maxPerSession": 3,
+    "maxPerDay": 8,
+    "minSecondsApart": 90,
+    "interstitials": false,
+    "removeAdsGrantsRewards": true,
+    "capsApplyToRemoveAdsBuyers": true
+  },
+  "sailSecondsMin": 12,
+  "sailSecondsMax": 18,
+  "freeFastForwardMult": 2,
+  "prologueDuelUnlosable": true,
+  "forgivingDuelsFirstN": 3,
+  "contraband": {
+    "bannedSellMult": 3.0,
+    "bannedPerUnitSellDrop": 0.01
+  },
+  "opening": {
+    "scripted": true,
+    "buyPort": "Debal",
+    "good": "gunpowder",
+    "banPort": "Muscat",
+    "banForcedOnFirstRun": true,
+    "fallbackShortage": {
+      "port": "Muscat",
+      "good": "copper",
+      "mult": 2.0,
+      "triggerIfNoGunpowderAfterRumorRepeats": 1
+    },
+    "spareGunpowderOnFirstAmbushLoss": true,
+    "targetMult": 3.0,
+    "startWithPrologueDuel": true,
+    "thenPort": "Gwadar",
+    "firstRunCustomsAlwaysPass": true,
+    "customsRiskFromVoyage": 4,
+    "adsUnlockAfterVoyage": 4,
+    "hideWarehouseUntilAfterMuscat": true,
+    "hideTitheUntilAfterMuscat": true,
+    "gunpowderCoinFloor": true,
+    "openingDebalAlleyStocksGunpowder": true,
+    "gunpowderGwadarOnlyAfterOpening": true,
+    "openingDebalGunpowderBuyMult": 1.0,
+    "voyageCountExcludesDuel": true,
+    "firstAmbushOnSailing": 3,
+    "openingSquallNoCargoLoss": true,
+    "openingAmbushNoDefeat": true,
+    "secondRumorOnFirstTavernVisit": true
+  },
+  "goodWantBonus": {
+    "dates": 1.08
+  },
+  "customs": {
+    "baseRisk": 60,
+    "fakersCrate": 25,
+    "templeTithe": 15,
+    "floor": 10,
+    "finePct": 0.1,
+    "repLoss": 10,
+    "fakersCratePrice": 400,
+    "titheCost": 50,
+    "fineCappedAtCoins": true
+  },
+  "act1": {
+    "_note": "v0.6h4: medium goal clears on Muscat gunpowder SALE (not confiscation/tavern). Ally Farida alley/crate -20%. Honor/Fear start 0.",
+    "honorStart": 0,
+    "fearStart": 0,
+    "spareHonor": 1,
+    "drownFear": 1,
+    "rugsBuyMult": 1.0,
+    "rugsMuscatBannedSellMult": 3.0,
+    "turnInCoins": 500,
+    "turnInSultanStanding": 10,
+    "faridaAllyPapersDiscount": 0.2,
+    "jackpotMult": 2.5,
+    "jackpotSpillSeconds": 1.4,
+    "goalMediumOpening": "Get the gunpowder to Muscat.",
+    "goalMediumAfter": "Run Farida's rugs.",
+    "goalLong": "Find out what House Qarin is hoarding.",
+    "goalLongBeforeYusuf": "Who burned your ship? The Qarin seal.",
+    "goalMediumAfterFarida": "Save for a bigger ship."
+  }
+}

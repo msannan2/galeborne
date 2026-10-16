@@ -1,0 +1,10 @@
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -323,6 +323,7 @@
+     /* v0.6i: you-are-here ship marker (~64px at 1080), rotated toward destination or NE */
+     { var here = P(S.ports[port].name); var mtex = Resources.Load<Texture2D>("Art/ui_map_ship_marker"); float ms = 104; /* k4: bigger you-are-here marker */
+       var mr = Px(map, "ShipHere", here.x - ms / 2, here.y - ms / 2, ms, ms);
++      mr.pivot = new Vector2(0.5f, 0.5f); mr.anchoredPosition = new Vector2(here.x, -here.y); /* final: rotate about the marker centre (Px pivot is top-left, so the route heading swung it off the port) */
+       if (mtex) { var mri = mr.gameObject.AddComponent<RawImage>(); mri.texture = mtex; mri.raycastTarget = false; }
+       else { var mi = mr.gameObject.AddComponent<Image>(); mi.sprite = Tri(); mi.color = UITheme.C(T.gold); mi.raycastTarget = false; }
+       float ang = -45f; if (chartDest >= 0 && chartDest != port) { var to = P(S.ports[chartDest].name) - here; ang = Mathf.Atan2(-to.y, to.x) * Mathf.Rad2Deg - 90f; }

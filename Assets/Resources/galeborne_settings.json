@@ -1,0 +1,647 @@
+{
+  "startCoins": 1000,
+  "holdSize": 20,
+  "captain": "Hasan",
+  "perUnitSellDrop": 0.015,
+  "perUnitBuyRise": 0.01,
+  "weeklyDriftMax": 0.1,
+  "pullToBase": 0.25,
+  "cheapMult": 0.75,
+  "wantMult": 1.25,
+  "weeksPerMoon": 4,
+  "moonsPerYear": 12,
+  "encounterChance": 0.333,
+  "pirateFreeSails": 2,
+  "pirateTollPct": 0.1,
+  "pirateWinChance": 0.55,
+  "rumorSpike": 1.4,
+  "weights": {
+    "pirate": 35,
+    "wreck": 20,
+    "merchant": 20,
+    "squall": 15,
+    "rumor": 10
+  },
+  "contraband": {
+    "bannedPortsMin": 1,
+    "bannedPortsMax": 2,
+    "banMoonsMin": 2,
+    "banMoonsMax": 4,
+    "announceWeeksAhead": 1,
+    "bannedSellMult": 3.0,
+    "bannedPerUnitSellDrop": 0.01
+  },
+  "customs": {
+    "baseRisk": 60,
+    "fakersCrate": 25,
+    "templeTithe": 15,
+    "floor": 10,
+    "finePct": 0.1,
+    "repLoss": 10,
+    "fakersCratePrice": 400,
+    "titheCost": 50,
+    "fineCappedAtCoins": true
+  },
+  "warehouse": {
+    "leasePerWeek": 100,
+    "leaseSlots": 50,
+    "buyPrice": 5000,
+    "buySlots": 100,
+    "decayAfterMoons": 3,
+    "decayPerMoon": 0.02
+  },
+  "goods": [
+    {
+      "id": "cotton",
+      "name": "Cotton",
+      "min": 45,
+      "max": 75,
+      "contraband": false
+    },
+    {
+      "id": "salt",
+      "name": "Salt",
+      "min": 35,
+      "max": 55,
+      "contraband": false
+    },
+    {
+      "id": "dates",
+      "name": "Dates",
+      "min": 30,
+      "max": 50,
+      "contraband": false
+    },
+    {
+      "id": "copper",
+      "name": "Copper",
+      "min": 70,
+      "max": 110,
+      "contraband": false
+    },
+    {
+      "id": "coffee",
+      "name": "Coffee",
+      "min": 80,
+      "max": 120,
+      "contraband": false
+    },
+    {
+      "id": "tea",
+      "name": "Tea",
+      "min": 80,
+      "max": 130,
+      "contraband": false
+    },
+    {
+      "id": "pepper",
+      "name": "Pepper",
+      "min": 90,
+      "max": 140,
+      "contraband": false
+    },
+    {
+      "id": "indigo",
+      "name": "Indigo",
+      "min": 110,
+      "max": 170,
+      "contraband": false
+    },
+    {
+      "id": "incense",
+      "name": "Incense",
+      "min": 180,
+      "max": 260,
+      "contraband": false
+    },
+    {
+      "id": "silk",
+      "name": "Silk",
+      "min": 200,
+      "max": 300,
+      "contraband": false
+    },
+    {
+      "id": "pearls",
+      "name": "Pearls",
+      "min": 300,
+      "max": 450,
+      "contraband": false
+    },
+    {
+      "id": "rugs",
+      "name": "Rugs",
+      "min": 150,
+      "max": 230,
+      "contraband": true
+    },
+    {
+      "id": "gunpowder",
+      "name": "Gunpowder",
+      "min": 120,
+      "max": 190,
+      "contraband": true
+    }
+  ],
+  "ports": [
+    {
+      "name": "Debal",
+      "art": "port_debal",
+      "cheap": [
+        "cotton",
+        "indigo",
+        "pepper",
+        "tea"
+      ],
+      "want": [
+        "incense",
+        "pearls",
+        "salt",
+        "dates"
+      ]
+    },
+    {
+      "name": "Gwadar",
+      "art": "port_gwadar",
+      "cheap": [
+        "salt",
+        "dates",
+        "copper",
+        "pearls"
+      ],
+      "want": [
+        "cotton",
+        "indigo",
+        "coffee",
+        "pepper"
+      ]
+    },
+    {
+      "name": "Muscat",
+      "art": "port_muscat",
+      "cheap": [
+        "incense",
+        "coffee",
+        "pearls",
+        "dates"
+      ],
+      "want": [
+        "cotton",
+        "silk",
+        "copper",
+        "tea"
+      ]
+    }
+  ],
+  "sailSecondsMin": 12,
+  "sailSecondsMax": 18,
+  "debugFast": false,
+  "debugFastMultiplier": 6,
+  "combat": {
+    "hasan": {
+      "hull": 100,
+      "sails": 60,
+      "gunsPerSide": 4,
+      "crew": 20,
+      "speed": 8,
+      "reload": 4
+    },
+    "pirate": {
+      "hull": 80,
+      "sails": 50,
+      "gunsPerSide": 3,
+      "crew": 16,
+      "speed": 8,
+      "reload": 5
+    },
+    "ammo": [
+      {
+        "name": "Round",
+        "hull": 6,
+        "sails": 1,
+        "guns": 2,
+        "crew": 1,
+        "range": 120
+      },
+      {
+        "name": "Chain",
+        "hull": 1,
+        "sails": 8,
+        "guns": 0,
+        "crew": 0,
+        "range": 80
+      },
+      {
+        "name": "Grape",
+        "hull": 0,
+        "sails": 1,
+        "guns": 0,
+        "crew": 3,
+        "range": 50
+      },
+      {
+        "name": "Fire",
+        "hull": 3,
+        "sails": 2,
+        "guns": 0,
+        "crew": 1,
+        "range": 60
+      }
+    ],
+    "wind": {
+      "running": 1.0,
+      "broadReach": 1.1,
+      "beam": 0.9,
+      "closeHauled": 0.5,
+      "intoWind": 0.1
+    },
+    "speedScale": 0.6,
+    "turnRate": 22,
+    "halfSailMult": 0.6,
+    "accel": 0.5,
+    "startRangeMin": 160,
+    "startRangeMax": 240,
+    "escapeRange": 400,
+    "fleeSpeedMult": 0.85,
+    "encounterFleeBase": 0.35,
+    "breachBelowHull": 0.5,
+    "aimAssistAcc": 0.45,
+    "aimAssistDamageMult": 3.0,
+    "aimAssistFirstFights": 5,
+    "breachOpenSeconds": 6,
+    "breachEverySeconds": 15,
+    "breachDamageMult": 2.0,
+    "tollSeconds": 140,
+    "chainStopChance": 0.9,
+    "tollLootFrac": 0.5,
+    "baseAcc": 0.6,
+    "upwindAccBonus": 0.15,
+    "matchAccBonus": 0.1,
+    "accPenaltyPer10mPastHalf": 0.01,
+    "minAcc": 0.1,
+    "arcDeg": 50,
+    "aimedPartMult": 1.5,
+    "damageScale": 0.14,
+    "gunHpPerGun": 10,
+    "sailDmgPerSpeedStep": 10,
+    "speedLossPerStep": 0.1,
+    "disableSails": 10,
+    "crewReloadPenalty": 0.5,
+    "injuredReloadMult": 1.25,
+    "fireBurnPerSec": 1,
+    "fireBurnSecs": 8,
+    "fireDouseFromTick": 3,
+    "fireDouseChance": 0.5,
+    "firePerBattle": 1,
+    "boardRange": 15,
+    "duelZoneBase": 0.2,
+    "duelZonePerCombat": 0.05,
+    "bladeBonus": 0.05,
+    "crewAdvantageBonus": 0.05,
+    "hasanCombat": 1,
+    "hasanHasBlade": true,
+    "duelRounds": 3,
+    "ringSeconds": 1.4,
+    "avgPlayerHitPerZone": 2.3,
+    "pirateDuelHit": 0.3,
+    "enemyFleeHull": 0.15,
+    "fleeBase": 0.2,
+    "fleeWindWeight": 0.35,
+    "tollCargoPct": 0.1,
+    "maxFightSeconds": 400,
+    "sinkCargoPct": 0.3,
+    "sinkCoinsMin": 50,
+    "sinkCoinsMax": 150,
+    "disableRareChance": 0.2,
+    "ransom": 300,
+    "bounty": 200,
+    "prizeShipCoins": 600,
+    "loseCargoPct": 0.3,
+    "loseCrewInjuredPct": 0.25,
+    "postLossSafeSails": 3,
+    "charms": [
+      "Pirate's Lucky Tooth",
+      "Blackwater Compass",
+      "Gull-Feather Amulet",
+      "Cracked Mirror (bad omen)"
+    ],
+    "fleeQuietSeconds": 8.0,
+    "bots": [
+      {
+        "name": "good play",
+        "reactionSeconds": 0.1,
+        "headingNoiseDeg": 0,
+        "wrongAmmoChance": 0,
+        "wrongAimChance": 0,
+        "duelHitMult": 1.0,
+        "fireReactionSeconds": 0,
+        "boardDisabledChance": 0.7,
+        "usesFire": true,
+        "avoidsWind": true,
+        "planSink": 0.35,
+        "planDismast": 0.25,
+        "planCrew": 0.15,
+        "planBoard": 0.25,
+        "planGiveUpSeconds": 150,
+        "novice": false
+      },
+      {
+        "name": "sloppy beginner",
+        "reactionSeconds": 1.5,
+        "headingNoiseDeg": 35,
+        "wrongAmmoChance": 0.3,
+        "wrongAimChance": 0.6,
+        "duelHitMult": 0.9,
+        "fireReactionSeconds": 1.2,
+        "boardDisabledChance": 0.3,
+        "usesFire": false,
+        "avoidsWind": false,
+        "planSink": 0.5,
+        "planDismast": 0.2,
+        "planCrew": 0.1,
+        "planBoard": 0.2,
+        "planGiveUpSeconds": 150,
+        "novice": true
+      }
+    ],
+    "pirateTiers": [
+      {
+        "name": "early",
+        "reactionSeconds": 0.1,
+        "headingNoiseDeg": 0,
+        "accBonus": 0.15,
+        "damageMult": 1.5,
+        "captainCombat": 2,
+        "seeksUpwind": true,
+        "usesFire": true,
+        "usesChain": true,
+        "usesGrape": true,
+        "boardsWhenStronger": false,
+        "boardCrewRatio": 1.0,
+        "standoffBelowCrew": 0.9
+      },
+      {
+        "name": "late",
+        "reactionSeconds": 0.1,
+        "headingNoiseDeg": 0,
+        "accBonus": 0.2,
+        "damageMult": 1.75,
+        "captainCombat": 2.5,
+        "seeksUpwind": true,
+        "usesFire": true,
+        "usesChain": true,
+        "usesGrape": true,
+        "boardsWhenStronger": true,
+        "boardCrewRatio": 0.75,
+        "standoffBelowCrew": 0.9
+      }
+    ],
+    "earlyPirateUntilSail": 20,
+    "surrenderCrewFrac": 0.3,
+    "noviceDuelBonus": 0.15,
+    "noviceDuels": 3,
+    "strongboxMin": 150,
+    "strongboxMax": 300,
+    "surrenderCrewJoinChance": 0.3,
+    "difficulties": [
+      {
+        "name": "Relaxed",
+        "aimAssistAcc": 0.45,
+        "aimAssistDamageMult": 3.0,
+        "pirateDamageMult": 0.85,
+        "lateDamageMult": 1.0,
+        "lateUsesEarlyTactics": true
+      },
+      {
+        "name": "Captain",
+        "aimAssistAcc": 0.5,
+        "aimAssistDamageMult": 3.5,
+        "pirateDamageMult": 0.95,
+        "lateDamageMult": 0.8,
+        "lateUsesEarlyTactics": false
+      },
+      {
+        "name": "Hard",
+        "aimAssistAcc": 0.0,
+        "aimAssistDamageMult": 1.0,
+        "pirateDamageMult": 1.1,
+        "lateDamageMult": 1.0,
+        "lateUsesEarlyTactics": false
+      }
+    ],
+    "lateFame": 5,
+    "assistFloor": 0.55,
+    "assistFadeFrom": 0.45,
+    "assistFadeSpan": 0.2
+  },
+  "sellSpread": 0.85,
+  "ambush": {
+    "perThousandCargo": 0.01,
+    "perThousandCoinsAboard": 0.01,
+    "contrabandBonus": 0.05,
+    "fameBonusPerLevel": 0.01,
+    "riskyRouteMult": 2.0,
+    "cap": 0.5,
+    "capAppliedLast": true,
+    "baitMinHoldValuePct": 0.1,
+    "bluffUsesCunning": true,
+    "types": [
+      "fog",
+      "falseDistress",
+      "nightRaid"
+    ],
+    "noRepeatInARow": true,
+    "intimidateFleeAtRatio": 2.0,
+    "intimidateScaleFromRatio": 1.0,
+    "namedAndDesperateNeverFlee": true,
+    "fledPiratesDropLoot": false,
+    "fightCapSeconds": 60,
+    "dangerLabels": {
+      "low": 0.15,
+      "moderate": 0.3,
+      "high": 0.45
+    },
+    "dangerLabelZeroOnPirateFree": true
+  },
+  "market": {
+    "pendingApproval": false,
+    "goodsPerPortMin": 6,
+    "goodsPerPortMax": 8,
+    "alwaysListCarriedGoods": true,
+    "contrabandOnlyInBackAlley": true,
+    "pricesVisibleOnMap": false,
+    "eventsPerPortPerMoon": 1,
+    "shortageMultMin": 2.0,
+    "shortageMultMax": 4.0,
+    "glutMultMax": 0.5,
+    "festivalLuxuryMult": 1.5,
+    "stockRefillWeeks": 3,
+    "foreignShipChance": 0.125,
+    "rumorsAreVague": true
+  },
+  "bank": {
+    "pendingApproval": false,
+    "interestPerMoon": 0.01,
+    "otherPortWithdrawFee": 0.03,
+    "safeFromSinkAndRobbery": true
+  },
+  "moneyLender": {
+    "pendingApproval": false,
+    "firstLoanCap": 500,
+    "maxLoanCap": 20000,
+    "startRatePerMoon": 0.15,
+    "termMoons": 3,
+    "onTimeRaisesCap": true,
+    "onTimeLowersRate": true,
+    "lateSeizesWarehouseFirst": true,
+    "lateSendsDebtCollector": true
+  },
+  "adPlacements": [
+    "skipVoyage",
+    "halfPriceRepairOncePerPortVisit",
+    "earlyRumor",
+    "instantTowToPort"
+  ],
+  "ads": {
+    "maxPerPortVisit": 1,
+    "maxPerSession": 3,
+    "maxPerDay": 8,
+    "minSecondsApart": 90,
+    "interstitials": false,
+    "removeAdsGrantsRewards": true,
+    "capsApplyToRemoveAdsBuyers": true
+  },
+  "freeFastForwardMult": 2,
+  "prologueDuelUnlosable": true,
+  "forgivingDuelsFirstN": 3,
+  "shipwright": {
+    "pendingApproval": false,
+    "repairPerHullPoint": 5,
+    "adRepairDiscount": 0.5,
+    "adRepairPerPortVisit": 1,
+    "resalePct": 0.6,
+    "upgradeTiers": 3,
+    "upgradeKinds": [
+      "hull",
+      "sails",
+      "guns",
+      "hold"
+    ],
+    "tier3DockWeeksMin": 1,
+    "tier3DockWeeksMax": 2,
+    "specialtyList": [
+      {
+        "port": "Gwadar",
+        "kind": "hull"
+      },
+      {
+        "port": "Venice",
+        "kind": "guns"
+      },
+      {
+        "port": "SouthChinaSea",
+        "kind": "sails"
+      }
+    ],
+    "specialties": {
+      "Gwadar": "hull",
+      "Venice": "guns",
+      "SouthChinaSea": "sails"
+    }
+  },
+  "opening": {
+    "scripted": true,
+    "buyPort": "Debal",
+    "good": "gunpowder",
+    "banPort": "Muscat",
+    "banForcedOnFirstRun": true,
+    "fallbackShortage": {
+      "port": "Muscat",
+      "good": "copper",
+      "mult": 2.0,
+      "triggerIfNoGunpowderAfterRumorRepeats": 1
+    },
+    "spareGunpowderOnFirstAmbushLoss": true,
+    "targetMult": 3.0,
+    "startWithPrologueDuel": true,
+    "thenPort": "Gwadar",
+    "firstRunCustomsAlwaysPass": true,
+    "customsRiskFromVoyage": 4,
+    "adsUnlockAfterVoyage": 4,
+    "hideWarehouseUntilAfterMuscat": true,
+    "hideTitheUntilAfterMuscat": true,
+    "gunpowderCoinFloor": true,
+    "openingDebalAlleyStocksGunpowder": true,
+    "gunpowderGwadarOnlyAfterOpening": true,
+    "openingDebalGunpowderBuyMult": 1.0,
+    "voyageCountExcludesDuel": true,
+    "firstAmbushOnSailing": 3,
+    "openingSquallNoCargoLoss": true,
+    "openingAmbushNoDefeat": true,
+    "secondRumorOnFirstTavernVisit": true
+  },
+  "goodWantBonus": {
+    "dates": 1.08
+  },
+  "portGoods": {
+    "Gwadar": {
+      "cheap": [
+        "salt",
+        "dates",
+        "copper",
+        "pearls"
+      ],
+      "want": [
+        "cotton",
+        "indigo",
+        "coffee",
+        "pepper"
+      ]
+    },
+    "Debal": {
+      "cheap": [
+        "cotton",
+        "indigo",
+        "pepper",
+        "tea"
+      ],
+      "want": [
+        "incense",
+        "pearls",
+        "salt",
+        "dates"
+      ]
+    },
+    "Muscat": {
+      "cheap": [
+        "incense",
+        "coffee",
+        "pearls",
+        "dates"
+      ],
+      "want": [
+        "cotton",
+        "silk",
+        "copper",
+        "tea"
+      ]
+    },
+    "_backAlley": {
+      "sells": {
+        "Gwadar": [
+          "gunpowder"
+        ],
+        "Debal": [
+          "rugs"
+        ]
+      },
+      "buysBanned": {
+        "Muscat": [
+          "gunpowder",
+          "rugs"
+        ]
+      }
+    },
+    "_note": "Silk has a buyer in Muscat but no cheap port among these three; it arrives via the foreign ship or the next region."
+  }
+}

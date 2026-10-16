@@ -1,0 +1,49 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -288,7 +288,9 @@
+       if (alleyPaint != null) { var abg = Stretch(main, "AlleyBg", 0, 0, 0, 0); abg.SetAsFirstSibling(); var ari = abg.gameObject.AddComponent<RawImage>(); ari.texture = alleyPaint; ari.raycastTarget = false; }
+       var led = Stretch(main, "Panel", alleyPaint != null ? 20 : 0, 96, alleyPaint != null ? 20 : 0, alleyPaint != null ? 12 : 0); var ledImg = Box(led, T.ledgerBg, T.frame); if (alleyPaint != null) { var lc = ledImg.color; lc.a = 0.80f; ledImg.color = lc; } /* v0.6h4: ~80% opaque so alley painting shows through */ parch = tab != 0; /* cream parchment for every keeper screen */
+       Btn(main, "‹  Town", 0, 0, 260, 84, () => { tab = -1; Refresh(); });
++      bool parchHdr = parch; parch = false; /* art_t6_fixes: tab header sits on the town backdrop, not the parchment - keep T.parchment light (parch mapped it to dark ledger ink on every tab but Market) */
+       Label(main, tab == 7 && (S.ports[port].name == "Muscat" || ShipwrightMode(S.ports[port].name) == "none") ? "Harbour Master" : TabNames[tab], 290, 0, 740, 84, /* researcher_harbour_tab: same rule as GameTown.cs L426 */ T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
++      parch = parchHdr; /* art_t6_fixes */
+       try { switch (tab) { case 0: Market(led); break; case 1: Alley(led); break; case 2: Ware(led); break; case 3: Temple(led); break; case 4: ChartScreen(led); break; case 5: BankScreen(led); break; case 6: LenderScreen(led); break; case 7: ShipwrightScreen(led); break; case 8: ParchFill(led); TavernScreen(led); break; case 9: PalaceScreen(led); break; } } finally { parch = false; }
+     }
+     var ml = R(content, "Msg", 0, 0, 1, 0); ml.pivot = new Vector2(.5f, 0); ml.offsetMin = new Vector2(16, 16); ml.offsetMax = new Vector2(-16, 112); Box(ml, T.panel, T.brass);
+@@ -322,7 +324,7 @@
+     Label(led, $"{S.ports[port].name} Market", 30, 14, 700, 76, T.fontSizeTitle + 10, T.ledgerInk, TextAnchor.MiddleLeft, true);
+     Label(led, DateStr, 640, 30, 360, 44, T.fontSizeSmall - 2, T.ledgerMuted, TextAnchor.MiddleRight);
+     Box(Px(led, "rule", 20, 96, 992, 3), T.ledgerRule);
+-    var vp = Stretch(led, "Viewport", 8, 104, 8, 8); vp.gameObject.AddComponent<RectMask2D>();
++    var vp = Stretch(led, "Viewport", 8, 104, 8, 8); vp.anchorMin = new Vector2(0, 1); vp.offsetMin = new Vector2(8, -1184); /* art_t6_fixes: list ends at y 1184, 16 px above the fixed Ask about work button (y 1200) */ vp.gameObject.AddComponent<RectMask2D>();
+     var mg = MarketGoods(port); float rh = 150; var list = Px(vp, "Rows", 0, 0, 1032, rh * mg.Count);
+     marketSR = led.gameObject.AddComponent<ScrollRect>(); marketSR.viewport = vp; marketSR.content = list; marketSR.horizontal = false; marketSR.movementType = ScrollRect.MovementType.Clamped;
+     marketSR.scrollSensitivity = 40; marketSR.verticalNormalizedPosition = marketScroll; marketSR.onValueChanged.AddListener(v => marketScroll = v.y);
+@@ -511,7 +513,7 @@
+     float bodyH = CardBodyH(body, 700f); /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
+-    float panelH = y + 84 + (wide ? 40 : 20); /* tight to buttons — no half-empty card */
++    float panelH = y + 84 + (wide ? 40 : opts.Length == 3 ? 110 : 20); /* art_t6_fixes: 3-button cards (difficulty) clear the bottom brackets; 1–2 and 4+ button cards unchanged */ /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -294,13 +294,13 @@
+   void ShowCredits(bool fromOptions = false) { /* back_market_t6 */
+     if (creditsCard != null) return; creditsFromOptions = fromOptions; /* back_market_t6 */ /* final credits_modal: a second open while one is showing is ignored (double tap stacked two panels) */
+     const string body = "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.";
+-    float bodyH = CardBodyH(body, 780f), by = 106 + bodyH + 20, panelH = by + 84 + 28; /* final credits_modal: 780 like Ask() */
++    float bodyH = CardBodyH(body, 700f), by = 106 + bodyH + 20, panelH = by + 84 + 110; /* art_t6_fixes: body measured at x 100–800; Close lifted ~110 px off the bottom brackets */ /* final credits_modal: 780 like Ask() */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var dim = ModalDim("CreditsDim"); creditsDim = dim; /* final modal_queue_back: shared ModalDimColor */ /* blocks Options/Journal taps behind the card */
+     var cp = Px(root, "Dialog", 90, top, 900, panelH); creditsCard = cp; dialog = cp; Box(cp, T.panel, T.gold); dim.SetAsLastSibling(); cp.SetAsLastSibling();
+     Label(cp, "Credits", 100, 16, 700, 52, /* final2: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
+-    Label(cp, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
+-    Btn(cp, "Close", 150, by, 600, 84, () => CloseCredits(), true, true); PushBack("Credits", () => creditsCard != null, CloseCredits); /* final modal_queue_back: DISMISSABLE */
++    Label(cp, body, 100, 106, 700, bodyH, /* art_t6_fixes: like Ask() */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
++    Btn(cp, "Close", 250, by, 400, 84, /* art_t6_fixes: centred, x 250–650 */ () => CloseCredits(), true, true); PushBack("Credits", () => creditsCard != null, CloseCredits); /* final modal_queue_back: DISMISSABLE */
+   }
+ }
+ public partial class Game {

@@ -1,0 +1,65 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -506,16 +506,16 @@
+   IEnumerator AskCore(bool dismissable, string title, string body, (string, Action)[] opts) {
+     while (CardBusy) yield return null; /* final modal_queue_back: queue - wait for any open card (Ask/AskCard/Credits/QuestMenu); checked before this card exists, so it never waits on itself */
+     /* v0.6k3: panel height fits title+body+buttons (no half-empty storm/voyage card) */
+-    float bodyH = CardBodyH(body, 780f); /* final3: measured at the inset width (780 = 840 − 2×30) */
++    float bodyH = CardBodyH(body, 700f); /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
+-    float panelH = y + 84 + (wide ? 40 : 20); /* tight to buttons — no half-empty card */
++    float panelH = y + 84 + 110; /* art_t5_fixes: ~110 px under the buttons, clear of the bottom brackets */ /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+-    Label(my, title, 100, 16, 700, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass); /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
+-    Label(my, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
+-    y = 106 + bodyH + 20; float bx = wide ? 120f : 95f, w = ((wide ? 660f : 710f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
++    Label(my, title, 112, 16, 676, 52, /* art_t5_fixes: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass); /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
++    Label(my, body, 100, 106, 700, bodyH, /* art_t5_fixes: x 100–800, clear of both side bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
++    y = 106 + bodyH + 20; float bx = wide ? 120f : 100f /* art_t5_fixes */, w = ((wide ? 660f : 700f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
+     for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, bx + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+     finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -150,14 +150,14 @@
+     opts = opts.Where(o => o.Item1 != null).ToArray(); bool done = false;
+     while (CardBusy) yield return null; /* final modal_queue_back: queue (never waits on itself) */
+     int perRow = opts.Length > 3 ? 3 : opts.Length, rows = Mathf.Max(1, (opts.Length + perRow - 1) / Mathf.Max(1, perRow)); /* final: card sized to its measured body (was a fixed 330 px body box, leaving a gap above the buttons) */
+-    float bodyH = Mathf.Min(330f, CardBodyH(body, 800f)) /* art_t4_fixes: measured at the inset width */, btnY = 104 + bodyH + 24, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 30);
++    float bodyH = Mathf.Min(330f, CardBodyH(body, 800f)) /* art_t4_fixes: measured at the inset width */, btnY = 104 + bodyH + 24, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 110); /* art_t5_fixes: ~110 px under the last button row, clear of the bottom brackets */
+     var myDim = ModalDim("CardDim"); modalDepth++; cardSeq++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = R(root, "Card", 0, 0, 1, 0); dialog = my; my.pivot = new Vector2(0.5f, 0); my.offsetMin = new Vector2(30, 30); my.offsetMax = new Vector2(-30, 30 + cardH); Box(my, T.panel, T.gold); var be = PushBack(title, () => my != null, null); /* final modal_queue_back: AskCard is always FORCED */
+     var inner = R(my, "in", 0.5f, 1, 0.5f, 1); inner.sizeDelta = new Vector2(1000, cardH); inner.pivot = new Vector2(0.5f, 1); inner.anchoredPosition = Vector2.zero;
+     Label(inner, title, 100, 20, 800, 64, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(inner, "rule", 30, 90, 940, 2), T.brass);
+     Label(inner, body, 100, 104, 800, bodyH, /* art_t4_fixes: x 100–900, clear of the bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft);
+-    float w = (810f - (perRow - 1) * 16) / Mathf.Max(1, perRow); /* final2: title and buttons inset to x 95–905 so no button corner sits on a brass bracket (5-button ambush) */
+-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; Btn(inner, o.Item1, 95 + col * (w + 16), btnY + row * 124, w, 108, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
++    float w = (800f - (perRow - 1) * 16) / Mathf.Max(1, perRow); /* art_t5_fixes: buttons x 100–900 inside the 1000-wide card */ /* final2: title and buttons inset to x 95–905 so no button corner sits on a brass bracket (5-button ambush) */
++    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; Btn(inner, o.Item1, 100 + col * (w + 16) /* art_t5_fixes */, btnY + row * 124, w, 108, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+     finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } }
+   int cardSeq; /* final modal_queue_back: bumped when an AskCard actually builds its card (PortraitCard waits for it) */ /* final ask_modal: own panel + own dim only (was: destroyed whatever dialog pointed at) */
+@@ -363,7 +363,8 @@
+     Label(ci, bannedHere.Count > 0 ? $"Banned on arrival (back alley pays ×{S.contraband.bannedSellMult:0}): " + string.Join(", ", bannedHere) : "No bans reported.", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 58;
+     if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.text); y += 58; }
+     bool carries = Enumerable.Range(0, S.goods.Length).Any(g => hold[g] > 0 && bannedHere.Contains(S.goods[g].name));
+-    Label(ci, (carries ? ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Farida's papers: customs will wave you through this time</color>   " : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>   ") : "") + "Prices unknown until you dock." + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 70;
++    if (carries) { Label(ci, (InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Farida's papers: customs will wave you through this time</color>" : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>", 100, y, 848, 56, T.fontSizeSmall, T.textMuted); y += 58; } /* art_t5_fixes: customs/Farida line on its own row so "Prices unknown" never squeezes against it */
++    Label(ci, "Prices unknown until you dock." /* art_t5_fixes */ + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 70;
+     float routeH = Mathf.Max(cardH, y + 140 + 24); card.offsetMax = new Vector2(-16, 16 + routeH); ci.sizeDelta = new Vector2(1048, routeH); /* final2: card sized to its content (was fixed 640 with Set Sail pinned at 470 → big empty gap); never shorter than the chart cut-out */
+     SetSailBtn(ci, 100, y, 848, 140, /* final3: x 100–948 so the rope ends clear the bottom brackets */ $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
+   }
+--- a/Assets/Scripts/GameSave.cs
++++ b/Assets/Scripts/GameSave.cs
+@@ -67,6 +67,7 @@
+     if (has) { Btn(pnl, "Continue", 120, y, 560, 110, () => { if (!Load()) { saveBroken = true; ShowTitle(); return; } onTitle = false; Refresh(); }, true, true); y += 140; }
+     Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); difficulty = 1; /* final ask_modal: new game defaults to Captain (middle) even if the difficulty card is never answered */ prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
+       ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }, true, !has);
+-    Btn(pnl, "Credits", 250, 548, 300, 62, () => ShowCredits());
++    float cy = y + 130; Btn(pnl, "Credits", 250, cy, 300, 62, () => ShowCredits()); /* art_t5_fixes: 20 px under New Game */
++    pnl.sizeDelta = new Vector2(800, Mathf.Max(620f, cy + 62 + 110)); /* art_t5_fixes: frame grows so Credits clears the ~110 px bottom brackets */
+   }
+ }

@@ -1,0 +1,72 @@
+== Data/settings consistency ==
+ MISMATCH: Resources portGoodsV06[Gwadar] stale vs v06_settings: None
+ MISMATCH: Resources portGoodsV06[Debal] stale vs v06_settings: None
+ MISMATCH: Resources portGoodsV06[Muscat] stale vs v06_settings: None
+ MISMATCH: Resources portGoodsV06._backAlley old format/contents: None
+ settings used: bannedSellMult=3.0, bannedPerUnitSellDrop=0.01, goodWantBonus={'dates': 1.08}, opening.scripted=True, fallback={'port': 'Muscat', 'good': 'copper', 'mult': 2.0, 'triggerIfNoGunpowderAfterRumorRepeats': 1}
+
+== 1. Market year sim (drift = Game.NewWeek; trade = GameSheet CostOf/RevenueOf; events per v06_market_events_data) ==
+ seeds=500 x 52 weeks; max price/base ever = 1.30 (clamp 0.5-2.0, pullToBase 0.25) -> no runaway: PASS
+  Gwadar->Debal  salt     full-hold(20) profitable  81.8%
+  Gwadar->Debal  dates    full-hold(20) profitable  93.9%
+  Gwadar->Debal  pearls   full-hold(20) profitable  84.9%
+  Gwadar->Muscat copper   full-hold(20) profitable  84.7%
+   Debal->Gwadar cotton   full-hold(20) profitable  83.0%
+   Debal->Gwadar indigo   full-hold(20) profitable  86.8%
+   Debal->Gwadar pepper   full-hold(20) profitable  86.1%
+   Debal->Muscat cotton   full-hold(20) profitable  82.5%
+   Debal->Muscat tea      full-hold(20) profitable  86.8%
+  Muscat->Gwadar coffee   full-hold(20) profitable  85.3%
+  Muscat->Debal  incense  full-hold(20) profitable  82.2%
+  Muscat->Debal  pearls   full-hold(20) profitable  82.5%
+  Muscat->Debal  dates    full-hold(20) profitable  93.8%
+ routes >=80% profitable: PASS
+ dates want bonus applied: 1.08 -> dates routes: Gwadar->Debal 93.9%, Muscat->Debal 93.8%
+ goods with no legal route: ['silk'] (silk exempt) -> PASS
+ contraband routes via back alley: ['gunpowder', 'rugs']
+ shortage jackpot (70 units stockpiled at cheapest base, sold into shortage): multiple median 1.79x p99 2.68x max 3.07x; profit median 5,682 max 54,735 coins (start coins 1000)
+  worst case: dates into Debal
+ events per port per moon: Gwadar 1.00, Debal 1.00, Muscat 1.00  types {'glut': 5839, 'shortage': 6301, 'festival': 4047, 'blockade': 2873, 'sultanWedding': 440}; foreignShip extra 0.125 per dock
+ NOTE: events above are simulated from the data file / v0.6 settings; confirm Game.cs wires the same when reviewing v0.6c.
+
+== 2. Ambush odds ==
+ base=0.333 (target 1/3) PASS; cap is last step: PASS
+ worst case (2000 cargo,2000 coins,contraband,fame5,risky): raw 0.946 -> 0.500 PASS
+ scaling: cargo+1000 +0.000, coins+1000 +0.010, contraband +0.050, fame/level +0.010, risky clean 0.500
+  wrong-order check (cap before x2) would give 0.946 -> cap-last matters
+ WARNING: data says per1000Units of cargo, but GameTown.AmbushChance uses cargo VALUE (coins); holdSize=20 units so per-units makes cargo meaningless (20 units -> +0.0002). Worst-case note in data assumes 2000 "cargo". Pick one: value.
+ LIVE Game.Voyage (source scan): ambush rolled from AmbushChanceFor(to) and Rnd.value < ap: PASS
+ LIVE AmbushChanceFor(): handles rollOrder steps ['base', 'addCargoValue', 'addCoinsAboard', 'addContraband', 'addFame', 'multiplyRiskyRoute', 'cap']; missing none; risky via RiskyRoute: PASS; cap via Mathf.Min: PASS -> PASS
+ LIVE bait/bluff in Scripts (source scan): bait PASS, bluff PASS
+ pirate-free (source scan): Voyage() free when sails<=pirateFreeSails after sails++: PASS; town label sails+1<=pirateFreeSails: PASS; chart label: PASS
+ danger bands: town [] vs chart [] -> PASS
+ safeUntilSail honoured by town label: PASS
+ type split nominal {'fog': 40, 'falseDistress': 30, 'nightRaid': 30} -> effective with no-repeat {fog: 36.5%, falseDistress: 31.7%, nightRaid: 31.8%}, repeats=0 PASS (note: no-repeat flattens 40/30/30 to ~36/32/32)
+ bait min 10% of hold value (spec 10%) PASS in data; code: implemented (see LIVE bait/bluff line).
+
+== 3. Gunpowder opening (first-run vs voyage-4+) ==
+ customs risk (later runs): base 60%, Faker's Crate 35%, +tithe 20%
+ banned sell: mult=3.0, drop=1.0%/unit; targetMult=3.0
+ opening keys: startWithPrologueDuel=True thenPort=Gwadar buyPort=Debal firstRunCustomsAlwaysPass=True customsRiskFromVoyage=4 adsUnlockAfterVoyage=4 hideWarehouse=True hideTithe=True gunpowderCoinFloor=True openingDebalAlleyStocksGunpowder=True gunpowderGwadarOnlyAfterOpening=True openingDebalGunpowderBuyMult=1.0
+ all expected opening keys present in v06_settings
+ FIRST RUN (Debal back alley buyMult=1.0, Muscat 3.0x, customs always pass, tithe=hidden, warehouse=hidden):
+  avg units 5.9/20, avg goods cost 921, clean sale/cost 2.85x, return on outlay 2.85x, expected (customs pass) 2.85x -> target ~3x PASS
+  coin floor (True): without floor avg units 5.9, zero-load rate 0.0%; with floor avg top-up 0 coins, avg units 5.9 -> meaningful load (>=3u) PASS
+ LATER RUNS (voyage 4+: Gwadar buyMult=1.0, customs risk 20%, tithe+2wk lease):
+  avg units 4.3, clean sale/cost 2.89x, clean on outlay 2.11x, expected on outlay 1.69x -> ~2x target CHECK
+ NOTE: openingDebalAlleyStocksGunpowder=true but portGoods._backAlley.sells.Debal=['rugs'] (opening override; Game.cs must honor opening flag)
+ sell path OK: Muscat buysBanned includes gunpowder; post-opening Gwadar-only=True (Gwadar alley sells ['gunpowder'])
+
+== 4. Opening copper shortage fallback (v06 opening.fallbackShortage) ==
+ fallback: forced 2.0x shortage of copper in Muscat if no gunpowder after 1 rumor repeat(s)
+  good exists: True; Gwadar cheap lists copper: True; Muscat wants copper: True -> PASS
+ copper fallback sim (20000 seeds): buy copper in Gwadar (cheapMult), sell in Muscat at want x 2.0 shortage; clean sale/cost 2.50x, return on outlay (2wk lease) 1.98x
+  PASS (design: ~2.0x shortage should clear ~2x gross before spread/drop)
+
+== SUMMARY ==
+ FIRST RUN gunpowder: sale/cost 2.85x, outlay 2.85x, expected 2.85x, units 5.9
+ LATER RUNS gunpowder: sale/cost 2.89x, outlay 2.11x, expected 1.69x (risk 20%)
+ opening keys missing: none
+ dates profitability: Gwadar->Debal 93.9%, Muscat->Debal 93.8% (target >=80%: PASS)
+ copper fallback: 2.50x sale/cost, 1.98x on outlay
+ mismatches (4): Resources portGoodsV06[Gwadar] stale vs v06_settings: None; Resources portGoodsV06[Debal] stale vs v06_settings: None; Resources portGoodsV06[Muscat] stale vs v06_settings: None; Resources portGoodsV06._backAlley old format/contents: None

@@ -1,0 +1,75 @@
+{
+  "_note": "Ambush roll order. $ keys read from v06_settings.json at load. Card text lives in v06_events_content.json.",
+  "pirateFreeVoyages": "$pirateFreeSails",
+  "rollOrder": [
+    {
+      "step": "base",
+      "value": "$encounterChance"
+    },
+    {
+      "step": "addCargoValue",
+      "per1000CoinsOfCargoValue": "$ambush.perThousandCargo",
+      "basis": "hold value in coins at departure prices, not units"
+    },
+    {
+      "step": "addCoinsAboard",
+      "per1000Coins": "$ambush.perThousandCoinsAboard"
+    },
+    {
+      "step": "addContraband",
+      "ifCarrying": true,
+      "value": "$ambush.contrabandBonus"
+    },
+    {
+      "step": "addFame",
+      "perLevel": "$ambush.fameBonusPerLevel"
+    },
+    {
+      "step": "multiplyRiskyRoute",
+      "value": "$ambush.riskyRouteMult"
+    },
+    {
+      "step": "cap",
+      "value": "$ambush.cap",
+      "mustBeLast": "$ambush.capAppliedLast"
+    }
+  ],
+  "typePick": {
+    "pool": "$ambush.types",
+    "weights": {
+      "fog": 40,
+      "falseDistress": 30,
+      "nightRaid": 30
+    },
+    "noRepeatInARow": "$ambush.noRepeatInARow",
+    "nightRaidOnlyIfDockedAtNight": false
+  },
+  "playerResponses": {
+    "bait": {
+      "minCostPctOfHold": "$ambush.baitMinHoldValuePct",
+      "successIfPiratesNotNamed": true
+    },
+    "bluff": {
+      "stat": "cunning",
+      "enabled": "$ambush.bluffUsesCunning"
+    },
+    "intimidate": {
+      "fleeAtStrengthRatio": "$ambush.intimidateFleeAtRatio",
+      "chanceScalesFromRatio": "$ambush.intimidateScaleFromRatio",
+      "namedAndDesperateNeverFlee": "$ambush.namedAndDesperateNeverFlee",
+      "fledDropLoot": "$ambush.fledPiratesDropLoot"
+    },
+    "fight": "combat_spec_v1"
+  },
+  "lateGamePacks": {
+    "_note": "Jeff-approved: later pirates sail in packs so a 5-ship fleet doesn't make every fight vanish.",
+    "packSizeByFameTier": [
+      1,
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "worstCaseCheck": "2000 cargo + 2000 coins + contraband + fame 5 on a risky route: (0.333+0.02+0.02+0.05+0.05)*2 = 0.946, capped to 0.5"
+}

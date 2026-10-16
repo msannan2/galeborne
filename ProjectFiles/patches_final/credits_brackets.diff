@@ -1,0 +1,22 @@
+diff -ruN a/Assets/Scripts/GameV06.cs b/Assets/Scripts/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 11:09:58.822487482 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 11:09:58.834487482 +0500
+@@ -274,7 +274,17 @@
+   int DefaultQuality() => SystemInfo.systemMemorySize < 3000 ? 0 : SystemInfo.systemMemorySize < 6000 ? 1 : 2;
+   void OptionsMenu() { StartCoroutine(Ask("Options", $"Difficulty: {S.combat.difficulties[difficulty].name}\nGraphics: {QNames[Mathf.Max(0, quality)]}", ("Difficulty", () => OptionsDialog()), ("Graphics", () => StartCoroutine(Ask("Graphics quality", "High: full resolution, shadows, 60 fps.\nMedium: 85% resolution, short shadows.\nLow: 70% resolution, no shadows, fewer townsfolk.",
+       ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits()), ("Close", null))); }
+-  void ShowCredits() { StartCoroutine(Ask("Credits", "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.", ("Close", null))); }
++  /* final: Credits gets its own card (same look as Ask) with a centred 600 px Close, so the button ends clear the bottom corner brackets (~95 px each).
++     Ask() is untouched; this panel owns and closes only itself. */
++  void ShowCredits() {
++    const string body = "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.";
++    float bodyH = CardBodyH(body, 816f), by = 106 + bodyH + 20, panelH = by + 84 + 28;
++    float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
++    var cp = Px(root, "Dialog", 90, top, 900, panelH); dialog = cp; Box(cp, T.panel, T.gold);
++    Label(cp, "Credits", 64, 16, 772, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
++    Label(cp, body, 42, 106, 816, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft);
++    Btn(cp, "Close", 150, by, 600, 84, () => { Destroy0(cp.gameObject); if (dialog == cp) dialog = null; }, true, true);
++  }
+ }
+ public partial class Game {
+   /// v0.6i SET SAIL art button: cream serif caps, press-down on tap, short send-off

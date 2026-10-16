@@ -1,0 +1,20 @@
+diff -ru a/Assets/Scripts/GameTown.cs b/Assets/Scripts/GameTown.cs
+--- a/Assets/Scripts/GameTown.cs	2026-10-16 11:34:55.206487482 +0500
++++ b/Assets/Scripts/GameTown.cs	2026-10-16 11:34:55.214487482 +0500
+@@ -396,11 +396,16 @@
+     TownCamera();
+     if (signLayer == null) return; var rect = signLayer.rect;
+     float k = canvasRoot ? canvasRoot.localScale.x : 1f; var sa = SafeRect(); float bottom = sa.yMin + 330 * k;
++    var placed = new List<(float x, float y, float half)>(); /* designer: Tavern/Money Lender/Palace share a column (x~4.5, rows 3-5); a later plaque that overlaps an earlier one lifts just above it */
+     foreach (var (r, i) in signs) { if (r == null) continue; var b = bldgs[i]; var bc = b.t.GetComponent<BoxCollider>(); var bb = bc ? bc.bounds : new Bounds(b.t.position, Vector3.one);
+       var anchor = new Vector3(bb.center.x, bb.max.y + 0.15f, bb.center.z - bb.extents.z * 0.4f); var sp = cam.WorldToScreenPoint(anchor) + new Vector3(0, 46 * k, 0);
+       float half = r.sizeDelta.x / 2 * k + 12 * k; float cx = cam.WorldToScreenPoint(bb.center).x; bool inside = cx > sa.xMin + 20 * k && cx < sa.xMax - 20 * k; /* show whenever the building itself is on screen; the plaque is clamped inside */
+       bool vis = sp.z > 0 && sp.y > bottom && sp.y < SignMaxY() && inside; r.gameObject.SetActive(vis); if (!vis) continue;
+       sp.x = Mathf.Clamp(sp.x, sa.xMin + half, sa.xMax - half); /* plaque kept inside the safe area; its stem still drops on the building */
++      for (int pass = 0; pass < 4; pass++) { bool moved = false; float ph = 68 * k;
++        foreach (var q in placed) if (Mathf.Abs(sp.x - q.x) < half + q.half - 24 * k && sp.y < q.y + ph && sp.y + ph > q.y) { sp.y = q.y + ph; moved = true; }
++        if (!moved) break; }
++      placed.Add((sp.x, sp.y, half));
+       RectTransformUtility.ScreenPointToLocalPointInRectangle(signLayer, sp, null, out var lp); r.anchoredPosition = lp - rect.min; }
+   }
+ 

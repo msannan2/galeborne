@@ -1,0 +1,49 @@
+diff -ru a/Assets/Scripts/Game.cs b/Assets/Scripts/Game.cs
+--- a/Assets/Scripts/Game.cs	2026-10-16 13:31:02.157895273 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 13:31:02.197895273 +0500
+@@ -512,7 +512,7 @@
+     float bodyH = CardBodyH(body, 700f); /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
+-    float panelH = y + 84 + (wide ? 40 : opts.Length == 3 ? 110 : 20); /* art_t6_fixes: 3-button cards (difficulty) clear the bottom brackets; 1–2 and 4+ button cards unchanged */ /* tight to buttons — no half-empty card */
++    float panelH = y + 84 + (wide ? 40 : 110); /* art_t8_brackets: 1-, 2- and 3-button cards (Sail on the horizon, Storm front, Bait/toll result, difficulty) all clear the bottom brackets; 4+ (Options) unchanged */ /* art_t6_fixes: 3-button cards (difficulty) clear the bottom brackets; 1–2 and 4+ button cards unchanged */ /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+diff -ru a/Assets/Scripts/GameV06.cs b/Assets/Scripts/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 13:31:02.157895273 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 13:31:02.197895273 +0500
+@@ -304,7 +304,7 @@
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var dim = ModalDim("CreditsDim"); creditsDim = dim; /* final modal_queue_back: shared ModalDimColor */ /* blocks Options/Journal taps behind the card */
+     var cp = Px(root, "Dialog", 90, top, 900, panelH); creditsCard = cp; dialog = cp; Box(cp, T.panel, T.gold); dim.SetAsLastSibling(); cp.SetAsLastSibling();
+-    Label(cp, "Credits", 100, 16, 700, 52, /* final2: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
++    Label(cp, "Credits", 130, 22, 640, 52, /* art_t8_brackets: x 130, clear of the top-left bracket */ /* final2: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
+     Label(cp, body, 100, 106, 700, bodyH, /* art_t6_fixes: like Ask() */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
+     Btn(cp, "Close", 250, by, 400, 84, /* art_t6_fixes: centred, x 250–650 */ () => CloseCredits(), true, true); PushBack("Credits", () => creditsCard != null, CloseCredits); /* final modal_queue_back: DISMISSABLE */
+   }
+@@ -369,7 +369,7 @@
+     if (chartDest < 0 || chartDest == port) { Label(ci, "Tap a port on the chart to plan a route. Drag to pan the map.", 26, 14, 1000, 90, T.fontSize, T.parchment, TextAnchor.MiddleCenter); return; }
+     int dp = chartDest; float ap = AmbushChanceFor(dp); bool risky = RiskyRoute(port, dp);
+     Label(ci, $"To {S.ports[dp].name}", 100, 16, 440, 76, /* final3: title starts 100 px in, clear of the ~95–110 px top-left bracket */ T.fontSizeTitle + 4, T.parchment, TextAnchor.MiddleLeft, true);
+-    bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 488, 26, 450, 60, /* art_t7_fixes: ends at x 938 (110 px inside the 1048 card), clear of the top-right bracket */ T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight);
++    bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 540, 30, 360, 60, /* art_t8_brackets: ends at x 900 (148 px inside), clear of the top-right bracket */ /* art_t7_fixes: ends at x 938 (110 px inside the 1048 card), clear of the top-right bracket */ T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight);
+     float y = 100; bool fogAhead = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; string danger = fogAhead ? $"<color={T.gold}>Moderate pirate danger (25%)</color>" : DangerLabel(ap, sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail);
+     Label(ci, danger, 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSize, T.text); y += 62; if (fogAhead) { Label(ci, $"<color={T.gold}>Fog banks reported on this route</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 50, T.fontSizeSmall, T.text); y += 54; }
+     var bannedHere = Enumerable.Range(0, S.goods.Length).Where(g => Banned(g, dp) || bans.Any(b => b.good == g && b.port == dp && b.start <= week + 1 && b.end > week)).Select(g => S.goods[g].name).ToList();
+diff -ru a/Assets/Scripts/GameV06j.cs b/Assets/Scripts/GameV06j.cs
+--- a/Assets/Scripts/GameV06j.cs	2026-10-16 13:31:02.157895273 +0500
++++ b/Assets/Scripts/GameV06j.cs	2026-10-16 13:31:02.197895273 +0500
+@@ -221,10 +221,10 @@
+         dialog = R(root, "Journal", 0, 0, 1, 1); dialog.offsetMin = new Vector2(20, 40); dialog.offsetMax = new Vector2(-20, -40);
+         Box(dialog, T.panel, T.gold);
+         var inner = Stretch(dialog, "in", 28, 28, 28, 28);
+-        Label(inner, "Journal", 20, 10, 700, 60, T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
++        Label(inner, "Journal", 100, 14, 600, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
+         Btn(inner, "Active", 20, 80, 220, 70, () => { journalTab = 0; shownTab = -1; }, journalTab != 0, journalTab == 0);
+         Btn(inner, "Done", 260, 80, 220, 70, () => { journalTab = 1; shownTab = -1; }, journalTab != 1, journalTab == 1);
+-        Btn(inner, "Close", 740, 10, 220, 70, () => { done = true; });
++        Btn(inner, "Close", 660, 10, 220, 70, /* art_t8_brackets: clear of the top-right bracket */ () => { done = true; });
+         var list = journalTab == 0 ? journal.Where(j => j.status == "active").ToList() : journal.Where(j => j.status != "active").Take(10).ToList();
+         float y = 170;
+         if (!JournalUnlocked) { Label(inner, "Goal", 20, y, 960, 52, T.fontSize, "#7A5A1E" /* gamedev_t8: dark brass */, TextAnchor.MiddleLeft, true); Label(inner, JournalOpeningGoal, 20, y + 56, 960, 110, T.fontSize, T.textMuted, TextAnchor.UpperLeft); } /* gamedev_t8: gold Goal heading + muted opening goal line(s) instead of the locked note */

@@ -1,0 +1,652 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!29 &1
+OcclusionCullingSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_OcclusionBakeSettings:
+    smallestOccluder: 5
+    smallestHole: 0.25
+    backfaceThreshold: 100
+  m_SceneGUID: 00000000000000000000000000000000
+  m_OcclusionCullingData: {fileID: 0}
+--- !u!104 &2
+RenderSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 10
+  m_Fog: 0
+  m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_FogMode: 3
+  m_FogDensity: 0.01
+  m_LinearFogStart: 0
+  m_LinearFogEnd: 300
+  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
+  m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
+  m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
+  m_AmbientIntensity: 1
+  m_AmbientMode: 0
+  m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
+  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_HaloStrength: 0.5
+  m_FlareStrength: 1
+  m_FlareFadeSpeed: 3
+  m_HaloTexture: {fileID: 0}
+  m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
+  m_DefaultReflectionMode: 0
+  m_DefaultReflectionResolution: 128
+  m_ReflectionBounces: 1
+  m_ReflectionIntensity: 1
+  m_CustomReflection: {fileID: 0}
+  m_Sun: {fileID: 0}
+  m_UseRadianceAmbientProbe: 0
+--- !u!157 &3
+LightmapSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
+  m_GISettings:
+    serializedVersion: 2
+    m_BounceScale: 1
+    m_IndirectOutputScale: 1
+    m_AlbedoBoost: 1
+    m_EnvironmentLightingMode: 0
+    m_EnableBakedLightmaps: 1
+    m_EnableRealtimeLightmaps: 0
+  m_LightmapEditorSettings:
+    serializedVersion: 12
+    m_Resolution: 2
+    m_BakeResolution: 40
+    m_AtlasSize: 1024
+    m_AO: 0
+    m_AOMaxDistance: 1
+    m_CompAOExponent: 1
+    m_CompAOExponentDirect: 0
+    m_ExtractAmbientOcclusion: 0
+    m_Padding: 2
+    m_LightmapParameters: {fileID: 0}
+    m_LightmapsBakeMode: 1
+    m_TextureCompression: 1
+    m_ReflectionCompression: 2
+    m_MixedBakeMode: 2
+    m_BakeBackend: 2
+    m_PVRSampling: 1
+    m_PVRDirectSampleCount: 32
+    m_PVRSampleCount: 512
+    m_PVRBounces: 2
+    m_PVREnvironmentSampleCount: 256
+    m_PVREnvironmentReferencePointCount: 2048
+    m_PVRFilteringMode: 1
+    m_PVRDenoiserTypeDirect: 1
+    m_PVRDenoiserTypeIndirect: 1
+    m_PVRDenoiserTypeAO: 1
+    m_PVRFilterTypeDirect: 0
+    m_PVRFilterTypeIndirect: 0
+    m_PVRFilterTypeAO: 0
+    m_PVREnvironmentMIS: 1
+    m_PVRCulling: 1
+    m_PVRFilteringGaussRadiusDirect: 1
+    m_PVRFilteringGaussRadiusIndirect: 1
+    m_PVRFilteringGaussRadiusAO: 1
+    m_PVRFilteringAtrousPositionSigmaDirect: 0.5
+    m_PVRFilteringAtrousPositionSigmaIndirect: 2
+    m_PVRFilteringAtrousPositionSigmaAO: 1
+    m_ExportTrainingData: 0
+    m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
+  m_LightingDataAsset: {fileID: 20201, guid: 0000000000000000f000000000000000, type: 0}
+  m_LightingSettings: {fileID: 0}
+--- !u!196 &4
+NavMeshSettings:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_BuildSettings:
+    serializedVersion: 3
+    agentTypeID: 0
+    agentRadius: 0.5
+    agentHeight: 2
+    agentSlope: 45
+    agentClimb: 0.4
+    ledgeDropHeight: 0
+    maxJumpAcrossDistance: 0
+    minRegionArea: 2
+    manualCellSize: 0
+    cellSize: 0.16666667
+    manualTileSize: 0
+    tileSize: 256
+    buildHeightMesh: 0
+    maxJobWorkers: 0
+    preserveTilesOutsideBounds: 0
+    debug:
+      m_Flags: 0
+  m_NavMeshData: {fileID: 0}
+--- !u!1 &278056618
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 278056620}
+  - component: {fileID: 278056619}
+  m_Layer: 0
+  m_Name: Galeborne
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &278056619
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 278056618}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ce017253b8ae4d5ca3506dfc3c80556, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game
+  S:
+    startCoins: 0
+    holdSize: 0
+    captain: 
+    perUnitSellDrop: 0
+    perUnitBuyRise: 0
+    weeklyDriftMax: 0
+    pullToBase: 0
+    cheapMult: 0
+    wantMult: 0
+    weeksPerMoon: 0
+    moonsPerYear: 0
+    sailSecondsMin: 0
+    sailSecondsMax: 0
+    encounterChance: 0
+    debugFast: 0
+    debugFastMultiplier: 0
+    pirateFreeSails: 0
+    pirateTollPct: 0
+    pirateWinChance: 0
+    rumorSpike: 0
+    sellSpread: 0
+    combat:
+      hasan:
+        hull: 0
+        sails: 0
+        gunsPerSide: 0
+        crew: 0
+        speed: 0
+        reload: 0
+      pirate:
+        hull: 0
+        sails: 0
+        gunsPerSide: 0
+        crew: 0
+        speed: 0
+        reload: 0
+      ammo: []
+      wind:
+        running: 0
+        broadReach: 0
+        beam: 0
+        closeHauled: 0
+        intoWind: 0
+      speedScale: 0
+      turnRate: 0
+      halfSailMult: 0
+      accel: 0
+      startRangeMin: 0
+      startRangeMax: 0
+      escapeRange: 0
+      baseAcc: 0
+      upwindAccBonus: 0
+      matchAccBonus: 0
+      accPenaltyPer10mPastHalf: 0
+      minAcc: 0
+      arcDeg: 0
+      aimedPartMult: 0
+      damageScale: 0
+      gunHpPerGun: 0
+      sailDmgPerSpeedStep: 0
+      speedLossPerStep: 0
+      disableSails: 0
+      crewReloadPenalty: 0
+      injuredReloadMult: 0
+      fireBurnPerSec: 0
+      fireBurnSecs: 0
+      fireDouseFromTick: 0
+      fireDouseChance: 0
+      firePerBattle: 0
+      boardRange: 0
+      duelZoneBase: 0
+      duelZonePerCombat: 0
+      bladeBonus: 0
+      crewAdvantageBonus: 0
+      hasanCombat: 0
+      hasanHasBlade: 0
+      duelRounds: 0
+      ringSeconds: 0
+      avgPlayerHitPerZone: 0
+      pirateDuelHit: 0
+      fleeQuietSeconds: 0
+      surrenderCrewFrac: 0
+      noviceDuelBonus: 0
+      strongboxMin: 0
+      strongboxMax: 0
+      surrenderCrewJoinChance: 0
+      noviceDuels: 0
+      assistFloor: 0.25
+      assistFadeFrom: 0.35
+      assistFadeSpan: 0.3
+      aimAssistAcc: 0.25
+      aimAssistDamageMult: 1.5
+      aimAssistFirstFights: 5
+      encounterFleeBase: 0.35
+      breachBelowHull: 0.5
+      breachOpenSeconds: 6
+      breachEverySeconds: 15
+      breachDamageMult: 2
+      fleeSpeedMult: 1
+      tollSeconds: 9999
+      chainStopChance: 0
+      tollLootFrac: 0.5
+      enemyFleeHull: 0
+      fleeBase: 0
+      fleeWindWeight: 0
+      tollCargoPct: 0
+      maxFightSeconds: 0
+      sinkCargoPct: 0
+      sinkCoinsMin: 0
+      sinkCoinsMax: 0
+      disableRareChance: 0
+      ransom: 0
+      bounty: 0
+      prizeShipCoins: 0
+      loseCargoPct: 0
+      loseCrewInjuredPct: 0
+      postLossSafeSails: 0
+      charms: []
+      bots: []
+      pirateTiers: []
+      difficulties: []
+      lateFame: 5
+      earlyPirateUntilSail: 0
+    weights:
+      pirate: 0
+      wreck: 0
+      merchant: 0
+      squall: 0
+      rumor: 0
+    contraband:
+      bannedPortsMin: 0
+      bannedPortsMax: 0
+      banMoonsMin: 0
+      banMoonsMax: 0
+      announceWeeksAhead: 0
+      bannedSellMult: 0
+      bannedPerUnitSellDrop: 0.01
+    customs:
+      baseRisk: 0
+      fakersCrate: 0
+      templeTithe: 0
+      floor: 0
+      finePct: 0
+      repLoss: 0
+      fakersCratePrice: 0
+      titheCost: 0
+    warehouse:
+      leasePerWeek: 0
+      leaseSlots: 0
+      buyPrice: 0
+      buySlots: 0
+      decayAfterMoons: 0
+      decayPerMoon: 0
+    goods: []
+    ports: []
+    ambush:
+      perThousandCargo: 0
+      perThousandCoinsAboard: 0
+      contrabandBonus: 0
+      fameBonusPerLevel: 0
+      riskyRouteMult: 0
+      cap: 0
+      baitMinHoldValuePct: 0
+      intimidateFleeAtRatio: 0
+      intimidateScaleFromRatio: 0
+      types: []
+      noRepeatInARow: 0
+      namedAndDesperateNeverFlee: 0
+      fledPiratesDropLoot: 0
+      bluffUsesCunning: 0
+    market:
+      goodsPerPortMin: 0
+      goodsPerPortMax: 0
+      eventsPerPortPerMoon: 0
+      stockRefillWeeks: 0
+      shortageMultMin: 0
+      shortageMultMax: 0
+      glutMultMax: 0
+      festivalLuxuryMult: 0
+      foreignShipChance: 0
+      alwaysListCarriedGoods: 0
+      contrabandOnlyInBackAlley: 0
+      pricesVisibleOnMap: 0
+      rumorsAreVague: 0
+    bank:
+      interestPerMoon: 0
+      otherPortWithdrawFee: 0
+      safeFromSinkAndRobbery: 0
+    moneyLender:
+      firstLoanCap: 0
+      maxLoanCap: 0
+      termMoons: 0
+      startRatePerMoon: 0
+      onTimeRaisesCap: 0
+      onTimeLowersRate: 0
+      lateSeizesWarehouseFirst: 0
+      lateSendsDebtCollector: 0
+    shipwright:
+      repairPerHullPoint: 0
+      adRepairDiscount: 0
+      resalePct: 0
+      adRepairPerPortVisit: 0
+      upgradeTiers: 0
+      tier3DockWeeksMin: 0
+      tier3DockWeeksMax: 0
+      upgradeKinds: []
+      specialtyList: []
+    ads:
+      maxPerPortVisit: 0
+      maxPerSession: 0
+      maxPerDay: 0
+      minSecondsApart: 0
+      interstitials: 0
+      removeAdsGrantsRewards: 0
+      capsApplyToRemoveAdsBuyers: 0
+    adPlacements: []
+    freeFastForwardMult: 0
+    prologueDuelUnlosable: 0
+    forgivingDuelsFirstN: 0
+  T:
+    fontRegular: 
+    fontBold: 
+    panelSprite: 
+    fontSize: 0
+    fontSizeSmall: 0
+    fontSizeTitle: 0
+    borderPx: 0
+    panel: 
+    panelAlt: 
+    rowShade: 
+    parchment: 
+    ink: 
+    text: 
+    textMuted: 
+    brass: 
+    gold: 
+    down: 
+    up: 
+    button: 
+    buttonText: 
+    disabled: 
+    seaShallow: 
+    seaDeep: 
+    sun: 
+    skyHorizon: 
+    skyZenith: 
+    ledgerBg: 
+    ledgerRowAlt: 
+    ledgerInk: 
+    ledgerMuted: 
+    ledgerRule: 
+    ledgerButton: 
+    ledgerButtonText: 
+    ledgerUp: 
+    ledgerDown: 
+    stamp: 
+    frame: 
+    dhowTeak: 
+    dhowIndigo: 
+    dhowTurquoise: 
+    dhowCream: 
+    dhowBrass: 
+    pirateHull: 
+    pirateBand: 
+    pirateSail: 
+    pirateStripe: 
+    pirateBrass: 
+    marker: 
+  coins: 0
+  week: 0
+  port: 0
+  sails: 0
+  tab: -1
+  crate: 0
+  tithe: 0
+  hold: 
+  rep: 
+  bans: []
+  wh: []
+  news: []
+  msg: 
+  safeUntilSail: 0
+  crewInjured: 0
+  charms: []
+  avgCost: []
+  lastVoyageAmbushChance: 0
+  honor: 0
+  fear: 0
+  yusufSeal: 0
+  faridaState: 0
+  openingGpSold: 0
+  fighting: 0
+  combatPaused: 0
+  duelWon: 0
+  duelsFought: 0
+  duelFreeze: -1
+  playthrough: 0
+  ptForceCustoms: -1
+  ptRudder: 0
+  saveSeq: 0
+  saveBroken: 0
+  lastLoadedFrom: 
+  difficulty: 1
+  fame: 0
+  bankCoins: 0
+  bankPort: -1
+  loanOwed: 0
+  loanDueWeek: 0
+  loanCap: 0
+  fightsFought: 0
+  loanRate: 0
+  shipTier: 00000000000000000000000000000000
+  papersGiven: 0
+  chartBtn: {fileID: 0}
+  storyStep: 0
+  firstRun: 1
+  rumorHeard: 0
+  gpBanStart: -1
+  fallbackFired: 0
+  storyAmbushDone: 0
+  qarinLetter: 0
+  boardedStoryPirate: 0
+  spareGunpowder: 0
+  jackpotStartCoins: -1
+  townHint: []
+  hintEnd: 
+  blockGood: 
+  blockEnd: 
+  foreignPort: -1
+  foreignGood: -1
+  hullNow: -1
+  sailsNow: -1
+  ambushMood: 
+  lastAmbushChoice: 0
+  ambushForced: 0
+  lastAmbushOutcome: 
+  approachDone: 0
+  quality: -1
+  giftPending: 0
+  gbForce: 
+  prologuePending: 0
+  lastInput: 0
+  nudges: 0
+  nudgeT: -99
+  duelTest: 0
+  duelTestDir: 
+  seaMerchantMaxFrac: 0.8
+  gwadarRepairMult: 0.8
+  patchDebtCoins: 45
+  harbourDebt: 0
+  sultanStanding: 0
+  harbourDebtDueWeek: -1
+--- !u!4 &278056620
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 278056618}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &380128679
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 380128682}
+  - component: {fileID: 380128681}
+  - component: {fileID: 380128680}
+  m_Layer: 0
+  m_Name: Main Camera
+  m_TagString: MainCamera
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &380128680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 380128679}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 1
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
+--- !u!20 &380128681
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 380128679}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 1
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_Iso: 200
+  m_ShutterSpeed: 0.005
+  m_Aperture: 16
+  m_FocusDistance: 10
+  m_FocalLength: 50
+  m_BladeCount: 5
+  m_Curvature: {x: 2, y: 11}
+  m_BarrelClipping: 0.25
+  m_Anamorphism: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: 0
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
+--- !u!4 &380128682
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 380128679}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1660057539 &9223372036854775807
+SceneRoots:
+  m_ObjectHideFlags: 0
+  m_Roots:
+  - {fileID: 380128682}
+  - {fileID: 278056620}

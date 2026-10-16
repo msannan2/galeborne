@@ -1,0 +1,213 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -356,7 +356,7 @@
+   }
+   void DoSell(int g, RectTransform from) {
+     int before = Mathf.RoundToInt(price[port, g]); int v = SellPrice(g);
+-    if (!Sell(g)) return; msg = $"Sold 1 {S.goods[g].name} for {v}. Next one sells for {SellPrice(g)}.";
++    if (!Sell(g)) return; msg = $"Sold {GoodCount(g, 1)} for {v}. Next one sells for {SellPrice(g)}.";
+     Vector3 at = priceTexts.TryGetValue(g, out var pt) && pt ? pt.rectTransform.position : from.position;
+     Refresh(); SaleFx(at);
+   }
+@@ -398,7 +398,7 @@
+       var row = Px(led, "row", 14, y, 1004, 96); Box(row, T.rowShade);
+       Label(row, S.goods[g].name, 16, 0, 280, 96, T.fontSize + 8, T.text); priceTexts[g] = Label(row, SellPrice(g).ToString(), 286, 0, 200, 96, T.fontSize + 8, T.gold, TextAnchor.MiddleLeft, true);
+       Label(row, hold[g].ToString(), 600, 0, 80, 96, T.fontSize + 8, T.text);
+-      Btn(row, "Sell 1", 700, 8, 140, 80, () => DoSellAlley(gg, row), hold[g] > 0); Btn(row, "Sell all", 850, 8, 140, 80, () => { int got = 0, v = 0; while (hold[gg] > 0) { int pv = SellPrice(gg); if (!Sell(gg)) break; got++; v += pv; } if (got > 0) { msg = $"A quiet buyer takes {got} {S.goods[gg].name} for {v:N0} coins."; var at = priceTexts[gg].rectTransform.position; Refresh(); SaleFx(at); } }, hold[g] > 0); y += 104; }
++      Btn(row, "Sell 1", 700, 8, 140, 80, () => DoSellAlley(gg, row), hold[g] > 0); Btn(row, "Sell all", 850, 8, 140, 80, () => { int got = 0, v = 0; while (hold[gg] > 0) { int pv = SellPrice(gg); if (!Sell(gg)) break; got++; v += pv; } if (got > 0) { msg = $"A quiet buyer takes {GoodCount(gg, got)} for {v:N0} coins." /* gamedev_t9 */; var at = priceTexts[gg].rectTransform.position; Refresh(); SaleFx(at); } }, hold[g] > 0); y += 104; }
+     if (!any) { Label(led, $"Nothing is banned in {S.ports[port].name} this week. The alley is quiet.", 26, y + 8, 980, 110, T.fontSize + 8, T.textMuted, TextAnchor.UpperLeft); y += 126; } /* k4art: top-anchored, 8px under headings — 2-line wrap no longer rides up into GOOD/PRICE/HELD */
+     y += 20; Label(led, "Current bans", 26, y, 600, 60, T.fontSize + 8, T.parchment, TextAnchor.MiddleLeft, true); y += 66;
+     foreach (var b in bans) { string when = b.end >= int.MaxValue / 4 ? "banned for good" : week < b.start ? "from next week" : $"until moon {b.end / S.weeksPerMoon + 1}";
+@@ -415,8 +415,8 @@
+     if (got == 0) return;
+     if (InOpening && jackpotStartCoins < 0 && g == G("gunpowder")) { jackpotStartCoins = coins + got * Mathf.CeilToInt(allyCut ? full * (1f - A1("faridaAllyPapersDiscount", 0.2f)) : full); news.Insert(0, "Yusuf: \"Muscat's purse is deep, Captain. Just don't let customs see what's in yours.\""); }
+     if (!papersGiven && g == G("gunpowder") && firstRun) { papersGiven = true; keeperTrig = "papers"; msg = $"Farida slips you forged papers with the {S.goods[g].name.ToLower()}: customs risk drops to {Risk(port):0}% (pay the temple tithe for less)."; }
+-    else msg = allyCut ? $"Bought {got} {S.goods[g].name} in the alley (−20%)." : $"Bought {got} {S.goods[g].name} in the alley."; Refresh(); }
+-  void DoSellAlley(int g, RectTransform row) { int v = SellPrice(g); if (!Sell(g)) return; msg = $"A quiet buyer pays {v} for 1 {S.goods[g].name}."; var at = priceTexts[g].rectTransform.position; Refresh(); SaleFx(at); }
++    else msg = allyCut ? $"Bought {GoodCount(g, got)} in the alley (−20%)." : $"Bought {GoodCount(g, got)} in the alley."; Refresh(); }
++  void DoSellAlley(int g, RectTransform row) { int v = SellPrice(g); if (!Sell(g)) return; msg = $"A quiet buyer pays {v} for {GoodCount(g, 1)}."; var at = priceTexts[g].rectTransform.position; Refresh(); SaleFx(at); }
+ 
+   void Ware(RectTransform led) {
+     var w = wh[port]; int slots = w.tier == 2 ? S.warehouse.buySlots : w.tier == 1 ? S.warehouse.leaseSlots : 0; float used = w.items.Sum(b => b.qty);
+@@ -436,7 +436,7 @@
+       Btn(led, "Take all", 800, y + 6, 200, 84, () => { int q = Mathf.Min(Mathf.FloorToInt(bb.qty), S.holdSize - HoldUsed); hold[bb.good] += q; bb.qty -= q; if (bb.qty < 1) w.items.Remove(bb); Refresh(); }, w.tier > 0 && HoldUsed < S.holdSize); y += 104; }
+   }
+   void Store(int g, int q) { var w = wh[port]; int slots = w.tier == 2 ? S.warehouse.buySlots : S.warehouse.leaseSlots; q = Mathf.Min(q, slots - Mathf.CeilToInt(w.items.Sum(b => b.qty))); if (q <= 0) return;
+-    hold[g] -= q; w.items.Add(new Batch { good = g, qty = q, storedWeek = week }); msg = $"Stored {q} {S.goods[g].name}."; }
++    hold[g] -= q; w.items.Add(new Batch { good = g, qty = q, storedWeek = week }); msg = $"Stored {GoodCount(g, q)}."; }
+ 
+   void Temple(RectTransform led) {
+     LedgerHeader(led, "Temple & Chandler");
+@@ -519,7 +519,8 @@
+     Label(my, title, 112, 16, 676, 52, /* art_t5_fixes: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass); /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
+     Label(my, body, 100, 106, 700, bodyH, /* art_t5_fixes: x 100–800, clear of both side bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
+     y = 106 + bodyH + 20; float bx = wide ? 120f : 100f /* art_t5_fixes */, w = ((wide ? 660f : 700f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
+-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, bx + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
++    Debug.Log("GB CARD show " + title); /* gamedev_t9 */
++    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, bx + i * (w + 16), y, w, 84, () => { Debug.Log("GB CARD choose " + title + " " + o.Item1); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+     finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
+   }
+@@ -552,17 +553,17 @@
+       yield return Ask("Sail on the horizon", "A lateen shows against the haze, holding a parallel course. She flies no colours you know.",
+         ("Hail her", () => { close = true; msg = "They wave a friendly pennant and sheer off."; }),
+         ("Hold your course", () => msg = "You keep the wind and leave her astern."));
+-      if (close && Rnd.value < 0.35f) { int g = Rnd.Range(0, S.goods.Length); if (!S.goods[g].contraband) { int q = Mathf.Min(2, S.holdSize - HoldUsed); if (q > 0) { hold[g] += q; msg = $"They toss you {q} {S.goods[g].name} for goodwill."; } } }
++      if (close && Rnd.value < 0.35f) { int g = Rnd.Range(0, S.goods.Length); if (!S.goods[g].contraband) { int q = Mathf.Min(2, S.holdSize - HoldUsed); if (q > 0) { hold[g] += q; msg = $"They toss you {GoodCount(g, q)} for goodwill."; } } }
+     } else if (kind == 1) {
+       bool reef = false;
+       yield return Ask("Storm front", "A black wall of rain marches across the Gulf. The mate waits on your word.",
+         ("Reef sails", () => { reef = true; msg = "You take in canvas and ride it out."; }),
+-        ("Press on", () => { if (HoldUsed > 0 && Rnd.value < 0.4f) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0).ToList(); int g = held[Rnd.Range(0, held.Count)]; int lost = Mathf.Min(hold[g], 1); hold[g] -= lost; msg = lost > 0 ? $"A wave takes {lost} {S.goods[g].name}." : "You punch through the squall."; } else msg = "You punch through the squall."; }));
++        ("Press on", () => { if (HoldUsed > 0 && Rnd.value < 0.4f) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0).ToList(); int g = held[Rnd.Range(0, held.Count)]; int lost = Mathf.Min(hold[g], 1); hold[g] -= lost; msg = lost > 0 ? $"A wave takes {GoodCount(g, lost)}." /* gamedev_t9 */ : "You punch through the squall."; } else msg = "You punch through the squall."; }));
+       if (reef) { /* costs a little time but Voyage bar already handles FF */ }
+     } else {
+       int g = Rnd.Range(0, S.goods.Length), q = Mathf.Min(Rnd.Range(1, 4), S.holdSize - HoldUsed);
+-      yield return Ask("Wreckage", q > 0 ? $"Casks and splintered planks drift on the swell. You could fish up {q} {S.goods[g].name}." : "Casks drift by, but your hold is full.",
+-        ("Salvage", () => { if (q > 0) { hold[g] += q; msg = $"Salvaged {q} {S.goods[g].name}."; } else msg = "Nothing to take."; }),
++      yield return Ask("Wreckage", q > 0 ? $"Casks and splintered planks drift on the swell. You could fish up {GoodCount(g, q)}." : "Casks drift by, but your hold is full.",
++        ("Salvage", () => { if (q > 0) { hold[g] += q; msg = $"Salvaged {GoodCount(g, q)}."; } else msg = "Nothing to take."; }),
+         ("Sail on", () => msg = "You leave the wreckage to the gulls."));
+     }
+     Refresh();
+@@ -576,16 +577,16 @@
+     } else if ((r -= wgt.wreck) < 0) {
+       int g = Rnd.Range(0, S.goods.Length), q = Mathf.Min(Rnd.Range(2, 6), S.holdSize - HoldUsed);
+       yield return Ask("Wreckage adrift", q > 0 ? $"Splintered timbers and {q} sealed bales of {S.goods[g].name}." : "Splintered timbers, but your hold is full.",
+-        ("Haul it aboard", () => { hold[g] += q; msg = q > 0 ? $"Salvaged {q} {S.goods[g].name}." : "Nothing to take."; }));
++        ("Haul it aboard", () => { hold[g] += q; msg = q > 0 ? $"Salvaged {GoodCount(g, q)}." : "Nothing to take."; }));
+     } else if ((r -= wgt.merchant) < 0) {
+       int g = Rnd.Range(0, S.goods.Length); if (S.goods[g].contraband) g = 0; int unit = Mathf.Max(1, Mathf.RoundToInt(basePrice[dest, g] * 0.7f)), q = Mathf.Min(5, S.holdSize - HoldUsed);
+       q = Mathf.Min(q, Mathf.FloorToInt(coins * seaMerchantMaxFrac / unit)); /* offer capped at design frac of coins */
+       Debug.Log($"GB MERCHANT coins {coins} unit {unit} cap {seaMerchantMaxFrac:0.##} -> q {q} cost {unit * Mathf.Max(q,0)} " + (q >= 1 ? "OFFER SHOWN" : "OFFER HIDDEN (smallest lot unaffordable)"));
+-      if (q >= 1) yield return Ask("A merchant hails you", $"A fat baghlah offers {q} {S.goods[g].name} at {unit} each, cheaper than any quay.",
+-        ($"Buy ({unit * q})", () => { if (coins >= unit * q) { coins -= unit * q; hold[g] += q; msg = $"Bought {q} {S.goods[g].name} at sea."; } else msg = "You can't afford it."; }), ("Decline", () => msg = "You wave the merchant on."));
++      if (q >= 1) yield return Ask("A merchant hails you", $"A fat baghlah offers {GoodCount(g, q)} at {unit} each, cheaper than any quay.",
++        ($"Buy ({unit * q})", () => { if (coins >= unit * q) { coins -= unit * q; hold[g] += q; msg = $"Bought {GoodCount(g, q)} at sea."; } else msg = "You can't afford it."; }), ("Decline", () => msg = "You wave the merchant on."));
+     } else if ((r -= wgt.squall) < 0) {
+       int lost = 0; if (HoldUsed > 0 && !(InOpening && OpenFlag("openingSquallNoCargoLoss"))) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0).ToList(); int g = held[Rnd.Range(0, held.Count)]; lost = Mathf.Min(hold[g], Rnd.Range(1, 4)); hold[g] -= lost; any = g; }
+-      yield return Ask("Squall", lost > 0 ? $"A black squall heels the dhow over. {lost} {S.goods[any].name} wash overboard." : HoldUsed > 0 ? "A black squall heels the dhow over. Your crew lash the cargo down and nothing is lost." : "A black squall heels the dhow over, but your empty hold rides it out.", ("Continue", () => msg = "The squall passes."));
++      yield return Ask("Squall", lost > 0 ? $"A black squall heels the dhow over. {GoodCount(any, lost)} wash overboard." : HoldUsed > 0 ? "A black squall heels the dhow over. Your crew lash the cargo down and nothing is lost." : "A black squall heels the dhow over, but your empty hold rides it out.", ("Continue", () => msg = "The squall passes."));
+     } else {
+       int p = Rnd.Range(0, S.ports.Length); var want = S.ports[p].want; int g = G(want[Rnd.Range(0, want.Length)]);
+       price[p, g] *= S.rumorSpike; yield return Ask("Rumor on the wind", $"A fisherman swears {S.ports[p].name} is starved for {S.goods[g].name}. Prices there have jumped.", ("Noted", () => msg = $"Rumor: {S.goods[g].name} is dear in {S.ports[p].name}."));
+@@ -593,7 +594,7 @@
+     Refresh(); }
+   public string CustomsWaveReason(int port) => papersGiven ? "papers" : ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails < OpenInt("customsRiskFromVoyage", 4)) ? "early" : null; /* port: papersGiven is global today, kept for future per-port papers */ /* designer_ambush_customs */
+   public bool CustomsWaved(int port) => CustomsWaveReason(port) != null; /* designer_ambush_customs */
+-  string LostList(int[] before) { var parts = new System.Collections.Generic.List<string>(); for (int g = 0; g < hold.Length; g++) if (before[g] > hold[g]) parts.Add($"{before[g] - hold[g]} {S.goods[g].name.ToLower()}"); return parts.Count > 0 ? string.Join(", ", parts) : "nothing"; } /* designer_ambush_customs */
++  string LostList(int[] before) { var parts = new System.Collections.Generic.List<string>(); for (int g = 0; g < hold.Length; g++) if (before[g] > hold[g]) parts.Add(GoodCount(g, before[g] - hold[g])) /* gamedev_t9 */; return parts.Count > 0 ? string.Join(", ", parts) : "nothing"; } /* designer_ambush_customs */
+   /* gamedev_t7: one arrival hold for every arrival (voyage end + intro "Limp into Gwadar"). Fresh tap skips: polled here every frame (not only in Update's sea block), and a tap made while the landmark was already up before the hold starts also counts. */
+   bool arrivalTapEarly; float arrivalLmUpT = -1f; /* gamedev_t7 */
+   bool FreshTap() => Input.GetMouseButtonDown(0) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began); /* gamedev_t7 */
+--- a/Assets/Scripts/GameAct1.cs
++++ b/Assets/Scripts/GameAct1.cs
+@@ -28,9 +28,7 @@
+     string s;
+     bool needGpAgain = !openingGpSold && !fallbackFired && jackpotStartCoins > 0 && hold[Gp] == 0 && (storyStep >= 6 || !InOpening);
+     if (needGpAgain) s = (InOpening && OpenFlag("openingDebalAlleyStocksGunpowder")) ? "Buy gunpowder in Debal" : "Buy gunpowder in Gwadar";
+-    else if (InOpening) s = new[] { "Buy dates and salt in Gwadar", "Sail to Debal", "Sell dates and salt in Debal", "Hear the talk at Debal's tavern",
+-        rumorHeard >= 2 && hold[Gp] == 0 ? "Buy copper in Gwadar" : "Buy gunpowder in Debal's alley", fallbackFired || hold[Gp] == 0 ? "Sail to Muscat with the copper" : "Sail to Muscat with the gunpowder",
+-        fallbackFired ? "Sell copper in Muscat (x2)" : "Sell gunpowder in Muscat's alley", "Ask Muscat's tavern about the seal" }[Mathf.Clamp(storyStep, 0, 7)];
++    else if (InOpening) { s = OpeningGoalLine(); /* gamedev_t9: Now = the shared Journal line */ if (storyStep < 7) m = OpeningGoalLineAt(storyStep + 1); /* gamedev_t9: Next = the following Journal line */ }
+     else if (hold[Rugs] > 0) s = "Sell rugs in Muscat's alley (x3)";
+     else if (!yusufSeal) s = "Show Yusuf the seal in Debal";
+     else if (faridaState == 0) s = "Meet Farida in Debal's alley";
+--- a/Assets/Scripts/GameSheet.cs
++++ b/Assets/Scripts/GameSheet.cs
+@@ -64,7 +64,7 @@
+       if (buy) { if (!Buy(g)) break; }
+       else { int v = SellPrice(g); if (!Sell(g)) break; SaleFx(sSell.rectTransform.position + new Vector3(0, 0, 0)); }
+       done++; Refresh(); UpdateSheet(false); yield return new WaitForSeconds(buy ? 0.03f : 0.1f); }
+-    msg = buy ? $"Bought {done} {S.goods[g].name}." : $"Sold {done} {S.goods[g].name}. Next sells for {SellPrice(g)}.";
++    msg = buy ? $"Bought {GoodCount(g, done)}." /* gamedev_t9 */ : $"Sold {GoodCount(g, done)}. Next sells for {SellPrice(g)}.";
+     busy = false; Refresh(); UpdateSheet(true);
+   }
+   public void CloseSheet() { if (sheet) Destroy0(sheet.gameObject); sheet = null; priceTexts.Remove(sheetGood); }
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -93,7 +93,7 @@
+     if (fe != null && Rnd.value < Design.F(fe["weight"]) && !InOpening) { var pool = Design.SL(fe["pool"]); int g = G(pool[Rnd.Range(0, pool.Count)]);
+       foreignPort = port; foreignGood = g; stock[port, g] = (int)Design.F(fe["stockUnits"], 20); price[port, g] = lastPrice[port, g] = basePrice[port, g] * Design.F(fe["buyPriceMult"], 0.6f);
+       var c = Content("foreignShip"); townHint[port] = "foreignShipInHarbor"; hintEnd[port] = week + 1; news.Insert(0, Fill((string)c["headline"], port, g) + ". " + Fill((string)c["text"], port, g)); }
+-    if (blockGood[port] >= 0 && hold[blockGood[port]] > 0) { int q = hold[blockGood[port]]; hold[blockGood[port]] = 0; msg = $"Soldiers on the quay seize your {q} {S.goods[blockGood[port]].name}."; }
++    if (blockGood[port] >= 0 && hold[blockGood[port]] > 0) { int q = hold[blockGood[port]]; hold[blockGood[port]] = 0; msg = $"Soldiers on the quay seize your {GoodCount(blockGood[port], q)}." /* gamedev_t9 */; }
+   }
+ 
+   // ---------------- ambush ----------------
+@@ -130,7 +130,8 @@
+     float flee = Mathf.Clamp01((S.combat.encounterFleeBase + S.combat.fleeWindWeight * wind) * (type == "fog" ? 0.7f : type == "nightRaid" ? 1.2f : 1f));
+     float baitPct = Design.F(DZ.Path(DZ.ambush, "playerResponses.bait.minCostPctOfHold"), 0.1f); int baitCost = Mathf.CeilToInt(BaitableValue * baitPct); /* gamedev_t7: story cargo excluded; 0 → no Bait button */
+     bool canBluff = DZ.Path(DZ.ambush, "playerResponses.bluff.enabled") is bool bb && bb;
+-    int choice = 0; string body = $"<i>{card["warning"]}</i>\n{card["reveal"]}\n\nRun: {flee * 100:0}%   " + (canToll ? $"Toll: {toll} of {cargo} cargo" : "") /* gamedev_t8 */ + (canBluff ? $"   Bluff: {Cunning * 100:0}%" : "") + (baitCost > 0 ? $"\nBait: dump goods worth {baitCost} coins and slip away while they fish them out." : "");
++    int choice = 0; var odds = new List<string> { $"Run: {flee * 100:0}%" }; if (canToll) odds.Add($"Toll: {toll} of {cargo} cargo"); if (canBluff) odds.Add($"Bluff: {Cunning * 100:0}%"); /* gamedev_t9: odds line rebuilt from the options actually offered - no gaps when Toll/Bait are hidden */
++    string body = $"<i>{card["warning"]}</i>\n{card["reveal"]}\n\n" + string.Join("   ·   ", odds) + (baitCost > 0 ? $"\nBait: dump goods worth {baitCost} coins and slip away while they fish them out." : ""); /* gamedev_t9 */
+     yield return AskCard(type == "fog" ? "Ambush in the fog" : type == "nightRaid" ? "Night raid" : "False distress", body,
+       ("Fight", (Action)(() => choice = 0)), ($"Run {flee * 100:0}%", (Action)(() => choice = 1)), canToll ? (cargo > 0 ? "Pay toll" : "Pay nothing", (Action)(() => choice = 2)) : ((string, Action))(null, null), /* gamedev_t8 */ canBluff ? ($"Bluff {Cunning * 100:0}%", (Action)(() => choice = 3)) : ((string, Action))(null, null), baitCost > 0 ? ("Bait", (Action)(() => choice = 4)) : ((string, Action))(null, null));
+     lastAmbushChoice = choice;
+@@ -160,7 +161,7 @@
+   IEnumerator AskCard(string title, string body, params (string, Action)[] opts) {
+     opts = opts.Where(o => o.Item1 != null).ToArray(); bool done = false;
+     while (CardBusy) yield return null; /* final modal_queue_back: queue (never waits on itself) */
+-    int perRow = opts.Length > 3 ? 3 : opts.Length, rows = Mathf.Max(1, (opts.Length + perRow - 1) / Mathf.Max(1, perRow)); /* final: card sized to its measured body (was a fixed 330 px body box, leaving a gap above the buttons) */
++    int perRow = opts.Length > 3 ? (opts.Length + 1) / 2 : opts.Length, /* gamedev_t9: 4 → 2+2, 5 → 3+2 (was 3+1 / 3+2 left-packed) */ rows = Mathf.Max(1, (opts.Length + perRow - 1) / Mathf.Max(1, perRow)); /* final: card sized to its measured body (was a fixed 330 px body box, leaving a gap above the buttons) */
+     float bodyH = Mathf.Min(330f, CardBodyH(body, 800f)) /* art_t4_fixes: measured at the inset width */, btnY = 104 + bodyH + 24, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 110); /* art_t5_fixes: ~110 px under the last button row, clear of the bottom brackets */
+     var myDim = ModalDim("CardDim"); modalDepth++; cardSeq++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = R(root, "Card", 0, 0, 1, 0); dialog = my; my.pivot = new Vector2(0.5f, 0); my.offsetMin = new Vector2(30, 30); my.offsetMax = new Vector2(-30, 30 + cardH); Box(my, T.panel, T.gold); var be = PushBack(title, () => my != null, null); /* final modal_queue_back: AskCard is always FORCED */
+@@ -168,9 +169,11 @@
+     Label(inner, title, 100, 20, 800, 64, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(inner, "rule", 30, 90, 940, 2), T.brass);
+     Label(inner, body, 100, 104, 800, bodyH, /* art_t4_fixes: x 100–900, clear of the bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft);
+     float w = (800f - (perRow - 1) * 16) / Mathf.Max(1, perRow); /* art_t5_fixes: buttons x 100–900 inside the 1000-wide card */ /* final2: title and buttons inset to x 95–905 so no button corner sits on a brass bracket (5-button ambush) */
+-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; Btn(inner, o.Item1, 100 + col * (w + 16) /* art_t5_fixes */, btnY + row * 124, w, 108, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
++    Debug.Log("GB CARD show " + title); /* gamedev_t9 */
++    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; int inRow = Mathf.Min(perRow, opts.Length - row * perRow); float rowX = 100 + (800f - (inRow * w + (inRow - 1) * 16)) / 2f; /* gamedev_t9: a short last row is centred, same button width and 16 px gaps */ Btn(inner, o.Item1, rowX + col * (w + 16) /* art_t5_fixes */, btnY + row * 124, w, 108, () => { Debug.Log("GB CARD choose " + title + " " + o.Item1); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+     finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } }
++  int routeLogged = -1; /* gamedev_t9: route card logs show once per destination (it rebuilds on every Refresh) */
+   int cardSeq; /* final modal_queue_back: bumped when an AskCard actually builds its card (PortraitCard waits for it) */ /* final ask_modal: own panel + own dim only (was: destroyed whatever dialog pointed at) */
+ 
+   Light seaSun; Color sunCol0; float sunInt0; Color amb0, fog0; float fogS0, fogE0;
+@@ -367,7 +370,7 @@
+     var card = R(content, "RouteCard", 0, 0, 1, 0); card.pivot = new Vector2(0.5f, 0); card.offsetMin = new Vector2(16, 16); card.offsetMax = new Vector2(-16, 16 + (chartDest >= 0 && chartDest != port ? Mathf.Max(cardH, 640) : 120)); Box(card, T.panel, T.gold);
+     var ci = R(card, "in", 0, 1, 0, 1); ci.pivot = new Vector2(0, 1); ci.sizeDelta = new Vector2(1048, 640); ci.anchoredPosition = Vector2.zero;
+     if (chartDest < 0 || chartDest == port) { Label(ci, "Tap a port on the chart to plan a route. Drag to pan the map.", 26, 14, 1000, 90, T.fontSize, T.parchment, TextAnchor.MiddleCenter); return; }
+-    int dp = chartDest; float ap = AmbushChanceFor(dp); bool risky = RiskyRoute(port, dp);
++    int dp = chartDest; float ap = AmbushChanceFor(dp); bool risky = RiskyRoute(port, dp); if (routeLogged != dp) { routeLogged = dp; Debug.Log("GB CARD show Route to " + S.ports[dp].name); } /* gamedev_t9 */
+     Label(ci, $"To {S.ports[dp].name}", 100, 16, 440, 76, /* final3: title starts 100 px in, clear of the ~95–110 px top-left bracket */ T.fontSizeTitle + 4, T.parchment, TextAnchor.MiddleLeft, true);
+     bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 540, 30, 360, 60, /* art_t8_brackets: ends at x 900 (148 px inside), clear of the top-right bracket */ /* art_t7_fixes: ends at x 938 (110 px inside the 1048 card), clear of the top-right bracket */ T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight);
+     float y = 100; bool fogAhead = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; string danger = fogAhead ? $"<color={T.gold}>Moderate pirate danger (25%)</color>" : DangerLabel(ap, sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail);
+@@ -379,7 +382,7 @@
+     if (carries) { Label(ci, CustomsWaveReason(dp) == "papers" ? $"<color={T.up}>Customs: waved through (Farida's papers)</color>" /* gamedev_l366 */ : (InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Customs: likely waved through</color>" /* art_t5_fixes */ : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>", 100, y, 848, 56, T.fontSizeSmall, T.textMuted); y += 58; } /* art_t5_fixes: customs/Farida line on its own row so "Prices unknown" never squeezes against it */
+     Label(ci, "Prices unknown until you dock." /* art_t5_fixes */ + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 70;
+     float routeH = Mathf.Max(cardH, y + 140 + 24); card.offsetMax = new Vector2(-16, 16 + routeH); ci.sizeDelta = new Vector2(1048, routeH); /* final2: card sized to its content (was fixed 640 with Set Sail pinned at 470 → big empty gap); never shorter than the chart cut-out */
+-    SetSailBtn(ci, 100, y, 848, 140, /* final3: x 100–948 so the rope ends clear the bottom brackets */ $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
++    SetSailBtn(ci, 100, y, 848, 140, /* final3: x 100–948 so the rope ends clear the bottom brackets */ $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { Debug.Log("GB CARD choose Route to " + S.ports[dp].name + " Set sail"); routeLogged = -1; /* gamedev_t9 */ chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
+   }
+ 
+   /// one danger wording for town and chart (design ambush.dangerLabels); pirate-free voyages are "Calm waters"
+--- a/Assets/Scripts/GameV06j.cs
++++ b/Assets/Scripts/GameV06j.cs
+@@ -199,6 +199,14 @@
+   }
+ 
+   /* gamedev_t8: Journal opening goal lines (Game Designer), by storyStep - edit text here only */
++  /* gamedev_t9: explicit singular/plural per good id for count lines (Lost/Paid/Bought...). Placeholder forms - Game Researcher sends the final ones. Never strips or adds "s". */
++  static readonly Dictionary<string, (string one, string many)> GoodForms = new Dictionary<string, (string, string)> {
++    { "cotton", ("bale of cotton", "bales of cotton") }, { "salt", ("sack of salt", "sacks of salt") }, { "dates", ("basket of dates", "baskets of dates") },
++    { "copper", ("copper ingot", "copper ingots") }, { "coffee", ("sack of coffee", "sacks of coffee") }, { "tea", ("chest of tea", "chests of tea") },
++    { "pepper", ("sack of pepper", "sacks of pepper") }, { "indigo", ("cake of indigo", "cakes of indigo") }, { "incense", ("bundle of incense", "bundles of incense") },
++    { "silk", ("bolt of silk", "bolts of silk") }, { "pearls", ("pearl", "pearls") }, { "rugs", ("rug", "rugs") }, { "gunpowder", ("keg of gunpowder", "kegs of gunpowder") } };
++  public string GoodName(int g, int n) => GoodForms.TryGetValue(S.goods[g].id, out var f) ? (n == 1 ? f.one : f.many) : S.goods[g].name.ToLower(); /* gamedev_t9 */
++  public string GoodCount(int g, int n) => $"{n} {GoodName(g, n)}"; /* gamedev_t9 */
+   static readonly string[] JournalOpeningGoals = { /* gamedev_t8 */
+     "Buy dates or salt in the market. Debal will pay well for them.",
+     "Sail to Debal with your cargo.",
+@@ -209,7 +217,7 @@
+     "Sell your gunpowder in Muscat.",
+     "Stop at a tavern. Someone has a letter for you." }; /* gamedev_t8 */
+   const string JournalSealLine = "Earn Yusuf's seal in Muscat."; /* gamedev_t8 */
+-  public string OpeningGoalLine() => JournalOpeningGoals[Mathf.Clamp(storyStep, 0, JournalOpeningGoals.Length - 1)]; /* gamedev_t8: ONE shared step line - Journal + Next hints */
++  public string OpeningGoalLine() => OpeningGoalLineAt(storyStep); public string OpeningGoalLineAt(int st) => JournalOpeningGoals[Mathf.Clamp(st, 0, JournalOpeningGoals.Length - 1)]; /* gamedev_t9 */ /* gamedev_t8: ONE shared step line - Journal + Next hints */
+   string JournalOpeningGoal => OpeningGoalLine() + (openingGpSold && !yusufSeal ? "\n" + JournalSealLine : ""); /* gamedev_t8 */
+   void OpenJournal() { StartCoroutine(JournalCo()); }
+   IEnumerator JournalCo() {

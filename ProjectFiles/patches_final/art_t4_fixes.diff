@@ -1,0 +1,60 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -508,14 +508,15 @@
+     /* v0.6k3: panel height fits title+body+buttons (no half-empty storm/voyage card) */
+     float bodyH = CardBodyH(body, 780f); /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+-    float panelH = y + 84 + 20; /* tight to buttons — no half-empty card */
++    bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
++    float panelH = y + 84 + (wide ? 40 : 20); /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+     Label(my, title, 100, 16, 700, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass); /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
+     Label(my, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
+-    y = 106 + bodyH + 20; float w = (710f - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
+-    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, 95 + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
++    y = 106 + bodyH + 20; float bx = wide ? 120f : 95f, w = ((wide ? 660f : 710f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
++    for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, bx + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+     finally { backStack.Remove(be); if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
+   }
+--- a/Assets/Scripts/GameTown.cs
++++ b/Assets/Scripts/GameTown.cs
+@@ -486,7 +486,7 @@
+         Btn(led, max ? "Fully upgraded" : $"Upgrade · {cost:N0}", 470, y + 10, 530, 100, () => { coins -= cost; shipTier[kk]++; ApplyShipTiers(); Say("upgrade"); msg = $"{UpKinds[kk]} upgraded."; Refresh(); }, !max && coins >= cost);
+         y += 124; }
+       if (mode == "sells_small_hulls") { Label(led, "Small hulls (coming soon). Timber jobs keep the yard busy.", 26, y, 980, 60, T.fontSizeSmall, T.textMuted); y += 70; }
+-    } else Label(led, "Gwadar's yard repairs only — no new hulls sold here.", 26, y, 980, 60, T.fontSizeSmall, T.textMuted);
++    } else { Label(led, "Gwadar's yard repairs only — no new hulls sold here.", 26, y, 980, 60, T.fontSizeSmall, T.textMuted); y += 70; } /* art_t4_fixes: room before Ask about work */
+     QuestBtn(led, "shipwright", "Shipwright of " + S.ports[port].name, Mathf.Min(y + 40, 1320));
+   }
+   void ApplyShipTiers() { S.holdSize = baseHold + shipTier[3] * 5; S.combat.hasan.hull = baseHull + shipTier[0] * 15; S.combat.hasan.sails = baseSails + shipTier[1] * 10; S.combat.hasan.gunsPerSide = baseGuns + shipTier[2]; }
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -150,12 +150,12 @@
+     opts = opts.Where(o => o.Item1 != null).ToArray(); bool done = false;
+     while (CardBusy) yield return null; /* final modal_queue_back: queue (never waits on itself) */
+     int perRow = opts.Length > 3 ? 3 : opts.Length, rows = Mathf.Max(1, (opts.Length + perRow - 1) / Mathf.Max(1, perRow)); /* final: card sized to its measured body (was a fixed 330 px body box, leaving a gap above the buttons) */
+-    float bodyH = Mathf.Min(330f, CardBodyH(body, 940f)), btnY = 104 + bodyH + 24, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 30);
++    float bodyH = Mathf.Min(330f, CardBodyH(body, 800f)) /* art_t4_fixes: measured at the inset width */, btnY = 104 + bodyH + 24, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 30);
+     var myDim = ModalDim("CardDim"); modalDepth++; cardSeq++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = R(root, "Card", 0, 0, 1, 0); dialog = my; my.pivot = new Vector2(0.5f, 0); my.offsetMin = new Vector2(30, 30); my.offsetMax = new Vector2(-30, 30 + cardH); Box(my, T.panel, T.gold); var be = PushBack(title, () => my != null, null); /* final modal_queue_back: AskCard is always FORCED */
+     var inner = R(my, "in", 0.5f, 1, 0.5f, 1); inner.sizeDelta = new Vector2(1000, cardH); inner.pivot = new Vector2(0.5f, 1); inner.anchoredPosition = Vector2.zero;
+     Label(inner, title, 100, 20, 800, 64, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(inner, "rule", 30, 90, 940, 2), T.brass);
+-    Label(inner, body, 30, 104, 940, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft);
++    Label(inner, body, 100, 104, 800, bodyH, /* art_t4_fixes: x 100–900, clear of the bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft);
+     float w = (810f - (perRow - 1) * 16) / Mathf.Max(1, perRow); /* final2: title and buttons inset to x 95–905 so no button corner sits on a brass bracket (5-button ambush) */
+     for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; Btn(inner, o.Item1, 95 + col * (w + 16), btnY + row * 124, w, 108, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+@@ -429,8 +429,8 @@
+   /// prologue duel: exactly three STRIKE taps, unlosable. 1: the raider blocks, 2: an opening, 3: the finishing blow in slow motion.
+   IEnumerator PrologueDuel() {
+     var pnl = Px(root, "Duel", 30, 1600, 1020, 660); Box(pnl, T.panel, T.gold);
+-    Label(pnl, "Blade to blade on a burning deck", 24, 12, 960, 60, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
+-    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 24, 70, 960, 46, T.fontSize, T.text);
++    Label(pnl, "Blade to blade on a burning deck", 100, 12, 880, /* art_t4_fixes: clear of the left bracket arm */ 60, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
++    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 100, 70, 880, /* art_t4_fixes */ 46, T.fontSize, T.text);
+     var arena = Px(pnl, "arena", 30, 196, 440, 440);
+     var bg = Px(arena, "bg", 0, 0, 440, 440).gameObject.AddComponent<Image>(); bg.sprite = Ring(0, 1); bg.color = UITheme.C(T.ink);
+     var goldR = Px(arena, "gold", 0, 0, 440, 440).gameObject.AddComponent<Image>(); goldR.sprite = Ring(0.7f, 1); goldR.color = UITheme.C(T.gold) * new Color(1, 1, 1, 0.85f); goldR.rectTransform.localScale = Vector3.one * 0.6f;

@@ -1,0 +1,11 @@
+--- a/Assets/Scripts/Game.cs	2026-10-16 12:22:24.360789716 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 12:22:24.372789716 +0500
+@@ -288,7 +288,7 @@
+       if (alleyPaint != null) { var abg = Stretch(main, "AlleyBg", 0, 0, 0, 0); abg.SetAsFirstSibling(); var ari = abg.gameObject.AddComponent<RawImage>(); ari.texture = alleyPaint; ari.raycastTarget = false; }
+       var led = Stretch(main, "Panel", alleyPaint != null ? 20 : 0, 96, alleyPaint != null ? 20 : 0, alleyPaint != null ? 12 : 0); var ledImg = Box(led, T.ledgerBg, T.frame); if (alleyPaint != null) { var lc = ledImg.color; lc.a = 0.80f; ledImg.color = lc; } /* v0.6h4: ~80% opaque so alley painting shows through */ parch = tab != 0; /* cream parchment for every keeper screen */
+       Btn(main, "‹  Town", 0, 0, 260, 84, () => { tab = -1; Refresh(); });
+-      Label(main, TabNames[tab], 290, 0, 740, 84, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
++      Label(main, tab == 7 && (S.ports[port].name == "Muscat" || ShipwrightMode(S.ports[port].name) == "none") ? "Harbour Master" : TabNames[tab], 290, 0, 740, 84, /* researcher_harbour_tab: same rule as GameTown.cs L426 */ T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
+       try { switch (tab) { case 0: Market(led); break; case 1: Alley(led); break; case 2: Ware(led); break; case 3: Temple(led); break; case 4: ChartScreen(led); break; case 5: BankScreen(led); break; case 6: LenderScreen(led); break; case 7: ShipwrightScreen(led); break; case 8: ParchFill(led); TavernScreen(led); break; case 9: PalaceScreen(led); break; } } finally { parch = false; }
+     }
+     var ml = R(content, "Msg", 0, 0, 1, 0); ml.pivot = new Vector2(.5f, 0); ml.offsetMin = new Vector2(16, 16); ml.offsetMax = new Vector2(-16, 112); Box(ml, T.panel, T.brass);

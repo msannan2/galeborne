@@ -1,0 +1,26 @@
+diff -ru a/Assets/Scripts/GameTown.cs b/Assets/Scripts/GameTown.cs
+--- a/Assets/Scripts/GameTown.cs	2026-10-16 11:35:05.878487482 +0500
++++ b/Assets/Scripts/GameTown.cs	2026-10-16 11:35:05.886487482 +0500
+@@ -35,7 +35,7 @@
+         case TCell.Plaster: { c = Color.Lerp(H("#D9B886"), H("#F0DDB6"), N(u * 5, v * 5) * 0.8f + N(u * 23, v * 23) * 0.2f); float grime = Mathf.Clamp01(0.35f - v) * 0.9f * (0.6f + 0.4f * N(u * 14, 3)); c = Color.Lerp(c, H("#9C7A52"), grime); if (N(u * 40, v * 40) > 0.78f) c *= 0.93f; break; }
+         case TCell.Roof: { bool g = (v * 8 % 1) < 0.15f; c = Color.Lerp(H("#9C4A2C"), H("#C0663E"), N(u * 12, v * 4)); if (g) c *= 0.7f; break; }
+         case TCell.AwnRed: c = H("#D9CDB0") * (0.9f + 0.1f * N(u * 20, v * 20)); break; /* k4: plain canvas, no stripes; ApplyKeeperSkinK4 tints it per town (#3E4A6E / #D08A2E / #8FAE8C) */
+-        case TCell.AwnTeal: c = ((int)(u * 8) % 2 == 0 ? H("#2A8F8A") : H("#EFE2C4")) * (0.9f + 0.1f * N(u * 20, v * 20)); break;
++        case TCell.AwnTeal: c = H("#2A8F8A") * (0.9f + 0.1f * N(u * 20, v * 20)); break; /* designer: plain trim teal, no stripes (skins retint per town) */
+         case TCell.Gold: c = Color.Lerp(H("#B8862E"), H("#F2CC6A"), Mathf.Pow(N(u * 4, v * 4), 0.7f)); break;
+         case TCell.Rock: c = Color.Lerp(H("#8A6A48"), H("#C7A27A"), N(u * 5, v * 5) * 0.7f + N(u * 17, v * 17) * 0.3f); break;
+         case TCell.Wood: { float g = N(u * 3, v * 40); c = Color.Lerp(H("#5A3C24"), H("#8E6440"), g); if ((u * 5 % 1) < 0.05f) c *= 0.6f; break; }
+@@ -191,11 +191,11 @@
+     mb.Quad(new Vector3(c.x - w / 2, h, c.z - d / 2), new Vector3(c.x + w / 2, h, c.z - d / 2), new Vector3(c.x + w / 2, h + rise, c.z), new Vector3(c.x - w / 2, h + rise, c.z), r, true);
+     mb.Quad(new Vector3(c.x - w / 2, h + rise, c.z), new Vector3(c.x + w / 2, h + rise, c.z), new Vector3(c.x + w / 2, h, c.z + d / 2), new Vector3(c.x - w / 2, h, c.z + d / 2), r, true);
+     for (int i = -1; i <= 1; i += 2) mb.Tri(new Vector3(c.x + i * (w / 2 - 0.15f), h, c.z - d / 2 + 0.1f), new Vector3(c.x + i * (w / 2 - 0.15f), h + rise - 0.05f, c.z), new Vector3(c.x + i * (w / 2 - 0.15f), h, c.z + d / 2 - 0.1f), UVc(TCell.Plaster, 0, 0), UVc(TCell.Plaster, .5f, 1), UVc(TCell.Plaster, 1, 0)); }
+-  /* striped awning on posts, with a scalloped valance */
++  /* plain awning on posts (cloth canopy), with a scalloped valance in trim teal */
+   static void BigAwning(MeshB mb, float x0, float x1, float yWall, float zWall, float yFront, float zFront, TCell cloth, bool posts = true) {
+     mb.Quad(new Vector3(x0, yFront, zFront), new Vector3(x1, yFront, zFront), new Vector3(x1, yWall, zWall), new Vector3(x0, yWall, zWall), U(cloth), true);
+     int n = Mathf.Max(3, Mathf.RoundToInt((x1 - x0) / 0.45f)); for (int i = 0; i < n; i++) { float a = Mathf.Lerp(x0, x1, i / (float)n), b = Mathf.Lerp(x0, x1, (i + 1f) / n);
+-      mb.Tri(new Vector3(a, yFront, zFront - 0.01f), new Vector3(b, yFront, zFront - 0.01f), new Vector3((a + b) / 2, yFront - 0.28f, zFront - 0.03f), UVc(i % 2 == 0 ? TCell.AwnTeal : cloth, 0.05f, .5f), UVc(i % 2 == 0 ? TCell.AwnTeal : cloth, 0.1f, .5f), UVc(i % 2 == 0 ? TCell.AwnTeal : cloth, 0.07f, .2f)); }
++      mb.Tri(new Vector3(a, yFront, zFront - 0.01f), new Vector3(b, yFront, zFront - 0.01f), new Vector3((a + b) / 2, yFront - 0.28f, zFront - 0.03f), UVc(TCell.AwnTeal, 0.05f, .5f), UVc(TCell.AwnTeal, 0.1f, .5f), UVc(TCell.AwnTeal, 0.07f, .2f)); } /* designer: valance all trim colour — alternating cloth/teal scallops read as stripes */
+     if (posts) foreach (var px in new[] { x0 + 0.1f, x1 - 0.1f, (x0 + x1) / 2 }) mb.Cyl(new Vector3(px, 0, zFront + 0.05f), new Vector3(px, yFront + 0.05f, zFront + 0.05f), 0.07f, 0.06f, 6, U(TCell.Teak)); }
+   static TCell merlonCell = TCell.Stone; static void Merlons(MeshB mb, float x0, float x1, float y, float z, float depth, float step = 0.7f) { for (float x = x0 + step / 4; x < x1 - step / 4; x += step) mb.Box(new Vector3(x + step / 4, y + 0.25f, z), new Vector3(step / 2, 0.5f, depth), U(merlonCell)); }
+   static void Flag(MeshB mb, Vector3 top) { mb.Cyl(top, top + Vector3.up * 1.4f, 0.03f, 0.03f, 4, U(TCell.Dark)); var a = top + Vector3.up * 1.4f;

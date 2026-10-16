@@ -1,0 +1,37 @@
+--- a/Assets/Scripts/GameV06j.cs	2026-10-16 11:15:37.370487482 +0500
++++ b/Assets/Scripts/GameV06j.cs	2026-10-16 11:15:37.378487482 +0500
+@@ -237,16 +237,16 @@
+ 
+   IEnumerator QuestMenu(string building, string keeperName) {
+     var offers = OffersFor(building);
+-    bool closed = false;
++    bool closed = false; RectTransform my = null, myDim = null; /* final joboffer_freeze: this menu owns and closes only its own panel AND its own dimmer */
+     while (!closed) {
+-      if (dialog) Destroy0(dialog.gameObject);
++      if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null;
+       /* v0.6k: ink panel sized to cards; title fully inside with headroom */
+       int n = Mathf.Max(1, offers.Count); float pad = 24f;
+       float panelH = Mathf.Clamp(160 + n * 368 + 110, 400, 1700); /* k4: taller offer cards */
+       float panelW = 940f; float left = (1080f - panelW) * 0.5f;
+       float top = 100f; /* fully cover keeper "Innkeeper of the Salt &…" title */
+-      var dimQ = R(root, "QuestDim", 0, 0, 1, 1); var di = dimQ.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.72f); di.raycastTarget = true;
+-      dialog = Px(root, "QuestMenu", left, top, panelW, panelH); Box(dialog, T.ink, T.gold); dialog.SetAsLastSibling();
++      var dimQ = R(root, "QuestDim", 0, 0, 1, 1); myDim = dimQ; var di = dimQ.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.72f); di.raycastTarget = true;
++      my = Px(root, "QuestMenu", left, top, panelW, panelH); dialog = my; Box(dialog, T.ink, T.gold); dialog.SetAsLastSibling();
+       string title = keeperName ?? ""; if (title.Length > 36) title = title.Substring(0, 34) + "…";
+       float iw = panelW - pad * 2;
+       Label(dialog, title, pad, 36, iw, 56, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
+@@ -270,9 +270,11 @@
+         y += 368;
+       }
+       Btn(dialog, "Leave", pad, panelH - 96, iw, 80, () => { closed = true; });
+-      while (dialog != null && !closed) yield return null;
++      while (my != null && dialog == my && !closed) yield return null;
++      if (!closed && (my == null || dialog != my)) closed = true; /* panel replaced/destroyed elsewhere: stop, still clean up our dimmer */
+     }
+-    if (dialog) { Destroy0(dialog.gameObject); dialog = null; }
++    if (my) Destroy0(my.gameObject); if (dialog == my) dialog = null;
++    if (myDim) Destroy0(myDim.gameObject); /* was never destroyed: the 0.72 dimmer (raycastTarget) stayed on top and ate every real tap; bot ExecuteEvents clicks bypass raycasts */
+     Refresh();
+   }
+ 

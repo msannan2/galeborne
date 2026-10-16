@@ -1,0 +1,154 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -177,7 +177,7 @@
+       cam.transform.LookAt(new Vector3(0, sailing ? 3.2f : 4.5f, 1f));
+       if (arrivalPanT0 >= 0 && Time.time > arrivalPanT0 + 0.15f && (Input.GetMouseButtonDown(0) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began))) /* gwadar_arrival_hold: only a fresh tap skips (not the held/same-frame tap that closed a card) */ { arrivalPanT0 = -1; Debug.Log("GB ARRIVAL pan skipped by tap"); } /* k4merge2: tap skips, camera returns at once */
+       if (arrivalPanT0 >= 0) { float u = (Time.time - arrivalPanT0) / ArrivalPanDur; if (u >= 1f) arrivalPanT0 = -1; else { float k = Mathf.SmoothStep(0, 1, Mathf.Clamp01(u / 0.12f)) * (1f - Mathf.SmoothStep(0, 1, Mathf.Clamp01((u - 0.9f) / 0.1f))) /* gwadar_arrival_hold: ease in ~0.35 s, hold, ease out last 0.3 s */; var look = Quaternion.LookRotation(arrivalTarget - cam.transform.position); cam.transform.rotation = Quaternion.Slerp(cam.transform.rotation, look, k); } } /* k4merge2: arrival pan toward shore landmark, eased out and back */
+-      if (passShip != null && passShip.gameObject.activeInHierarchy) { passShip.position += new Vector3(Time.deltaTime * 4.5f, 0, Time.deltaTime * 1.2f); if (passShip.position.x > 80) passShip.gameObject.SetActive(false); } }
++      if (customsFrame) { var cl = Quaternion.LookRotation(arrivalTarget - cam.transform.position); cam.transform.rotation = cl; } /* gamedev_t7: customs card framed on the arrival landmark */ if (passShip != null && passShip.gameObject.activeInHierarchy) { passShip.position += new Vector3(Time.deltaTime * 4.5f, 0, Time.deltaTime * 1.2f); if (passShip.position.x > 80) passShip.gameObject.SetActive(false); } }
+   }
+ 
+   // ---------------- UI construction ----------------
+@@ -474,7 +474,7 @@
+     ff = false;
+     skipVoyage = false;
+     /* v0.6i: 1–2 short decision events per voyage (horizon sail / storm front / wreckage), plus a passer on the beam */
+-    bool arrivalShown = false; int decisionsLeft = Rnd.Range(1, 3); float nextDec = dur * Rnd.Range(0.18f, 0.32f); bool passerOut = false;
++    arrivalTapEarly = false; /* gamedev_t7 */ bool arrivalShown = false; int decisionsLeft = Rnd.Range(1, 3); float nextDec = dur * Rnd.Range(0.18f, 0.32f); bool passerOut = false;
+     for (float t = 0; t < dur; t += Time.deltaTime * (ff ? 2f : 1f)) { if (skipVoyage) t = dur;
+       if (fill == null) fill = VoyageBar(to);
+       fill.sizeDelta = new Vector2(1000 * Mathf.Clamp01(t / dur), 12);
+@@ -482,14 +482,13 @@
+       if (decisionsLeft > 0 && t >= nextDec && dialog == null && !skipVoyage) { decisionsLeft--; nextDec = t + dur * Rnd.Range(0.28f, 0.4f); yield return VoyageDecision(); fill = null; backdrop.color = Color.clear; }
+       if (encountered && t > dur * 0.45f) { encountered = false; yield return Encounter(ambush, storyFog); fill = null; backdrop.color = Color.clear; }
+       if (!arrivalShown && t > dur * 0.8f && dialog == null && !fighting) { arrivalShown = true; ShowSeaLandmark(to); Debug.Log("GB ARRIVAL landmark " + S.ports[to].name); } // k4merge: arrival landmark ShowSeaLandmark(portIndex) /* k4merge: arrival landmark, last 20% only */
++      if (arrivalShown && dialog == null && !fighting && FreshTap()) { if (arrivalLmUpT < 0) arrivalLmUpT = Time.time; arrivalTapEarly = true; } /* gamedev_t7: tap on the in-voyage arrival view = skip the hold */
+       yield return null; }
+     if (passShip) passShip.gameObject.SetActive(false);
+     if (!arrivalShown && !fighting) { arrivalShown = true; if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(to); Debug.Log("GB ARRIVAL landmark " + S.ports[to].name + " (late: card/fight covered the window)"); } // k4merge: arrival landmark ShowSeaLandmark(portIndex)
+-    if (arrivalShown && !fighting) { string an = S.ports[to].name; arrivalTarget = (seaMarks.TryGetValue(an, out var lmg) && lmg ? lmg.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * 5f; arrivalPanT0 = Time.time; /* k4merge2 */
+-      Debug.Log("GB ARRIVAL hold start " + an + " t=" + Time.time.ToString("F2")); /* gwadar_arrival_hold */ float ps = Time.time + ArrivalPanDur * 0.5f; while (arrivalPanT0 >= 0 && Time.time < ps) yield return null; /* gwadar_arrival_hold: tap-skip honoured before the shot too */ if (playthrough && arrivalPanT0 >= 0) yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{week}.png"));
+-      float pe = arrivalPanT0 + ArrivalPanDur; while (arrivalPanT0 >= 0 && Time.time < pe) yield return null; arrivalPanT0 = -1; Debug.Log("GB ARRIVAL hold end " + an + " t=" + Time.time.ToString("F2")); /* gwadar_arrival_hold */ }
++    if (arrivalShown && !fighting) yield return ArrivalHold(S.ports[to].name, week); /* gamedev_t7: shared hold (voyage + intro) */
+     NewWeek(); port = to; adsThisVisit = 0; bool atCustoms = CarriesBanned(port); /* ambush_customs_t6 */
+-    if (atCustoms) { if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(port); backdrop.color = Color.clear; yield return Customs(); } /* ambush_customs_t6: customs card over the port arrival view (+ shared ModalDim from Ask), not blank sand */
++    if (atCustoms) { if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(port); backdrop.color = Color.clear; if (pirateShip) pirateShip.gameObject.SetActive(false); /* gamedev_t7 */ string cn = S.ports[port].name; arrivalTarget = (seaMarks.TryGetValue(cn, out var clm) && clm ? clm.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * CustomsLookUp; customsFrame = true; /* gamedev_t7 */ yield return Customs(); customsFrame = false; /* gamedev_t7 */ } /* ambush_customs_t6: customs card over the port arrival view (+ shared ModalDim from Ask), not blank sand */
+     ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); /* ambush_customs_t6 */
+     if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + (news.Count > 0 ? news[0] : ""); OnDockV06(); TryCompleteJobsOnDock(); FallbackCheck(); if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
+     tithe = false; sailing = false; crewInjured = false; tab = -1; Refresh(); Save();
+@@ -541,7 +540,7 @@
+     if (top.close == null) { Debug.Log("Back pressed, ignored (" + top.name + ", forced)"); return; }
+     Debug.Log("Back pressed, closing " + top.name); top.close();
+   }
+-  float arrivalPanT0 = -1f; Vector3 arrivalTarget; const float ArrivalPanDur = 3.0f; /* gwadar_arrival_hold: every port holds ~3 s after the voyage, independent of the in-voyage window (was 1.0 s → late-path ports e.g. Gwadar showed <0.7 s) */ /* k4merge2: arrival pan */
++  bool customsFrame; const float CustomsLookUp = 12f; /* gamedev_t7: aim above the landmark so it sits below the centred card */ float arrivalPanT0 = -1f; Vector3 arrivalTarget; const float ArrivalPanDur = 3.0f; /* gwadar_arrival_hold: every port holds ~3 s after the voyage, independent of the in-voyage window (was 1.0 s → late-path ports e.g. Gwadar showed <0.7 s) */ /* k4merge2: arrival pan */
+   public float lastVoyageAmbushChance;
+   /// v0.6i soft mid-voyage choices (not ambushes): sail on horizon, storm front, wreckage
+   IEnumerator VoyageDecision() {
+@@ -593,6 +592,21 @@
+   public string CustomsWaveReason(int port) => papersGiven ? "papers" : ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails < OpenInt("customsRiskFromVoyage", 4)) ? "early" : null; /* port: papersGiven is global today, kept for future per-port papers */ /* designer_ambush_customs */
+   public bool CustomsWaved(int port) => CustomsWaveReason(port) != null; /* designer_ambush_customs */
+   string LostList(int[] before) { var parts = new System.Collections.Generic.List<string>(); for (int g = 0; g < hold.Length; g++) if (before[g] > hold[g]) parts.Add($"{before[g] - hold[g]} {S.goods[g].name.ToLower()}"); return parts.Count > 0 ? string.Join(", ", parts) : "nothing"; } /* designer_ambush_customs */
++  /* gamedev_t7: one arrival hold for every arrival (voyage end + intro "Limp into Gwadar"). Fresh tap skips: polled here every frame (not only in Update's sea block), and a tap made while the landmark was already up before the hold starts also counts. */
++  bool arrivalTapEarly; float arrivalLmUpT = -1f; /* gamedev_t7 */
++  bool FreshTap() => Input.GetMouseButtonDown(0) || (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began); /* gamedev_t7 */
++  IEnumerator ArrivalHold(string an, int wk) { /* gamedev_t7 */
++    arrivalTarget = (seaMarks.TryGetValue(an, out var lmg) && lmg ? lmg.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * 5f; float t0 = Time.time; arrivalPanT0 = t0;
++    Debug.Log("GB ARRIVAL hold start " + an + " t=" + t0.ToString("F2"));
++    bool skipped = arrivalTapEarly; arrivalTapEarly = false; bool shot = false; yield return null;
++    while (!skipped && Time.time < t0 + ArrivalPanDur) {
++      if (arrivalPanT0 < 0 && Time.time < t0 + ArrivalPanDur - 0.05f) skipped = true; /* Update's own tap check fired */
++      if (FreshTap() && dialog == null) skipped = true;
++      if (!skipped && !shot && playthrough && Time.time >= t0 + ArrivalPanDur * 0.5f) { shot = true; yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{wk}.png")); continue; }
++      yield return null; }
++    arrivalPanT0 = -1; arrivalLmUpT = -1f;
++    if (skipped) Debug.Log("GB ARRIVAL skipped t=" + (Time.time - t0).ToString("F2") + " " + an);
++    Debug.Log("GB ARRIVAL hold end " + an + " t=" + Time.time.ToString("F2")); } /* gamedev_t7 */
+   IEnumerator AmbushWithResult(string type) { /* designer_ambush_customs */
+     var before = (int[])hold.Clone(); lastAmbushOutcome = null; yield return AmbushEncounter(type); /* designer_ambush_customs */
+     string res = lastAmbushOutcome == "bait" ? $"Your cargo goes over the side. The pirates swing toward the floating crates, and you slip away.\n\nLost: {LostList(before)}." /* designer_ambush_customs */
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -125,19 +125,19 @@
+     var ir = Design.D(DZ.Path(DZ.ambush, "playerResponses.intimidate")); float fleeAt = Design.F(ir["fleeAtStrengthRatio"], 2), from = Design.F(ir["chanceScalesFromRatio"], 1);
+     bool desperate = type == "nightRaid" && ir["namedAndDesperateNeverFlee"] is bool nd && nd; float ratio = StrengthRatio;
+     float scare = desperate || ambushForced ? 0 : ratio >= fleeAt ? 1 : Mathf.Clamp01((ratio - from) / (fleeAt - from));
+-    if (Rnd.value < scare) { yield return AskCard("They turn away", (string)DZ.content["intimidated"], ("Sail on", null)); msg = "Intimidated, the pirate sheers off."; lastAmbushOutcome = "turned"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
++    if (Rnd.value < scare) { yield return AskCard("They turn away", (string)DZ.content["intimidated"], ("Sail on", null)); msg = "Intimidated, the pirate sheers off."; lastAmbushOutcome = "turned"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
+     int cargo = HoldUsed, toll = Mathf.CeilToInt(cargo * S.combat.tollCargoPct); float wind = Rnd.value;
+     float flee = Mathf.Clamp01((S.combat.encounterFleeBase + S.combat.fleeWindWeight * wind) * (type == "fog" ? 0.7f : type == "nightRaid" ? 1.2f : 1f));
+-    float baitPct = Design.F(DZ.Path(DZ.ambush, "playerResponses.bait.minCostPctOfHold"), 0.1f); int baitCost = Mathf.CeilToInt(HoldValue * baitPct);
++    float baitPct = Design.F(DZ.Path(DZ.ambush, "playerResponses.bait.minCostPctOfHold"), 0.1f); int baitCost = Mathf.CeilToInt(BaitableValue * baitPct); /* gamedev_t7: story cargo excluded; 0 → no Bait button */
+     bool canBluff = DZ.Path(DZ.ambush, "playerResponses.bluff.enabled") is bool bb && bb;
+     int choice = 0; string body = $"<i>{card["warning"]}</i>\n{card["reveal"]}\n\nRun: {flee * 100:0}%   Toll: {toll} of {cargo} cargo" + (canBluff ? $"   Bluff: {Cunning * 100:0}%" : "") + (baitCost > 0 ? $"\nBait: dump goods worth {baitCost} coins and slip away while they fish them out." : "");
+     yield return AskCard(type == "fog" ? "Ambush in the fog" : type == "nightRaid" ? "Night raid" : "False distress", body,
+       ("Fight", (Action)(() => choice = 0)), ($"Run {flee * 100:0}%", (Action)(() => choice = 1)), (cargo > 0 ? "Pay toll" : "Pay nothing", (Action)(() => choice = 2)), canBluff ? ($"Bluff {Cunning * 100:0}%", (Action)(() => choice = 3)) : ((string, Action))(null, null), baitCost > 0 ? ("Bait", (Action)(() => choice = 4)) : ((string, Action))(null, null));
+     lastAmbushChoice = choice;
+-    if (choice == 2) { PayCargo(toll); msg = toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off."; lastAmbushOutcome = "toll"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
+-    if (choice == 1 && Rnd.value < flee) { msg = "Hasan catches the gust and the pirate falls astern."; lastAmbushOutcome = "run"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
+-    if (choice == 3 && Rnd.value < Cunning) { msg = "Hasan roars about the navy squadron just over the horizon. They believe him and bear away."; lastAmbushOutcome = "bluff"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ EndMood(); yield break; }
+-    if (choice == 4) { DumpForBait(baitCost); msg = "Bales hit the water and the pirates turn to fish them out. You slip away."; lastAmbushOutcome = "bait"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ yield return PirateSailsOff(); /* ambush_customs_t6: pirate turns for the bales and leaves the view */ EndMood(); yield break; }
++    if (choice == 2) { PayCargo(toll); msg = toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off."; lastAmbushOutcome = "toll"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
++    if (choice == 1 && Rnd.value < flee) { msg = "Hasan catches the gust and the pirate falls astern."; lastAmbushOutcome = "run"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
++    if (choice == 3 && Rnd.value < Cunning) { msg = "Hasan roars about the navy squadron just over the horizon. They believe him and bear away."; lastAmbushOutcome = "bluff"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: runs alongside the result card */ EndMood(); yield break; }
++    if (choice == 4) { DumpForBait(baitCost); msg = "Bales hit the water and the pirates turn to fish them out. You slip away."; lastAmbushOutcome = "bait"; storyAmbushDone = true; Save(); /* ambush_customs_t6 */ StartCoroutine(PirateSailsOff()); /* gamedev_t7: bait result card shows at once while the pirate turns away */ EndMood(); yield break; }
+     if (choice == 1 || choice == 3) msg = "It doesn't work. They close to fight!";
+     spareGunpowder = firstRun && !storyAmbushDone && DZ.Path(DZ.settings, "opening.spareGunpowderOnFirstAmbushLoss") is bool sg && sg;
+     lastAmbushOutcome = choice == 1 || choice == 3 ? "fled_fail" : "fight"; /* ambush_customs_t6 */ yield return Fight(); spareGunpowder = false; storyAmbushDone = true; Save(); /* ambush_customs_t6: also covers fight after failed Run/Bluff */ EndMood();
+@@ -148,7 +148,13 @@
+   IEnumerator PirateSailsOff() { if (pirateShip == null || !pirateShip.gameObject.activeSelf) yield break; Vector3 p0 = pirateShip.position; float y0 = pirateShip.eulerAngles.y; /* ambush_customs_t6 */
+     for (float t = 0; t < 2.4f; t += Time.deltaTime) { float k = Mathf.SmoothStep(0, 1, t / 2.4f); pirateShip.rotation = Quaternion.Euler(0, Mathf.LerpAngle(y0, 60f, Mathf.Clamp01(t / 0.8f)), Mathf.Sin(t * 1.1f) * 4); pirateShip.position = p0 + new Vector3(70f, 0, 45f) * k; yield return null; } /* ambush_customs_t6 */
+     pirateShip.gameObject.SetActive(false); } /* ambush_customs_t6 */
+-  void DumpForBait(int worth) { int gp = G("gunpowder"); while (worth > 0 && HoldUsed > 0) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !(spareGunpowder && g == gp)).OrderBy(g => price[port, g]).ToList(); if (held.Count == 0) break; hold[held[0]]--; worth -= Mathf.CeilToInt(price[port, held[0]]); } }
++  /* gamedev_t7: goods the story or an active job still needs - never thrown to pirates. Opening good while its Muscat sale is pending; any active job objective naming a good. */
++  HashSet<int> StoryGoods() { var r = new HashSet<int>(); /* gamedev_t7 */
++    if (InOpening && !openingGpSold) { int og = G(Design.Path0(DZ, "opening.good", "gunpowder")); if (og >= 0) r.Add(og); } /* gamedev_t7 */
++    foreach (var a in journal) { if (a.status != "active" || a.objective == null) continue; foreach (var k in new[] { "good", "goodId", "cargo" }) if (JGet(a.objective, k) is string gid) { int g = G(gid); if (g >= 0) r.Add(g); } } /* gamedev_t7 */
++    return r; } /* gamedev_t7 */
++  float BaitableValue { get { var sg = StoryGoods(); return Enumerable.Range(0, S.goods.Length).Where(g => !sg.Contains(g)).Sum(g => hold[g] * price[port, g]); } } /* gamedev_t7 */
++  void DumpForBait(int worth) { int gp = G("gunpowder"); var sg = StoryGoods(); /* gamedev_t7 */ while (worth > 0 && HoldUsed > 0) { var held = Enumerable.Range(0, hold.Length).Where(g => hold[g] > 0 && !sg.Contains(g) /* gamedev_t7 */ && !(spareGunpowder && g == gp)).OrderBy(g => price[port, g]).ToList(); if (held.Count == 0) break; hold[held[0]]--; worth -= Mathf.CeilToInt(price[port, held[0]]); } }
+ 
+   /// card sits in the bottom third so the pirate stays visible above it
+   IEnumerator AskCard(string title, string body, params (string, Action)[] opts) {
+@@ -417,7 +423,7 @@
+     yield return PrologueChoice();
+     yield return AskCard("A scorched seal", "On the deck lies a SCORCHED SEAL: a falcon in flames.\nHASAN: \"A falcon in flames... House Qarin?\"", ("Limp into Gwadar", null));
+     foreach (var r in shipR) if (r) r.SetPropertyBlock(null); cam.fieldOfView = fov0; cam.backgroundColor = bg0; RenderSettings.fogColor = fogc0; Destroy(deck.gameObject); Destroy(fp); Destroy(night.gameObject); Destroy(moon.gameObject); Destroy(fire.gameObject); foreach (var l in lights) if (l) l.enabled = true; RenderSettings.ambientLight = amb0;
+-    pirateShip.gameObject.SetActive(false); fighting = false; tab = -1; sails = OpenFlag("voyageCountExcludesDuel") ? 0 : Math.Max(sails, 1); /* limping into Gwadar is voyage 1: Gwadar->Debal is 2, Debal->Muscat is 3 (fog) */ msg = "Dawn at Gwadar. Hasan's dhow creaks against the pier. Tap the bazaar."; lastInput = Time.unscaledTime; Refresh(); }
++    pirateShip.gameObject.SetActive(false); fighting = false; { int gw = Array.FindIndex(S.ports, pp => pp.name == "Gwadar"); if (gw >= 0 && sea3D) { sea3D.gameObject.SetActive(true); backdrop.color = Color.clear; Clear(content); TopBar(); ShowSeaLandmark(gw); Debug.Log("GB ARRIVAL landmark Gwadar (intro)"); yield return ArrivalHold("Gwadar", week); ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); } } /* gamedev_t7: intro limps into Gwadar through the same arrival hold */ tab = -1; sails = OpenFlag("voyageCountExcludesDuel") ? 0 : Math.Max(sails, 1); /* limping into Gwadar is voyage 1: Gwadar->Debal is 2, Debal->Muscat is 3 (fog) */ msg = "Dawn at Gwadar. Hasan's dhow creaks against the pier. Tap the bazaar."; lastInput = Time.unscaledTime; Refresh(); }
+   /// idle 45 s in town during the opening: the goal chip pulses and repeats the current goal
+   public void Nudge() { nudges++; msg = "Next: " + StoryGoals().Item1; nudgeT = Time.unscaledTime; Refresh(); }
+   public float nudgeT = -99; Vector3 fire_pos;
+--- a/Assets/Scripts/GameTown.cs
++++ b/Assets/Scripts/GameTown.cs
+@@ -336,7 +336,9 @@
+     var face = R(rt, "face", 0, 0, 1, 1); var fi = face.gameObject.AddComponent<Image>(); fi.sprite = Panel(UITheme.C("#B8893C"), UITheme.C("#5A3A16")); fi.type = Image.Type.Sliced;
+     var inner = Stretch(face, "in", 5, 5, 5, 5); var ii = inner.gameObject.AddComponent<Image>(); ii.sprite = Panel(UITheme.C("#D9AE5C"), UITheme.C("#8A6224")); ii.type = Image.Type.Sliced; ii.raycastTarget = false;
+     var t = Txt(R(face, "L", 0, 0, 1, 1), name, T.fontSizeSmall - 6, "#2A1A0C", TextAnchor.MiddleCenter, true); t.raycastTarget = false;
+-    var b = face.gameObject.AddComponent<Button>(); b.onClick.AddListener(() => { if (!busy) on(); }); return rt; }
++    var b = face.gameObject.AddComponent<Button>(); float pressT = -9f; b.onClick.AddListener(() => { if (Time.unscaledTime - pressT < 1f) return; if (!busy) on(); }); /* gamedev_t7: bot/keyboard click path kept; skipped if the press already opened it */ b.transition = Selectable.Transition.None; /* gamedev_t7: open on press, so a plaque that moves (post-dock camera settle) between press and release still opens */
++    var et = face.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>(); var en = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerDown }; en.callback.AddListener(_ => { if (!busy && !ModalUp && dialog == null) { pressT = Time.unscaledTime; townSnapTap = true; Debug.Log("GB PLAQUE tap " + name); on(); } }); et.triggers.Add(en); return rt; } /* gamedev_t7 */
++  bool townSnapTap; /* gamedev_t7: a plaque press cancels any town drag/settle so the press is never eaten as a swipe */
+   int townClose = -1; /* shot mode: frame one building close */
+   void TownCamera() { if (townClose >= 0 && townClose < bldgs.Count) { var b = bldgs[townClose]; var c = b.t.position + Vector3.up * (b.h * 0.42f); float d = Mathf.Max(12f, b.h * 2.1f);
+       cam.transform.position = c + new Vector3(d * 0.32f, d * 0.38f, -d); cam.transform.LookAt(c); return; }
+@@ -368,8 +370,8 @@
+     {
+       var jr = Px(cb, "JournalChip", 712, 1660, 168, 140); Box(jr, T.ink, T.brass);
+       var ji = jr.GetComponent<Image>(); if (ji) { var c = ji.color; c.a = 1f; ji.color = c; }
+-      Label(jr, "Journal", 6, 45, 156, 50, T.fontSizeSmall, JournalUnlocked ? T.parchment : T.textMuted, TextAnchor.MiddleCenter, true);
+-      var jb = jr.gameObject.AddComponent<Button>(); jb.interactable = JournalUnlocked; jb.onClick.AddListener(() => { if (ModalUp) return; /* final ask_modal */ if (JournalUnlocked) OpenJournal(); });
++      Label(jr, "Journal", 6, 45, 156, 50, T.fontSizeSmall, T.parchment /* gamedev_t7 */, TextAnchor.MiddleCenter, true);
++      var jb = jr.gameObject.AddComponent<Button>(); jb.interactable = true; /* gamedev_t7: Journal always opens in town (was gated on OpeningDone) */ jb.onClick.AddListener(() => { if (ModalUp && dialog == null && creditsCard == null) { Debug.Log("GB JOURNAL modalDepth " + modalDepth + " with no card up: reset"); modalDepth = 0; } /* gamedev_t7: stale depth never locks the chip */ if (ModalUp) { Debug.Log("GB JOURNAL blocked (card up)"); return; } Debug.Log("GB JOURNAL open"); OpenJournal(); });
+       var orr = Px(cb, "OptionsChip", 896, 1660, 168, 140); Box(orr, T.ink, T.brass);
+       Label(orr, "Options", 6, 45, 156, 50, T.fontSizeSmall, T.parchment, TextAnchor.MiddleCenter, true);
+       orr.gameObject.AddComponent<Button>().onClick.AddListener(() => { if (ModalUp) return; /* final ask_modal */ OptionsMenu(); });
+@@ -389,7 +391,7 @@
+     if (town3D == null || !town3D.gameObject.activeSelf || dialog != null || sheet != null) return;
+     bool overUI = UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+     if (Input.GetMouseButtonDown(0) && !overUI) { townDrag = true; townDown = Input.mousePosition; townDownS = townS; }
+-    if (townDrag && Input.GetMouseButton(0)) townS = Mathf.Clamp(townDownS - (Input.mousePosition.y - townDown.y) / Screen.height * 40f, townSMin, townSMax);
++    if (townSnapTap) { townSnapTap = false; townDrag = false; townDownS = townS; } /* gamedev_t7 */ if (townDrag && Input.GetMouseButton(0)) townS = Mathf.Clamp(townDownS - (Input.mousePosition.y - townDown.y) / Screen.height * 40f, townSMin, townSMax);
+     if (townDrag && Input.GetMouseButtonUp(0)) { townDrag = false;
+       if (((Vector2)Input.mousePosition - townDown).magnitude < Screen.height * 0.015f && Physics.Raycast(cam.ScreenPointToRay(Input.mousePosition), out var hit, 300f)) {
+         var b = bldgs.FirstOrDefault(x => x.t == hit.transform); if (b.t != null) OpenBuilding(b.tab); } }

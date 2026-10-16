@@ -1,0 +1,39 @@
+diff -ru -x '*.orig' -x '*.rej' -x '*.meta' a/Assets/Scripts/Game.cs b/Assets/Scripts/Game.cs
+--- a/Assets/Scripts/Game.cs	2026-10-16 12:32:36.160789716 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 12:32:36.208789716 +0500
+@@ -571,7 +571,7 @@
+     if (!pirate && gbForce.Contains("merchant")) { r = wgt.pirate + wgt.wreck + wgt.merchant * 0.5f; Debug.Log("GB FORCE merchant: event forced"); } else if (!pirate) r = gbForce.Contains("squall") ? wgt.pirate + wgt.wreck + wgt.merchant + wgt.squall * 0.5f : wgt.pirate + Rnd.value * (tot - wgt.pirate); else r = 0; /* the ambush roll (AmbushChanceFor) decides pirates; other events share the rest */
+     int any = Enumerable.Range(0, hold.Length).FirstOrDefault(g => hold[g] > 0);
+     if ((r -= wgt.pirate) < 0) {
+-      yield return AmbushEncounter(forcedFog ? "fog" : PickAmbushType());
++      yield return AmbushWithResult(forcedFog ? "fog" : PickAmbushType()); /* designer_ambush_customs */
+     } else if ((r -= wgt.wreck) < 0) {
+       int g = Rnd.Range(0, S.goods.Length), q = Mathf.Min(Rnd.Range(2, 6), S.holdSize - HoldUsed);
+       yield return Ask("Wreckage adrift", q > 0 ? $"Splintered timbers and {q} sealed bales of {S.goods[g].name}." : "Splintered timbers, but your hold is full.",
+@@ -590,13 +590,24 @@
+       price[p, g] *= S.rumorSpike; yield return Ask("Rumor on the wind", $"A fisherman swears {S.ports[p].name} is starved for {S.goods[g].name}. Prices there have jumped.", ("Noted", () => msg = $"Rumor: {S.goods[g].name} is dear in {S.ports[p].name}."));
+     }
+     Refresh(); }
++  public string CustomsWaveReason(int port) => papersGiven ? "papers" : ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails < OpenInt("customsRiskFromVoyage", 4)) ? "early" : null; /* port: papersGiven is global today, kept for future per-port papers */ /* designer_ambush_customs */
++  public bool CustomsWaved(int port) => CustomsWaveReason(port) != null; /* designer_ambush_customs */
++  string LostList(int[] before) { var parts = new System.Collections.Generic.List<string>(); for (int g = 0; g < hold.Length; g++) if (before[g] > hold[g]) parts.Add($"{before[g] - hold[g]} {S.goods[g].name.ToLower()}"); return parts.Count > 0 ? string.Join(", ", parts) : "nothing"; } /* designer_ambush_customs */
++  IEnumerator AmbushWithResult(string type) { /* designer_ambush_customs */
++    var before = (int[])hold.Clone(); lastAmbushOutcome = null; yield return AmbushEncounter(type); /* designer_ambush_customs */
++    string res = lastAmbushOutcome == "bait" ? $"Your cargo goes over the side. The pirates swing toward the floating crates, and you slip away.\n\nLost: {LostList(before)}." /* designer_ambush_customs */
++      : lastAmbushOutcome == "toll" ? $"You hand over part of your hold. The pirate captain grins and waves you on.\n\nPaid: {LostList(before)}." /* designer_ambush_customs */
++      : lastAmbushOutcome == "run" ? "Every sail up. You pull away before they can close." /* designer_ambush_customs */
++      : lastAmbushOutcome == "bluff" ? "They hesitate at your guns and decide you aren't worth the trouble." : null; /* designer_ambush_customs */
++    if (res != null) yield return Ask("Clear of the pirates", res, ("Continue", null)); /* designer_ambush_customs */
++  } /* designer_ambush_customs */
+   IEnumerator Customs() {
+     float risk = Risk(port); int val = 0; for (int g = 0; g < hold.Length; g++) if (hold[g] > 0 && Banned(g, port)) val += Mathf.RoundToInt(hold[g] * basePrice[port, g]);
+     bool dump = false;
+-    yield return Ask($"Customs at {S.ports[port].name}", $"Inspectors wait on the quay. You carry goods banned here, worth about {val} coins.\n\nRisk of being searched and caught: <b><color={T.down}>{risk:0}%</color></b>" + (crate ? "\nFaker's Crate aboard." : "") + (tithe ? "\nTithe paid." : ""),
++    yield return Ask($"Customs at {S.ports[port].name}", $"Inspectors wait on the quay. You carry goods banned here, worth about {val} coins.\n\n" + (CustomsWaveReason(port) == "papers" ? $"<b><color={T.up}>Search risk: none (Farida's papers).</color></b>" : CustomsWaveReason(port) == "early" ? $"<b><color={T.up}>Search risk: none. The inspectors wave you through.</color></b>" : $"Risk of being searched and caught: <b><color={T.down}>{risk:0}%</color></b>") + (crate ? "\nFaker's Crate aboard." : "") + (tithe ? "\nTithe paid." : ""), /* designer_ambush_customs */
+       ("Dock", null), ("Dump it", () => dump = true));
+     if (dump) { for (int g = 0; g < hold.Length; g++) if (Banned(g, port)) hold[g] = 0; msg = "You dumped the contraband before the pilot boat came alongside."; yield break; }
+-    bool safeRun = (InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails < OpenInt("customsRiskFromVoyage", 4); if (safeRun) risk = 0;
++    bool safeRun = CustomsWaved(port); if (safeRun) risk = 0; /* designer_ambush_customs */
+     if (gbForce.Contains("customs_caught")) safeRun = false; /* -gbforce customs_caught beats the first-run pass */ bool caught = !safeRun && (ptForceCustoms >= 0 ? ptForceCustoms == 1 : Rnd.value * 100 < risk); if (playthrough) PLog2("customs", $"risk {risk:0}% → " + (caught ? "CAUGHT" : "passed") + (safeRun ? " (first run / before voyage 4: always clears)" : ptForceCustoms >= 0 ? " (roll forced by branch)" : ""));
+     if (caught) { for (int g = 0; g < hold.Length; g++) if (Banned(g, port)) hold[g] = 0; int fine = InOpening ? 0 : Mathf.CeilToInt(val * S.customs.finePct); if (Design.F(DZ?.Path(DZ.settings, "customs.fineCappedAtCoins"), 1f) > 0) fine = Mathf.Clamp(fine, 0, Mathf.Max(0, coins)); /* never fined into debt */ coins -= fine; if (!InOpening) rep[port] -= S.customs.repLoss;
+       msg = false ? "Caught! The inspectors seize the contraband, but this first time you keep your coins and your good name." : $"Caught! Contraband seized, fined {fine} coins, standing in {S.ports[port].name} −{S.customs.repLoss}."; OnJobCustomsCaught(); }

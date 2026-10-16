@@ -1,0 +1,48 @@
+diff -ru a/Assets/Scripts/Game.cs b/Assets/Scripts/Game.cs
+--- a/Assets/Scripts/Game.cs	2026-10-16 14:09:09.214518375 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 14:09:09.350518375 +0500
+@@ -509,16 +509,16 @@
+   IEnumerator AskCore(bool dismissable, string title, string body, (string, Action)[] opts) {
+     while (CardBusy) yield return null; /* final modal_queue_back: queue - wait for any open card (Ask/AskCard/Credits/QuestMenu); checked before this card exists, so it never waits on itself */
+     /* v0.6k3: panel height fits title+body+buttons (no half-empty storm/voyage card) */
+-    float bodyH = CardBodyH(body, 700f); /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
+-    float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
++    float bodyH = CardBodyH(body, 640f); /* art_t10_fixes: body x 130–770 */ /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
++    float y = 132 + bodyH + 20; /* art_t10_fixes: title/rule moved down, body starts at 132 */ /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
+     float panelH = y + 84 + (wide ? 40 : 110); /* art_t8_brackets: 1-, 2- and 3-button cards (Sail on the horizon, Storm front, Bait/toll result, difficulty) all clear the bottom brackets; 4+ (Options) unchanged */ /* art_t6_fixes: 3-button cards (difficulty) clear the bottom brackets; 1–2 and 4+ button cards unchanged */ /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+-    Label(my, title, 112, 16, 676, 52, /* art_t5_fixes: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass); /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
+-    Label(my, body, 100, 106, 700, bodyH, /* art_t5_fixes: x 100–800, clear of both side bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
+-    y = 106 + bodyH + 20; float bx = wide ? 120f : 100f /* art_t5_fixes */, w = ((wide ? 660f : 700f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
++    Label(my, title, 130, 40, 640, 52, /* art_t10_fixes: off the top rail, between the corner brackets */ /* art_t5_fixes: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 130, 100, 640, 2), T.brass); /* art_t10_fixes: rule under title, between brackets */ /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
++    Label(my, body, 130, 132, 640, bodyH, /* art_t10_fixes */ /* art_t5_fixes: x 100–800, clear of both side bracket arms */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
++    y = 132 + bodyH + 20; float bx = wide ? 120f : 100f /* art_t5_fixes */, w = ((wide ? 660f : 700f) - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* art_t4_fixes */ /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
+     Debug.Log("GB CARD show " + title); /* gamedev_t9 */
+     for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, bx + i * (w + 16), y, w, 84, () => { Debug.Log("GB CARD choose " + title + " " + o.Item1); /* gamedev_t9 */ o.Item2?.Invoke(); done = true; }, true, i == 0); }
+     try { while (!done) yield return null; }
+diff -ru a/Assets/Scripts/GameV06j.cs b/Assets/Scripts/GameV06j.cs
+--- a/Assets/Scripts/GameV06j.cs	2026-10-16 14:09:09.214518375 +0500
++++ b/Assets/Scripts/GameV06j.cs	2026-10-16 14:09:09.254518375 +0500
+@@ -159,6 +159,8 @@
+     if (j.oneShot) oneShotUsed.Add(j.id);
+     msg = "You decline. Perhaps another time."; if (playthrough) PLog2("job decline", j.id);
+   }
++  /* art_t10_fixes: Journal tab styling. Selected = parchment #F5ECD8 on panelAlt #2B2018 (~13:1), gold border; unselected = textMuted #C9B896 on button #2A1E14 (~8.5:1), dimmer but legible */
++  void JTab(Button b, bool sel) { if (!b) return; var t = b.GetComponentInChildren<Text>(); if (t) { t.color = UITheme.C(sel ? T.parchment : T.textMuted); t.font = sel ? T.bold : T.regular; } }
+   void CompleteJob(ActiveJob a) {
+     a.status = "done"; coins += a.coins; honor += a.honorReward; fear += a.fearReward; sultanStanding += a.sultanReward;
+     if (a.sultanReward != 0) rep[Muscat] += a.sultanReward * 3;
+@@ -241,8 +243,8 @@
+         Box(dialog, T.panel, T.gold);
+         var inner = Stretch(dialog, "in", 28, 28, 28, 28);
+         Label(inner, "Journal", 100, 14, 600, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
+-        Btn(inner, "Active", 110, 100, 220, 70, /* art_t9_journal: inset below/right of top-left bracket */ () => { journalTab = 0; shownTab = -1; }, journalTab != 0, journalTab == 0);
+-        Btn(inner, "Done", 350, 100, 220, 70, /* art_t9_journal: shifted with Active, clear of Close (660) */ () => { journalTab = 1; shownTab = -1; }, journalTab != 1, journalTab == 1);
++        JTab(Btn(inner, "Active", 110, 100, 220, 70, /* art_t9_journal: inset below/right of top-left bracket */ () => { journalTab = 0; shownTab = -1; }, true, journalTab == 0), journalTab == 0); /* art_t10_fixes: selected tab no longer drawn disabled (#5A4F44, ~2.3:1) */
++        JTab(Btn(inner, "Done", 350, 100, 220, 70, /* art_t9_journal: shifted with Active, clear of Close (660) */ () => { journalTab = 1; shownTab = -1; }, true, journalTab == 1), journalTab == 1);
+         Btn(inner, "Close", 660, 10, 220, 70, /* art_t8_brackets: clear of the top-right bracket */ () => { done = true; });
+         var list = journalTab == 0 ? journal.Where(j => j.status == "active").ToList() : journal.Where(j => j.status != "active").Take(10).ToList();
+         float y = 190; /* art_t9_journal: below the moved tabs */

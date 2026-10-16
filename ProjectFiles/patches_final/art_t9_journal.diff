@@ -1,0 +1,19 @@
+--- a/Assets/Scripts/GameV06j.cs	2026-10-16 13:50:30.614518375 +0500
++++ b/Assets/Scripts/GameV06j.cs	2026-10-16 13:50:55.074518375 +0500
+@@ -222,12 +222,12 @@
+         Box(dialog, T.panel, T.gold);
+         var inner = Stretch(dialog, "in", 28, 28, 28, 28);
+         Label(inner, "Journal", 100, 14, 600, 60, /* art_t8_brackets: inset clear of the top-left bracket */ T.fontSizeTitle + 6, T.parchment, TextAnchor.MiddleLeft, true);
+-        Btn(inner, "Active", 20, 80, 220, 70, () => { journalTab = 0; shownTab = -1; }, journalTab != 0, journalTab == 0);
+-        Btn(inner, "Done", 260, 80, 220, 70, () => { journalTab = 1; shownTab = -1; }, journalTab != 1, journalTab == 1);
++        Btn(inner, "Active", 110, 100, 220, 70, /* art_t9_journal: inset below/right of top-left bracket */ () => { journalTab = 0; shownTab = -1; }, journalTab != 0, journalTab == 0);
++        Btn(inner, "Done", 350, 100, 220, 70, /* art_t9_journal: shifted with Active, clear of Close (660) */ () => { journalTab = 1; shownTab = -1; }, journalTab != 1, journalTab == 1);
+         Btn(inner, "Close", 660, 10, 220, 70, /* art_t8_brackets: clear of the top-right bracket */ () => { done = true; });
+         var list = journalTab == 0 ? journal.Where(j => j.status == "active").ToList() : journal.Where(j => j.status != "active").Take(10).ToList();
+-        float y = 170;
+-        if (!JournalUnlocked) { Label(inner, "Goal", 20, y, 960, 52, T.fontSize, "#7A5A1E" /* gamedev_t8: dark brass */, TextAnchor.MiddleLeft, true); Label(inner, JournalOpeningGoal, 20, y + 56, 960, 110, T.fontSize, T.textMuted, TextAnchor.UpperLeft); } /* gamedev_t8: gold Goal heading + muted opening goal line(s) instead of the locked note */
++        float y = 190; /* art_t9_journal: below the moved tabs */
++        if (!JournalUnlocked) { Label(inner, "Goal", 110, y, 780, 52, T.fontSize, "#C9A55A" /* art_t9_journal: light brass on dark panel */, TextAnchor.MiddleLeft, true); Label(inner, JournalOpeningGoal, 110, y + 56, 780, 170, T.fontSize, T.parchment, TextAnchor.UpperLeft); /* art_t9_journal: body size, parchment, wraps inside brackets */ } /* gamedev_t8: gold Goal heading + muted opening goal line(s) instead of the locked note */
+         else if (list.Count == 0) Label(inner, journalTab == 0 ? "No active jobs. Talk to keepers for offers." : "No finished jobs yet.", 20, y, 960, 80, T.fontSize, T.textMuted);
+         else foreach (var a in list) {
+           var card = Px(inner, "e", 20, y, 960, 200); Box(card, T.panelAlt, T.brass);

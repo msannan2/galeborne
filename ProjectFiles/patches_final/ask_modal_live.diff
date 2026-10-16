@@ -1,0 +1,79 @@
+diff -ru a/Game.cs b/Game.cs
+--- a/Assets/Scripts/Game.cs	2026-10-16 12:12:56.840789716 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 12:12:56.860789716 +0500
+@@ -505,13 +505,17 @@
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     float panelH = y + 84 + 20; /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
++    var myDim = R(root, "AskDim", 0, 0, 1, 1); var mdi = myDim.gameObject.AddComponent<Image>(); mdi.color = new Color(0.05f, 0.03f, 0.02f, 0.55f); mdi.raycastTarget = true; modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+     Label(my, title, 100, 16, 700, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(my, "rule", 30, 72, 840, 2), T.brass); /* final2: title starts 100 px in, clear of the ~95 px corner brackets */
+     Label(my, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: 30 px inset each side (x 60–840), clear of the side bracket arms */
+     y = 106 + bodyH + 20; float w = (710f - (opts.Length - 1) * 16) / Mathf.Max(1, opts.Length); /* final2: button row inset to x 95–805 so the end buttons clear the bottom corner brackets */
+     for (int i = 0; i < opts.Length; i++) { var o = opts[i]; Btn(my, o.Item1, 95 + i * (w + 16), y, w, 84, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+-    while (!done) yield return null; Destroy0(my.gameObject); if (dialog == my) dialog = null;
++    try { while (!done) yield return null; }
++    finally { if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } /* final ask_modal: card + its own dim go together on every close path (incl. coroutine stopped) */
+   }
++  int modalDepth; /* final ask_modal: >0 while any Ask/AskCard card is up; HUD taps are ignored */
++  bool ModalUp => modalDepth > 0;
+   float arrivalPanT0 = -1f; Vector3 arrivalTarget; const float ArrivalPanDur = 1.0f; /* k4merge2: arrival pan */
+   public float lastVoyageAmbushChance;
+   /// v0.6i soft mid-voyage choices (not ambushes): sail on horizon, storm front, wreckage
+diff -ru a/GameSave.cs b/GameSave.cs
+--- a/Assets/Scripts/GameSave.cs	2026-10-16 12:12:56.840789716 +0500
++++ b/Assets/Scripts/GameSave.cs	2026-10-16 12:12:56.860789716 +0500
+@@ -65,7 +65,7 @@
+     bool has = HasSave; float y = 280;
+     if (saveBroken) { has = false; Label(pnl, "Both voyage logs are damaged. Start a new voyage, or wait until we can mend them.", 40, 250, 720, 80, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 80; }
+     if (has) { Btn(pnl, "Continue", 120, y, 560, 110, () => { if (!Load()) { saveBroken = true; ShowTitle(); return; } onTitle = false; Refresh(); }, true, true); y += 140; }
+-    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
++    Btn(pnl, "New Game", 120, y, 560, 110, () => { onTitle = false; saveBroken = false; Init(); difficulty = 1; /* final ask_modal: new game defaults to Captain (middle) even if the difficulty card is never answered */ prologuePending = DZ == null || OpenFlag("startWithPrologueDuel"); tab = -1; Refresh(); StartCoroutine(Ask("Choose your difficulty", "You can change it any time from the ⚙ button in town.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",
+       ("Relaxed", () => { difficulty = 0; Save(); }), ("Captain", () => { difficulty = 1; Save(); }), ("Hard", () => { difficulty = 2; Save(); }))); }, true, !has);
+     Btn(pnl, "Credits", 250, 548, 300, 62, () => ShowCredits());
+   }
+diff -ru a/GameTown.cs b/GameTown.cs
+--- a/Assets/Scripts/GameTown.cs	2026-10-16 12:12:56.840789716 +0500
++++ b/Assets/Scripts/GameTown.cs	2026-10-16 12:12:56.860789716 +0500
+@@ -363,16 +363,16 @@
+     for (int i = 0; i < bldgs.Count; i++) { int k = i; if (Hidden(bldgs[i].tab)) continue; string nm = bldgs[i].name; if (bldgs[i].tab == 7 && ShipwrightMode(S.ports[port].name) == "none") nm = "Harbour Master"; signs.Add((Plaque(signLayer, nm, () => OpenBuilding(bldgs[k].tab)), i)); }
+     var cb = Bottom1920(content, "TownBottom");
+     /* v0.6i: SET SAIL art button from ui_setsail_button.png */
+-    var sail = SetSailBtn(cb, 16, 1660, 680, 140, "SET SAIL", () => { if (!CanLeavePort(out var why)) { msg = why; Refresh(); } else OpenBuilding(4); }); chartBtn = sail.GetComponent<RectTransform>(); if (!JournalUnlocked) ShowTownHints(); else if (signLayer) { /* v0.6j: map/quest markers off after opening */ }
++    var sail = SetSailBtn(cb, 16, 1660, 680, 140, "SET SAIL", () => { if (ModalUp) return; /* final ask_modal */ if (!CanLeavePort(out var why)) { msg = why; Refresh(); } else OpenBuilding(4); }); chartBtn = sail.GetComponent<RectTransform>(); if (!JournalUnlocked) ShowTownHints(); else if (signLayer) { /* v0.6j: map/quest markers off after opening */ }
+     /* v0.6k2: Journal/Options chips — ink fill + cream label (never empty teal) */
+     {
+       var jr = Px(cb, "JournalChip", 712, 1660, 168, 140); Box(jr, T.ink, T.brass);
+       var ji = jr.GetComponent<Image>(); if (ji) { var c = ji.color; c.a = 1f; ji.color = c; }
+       Label(jr, "Journal", 6, 45, 156, 50, T.fontSizeSmall, JournalUnlocked ? T.parchment : T.textMuted, TextAnchor.MiddleCenter, true);
+-      var jb = jr.gameObject.AddComponent<Button>(); jb.interactable = JournalUnlocked; jb.onClick.AddListener(() => { if (JournalUnlocked) OpenJournal(); });
++      var jb = jr.gameObject.AddComponent<Button>(); jb.interactable = JournalUnlocked; jb.onClick.AddListener(() => { if (ModalUp) return; /* final ask_modal */ if (JournalUnlocked) OpenJournal(); });
+       var orr = Px(cb, "OptionsChip", 896, 1660, 168, 140); Box(orr, T.ink, T.brass);
+       Label(orr, "Options", 6, 45, 156, 50, T.fontSizeSmall, T.parchment, TextAnchor.MiddleCenter, true);
+-      orr.gameObject.AddComponent<Button>().onClick.AddListener(OptionsMenu);
++      orr.gameObject.AddComponent<Button>().onClick.AddListener(() => { if (ModalUp) return; /* final ask_modal */ OptionsMenu(); });
+     }
+     var hintBg = Px(cb, "swipeBg", 16, 1588, 1048, 56); Box(hintBg, T.ink, T.brass); var hi = hintBg.GetComponent<Image>(); hi.raycastTarget = false; hi.color = new Color(0.06f, 0.04f, 0.03f, 0.92f);
+     Label(hintBg, "Swipe up and down to walk the town · tap a building", 8, 4, 1032, 48, T.fontSizeSmall - 2, T.parchment, TextAnchor.MiddleCenter);
+diff -ru a/GameV06.cs b/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 12:12:56.840789716 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 12:12:56.860789716 +0500
+@@ -150,13 +150,15 @@
+     opts = opts.Where(o => o.Item1 != null).ToArray(); bool done = false;
+     int perRow = opts.Length > 3 ? 3 : opts.Length, rows = Mathf.Max(1, (opts.Length + perRow - 1) / Mathf.Max(1, perRow)); /* final: card sized to its measured body (was a fixed 330 px body box, leaving a gap above the buttons) */
+     float bodyH = Mathf.Min(330f, CardBodyH(body, 940f)), btnY = 104 + bodyH + 24, cardH = Mathf.Max(420f, btnY + rows * 124 - 16 + 30);
+-    dialog = R(root, "Card", 0, 0, 1, 0); dialog.pivot = new Vector2(0.5f, 0); dialog.offsetMin = new Vector2(30, 30); dialog.offsetMax = new Vector2(-30, 30 + cardH); Box(dialog, T.panel, T.gold);
+-    var inner = R(dialog, "in", 0.5f, 1, 0.5f, 1); inner.sizeDelta = new Vector2(1000, cardH); inner.pivot = new Vector2(0.5f, 1); inner.anchoredPosition = Vector2.zero;
++    var myDim = R(root, "CardDim", 0, 0, 1, 1); var mdi = myDim.gameObject.AddComponent<Image>(); mdi.color = new Color(0.05f, 0.03f, 0.02f, 0.55f); mdi.raycastTarget = true; modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
++    var my = R(root, "Card", 0, 0, 1, 0); dialog = my; my.pivot = new Vector2(0.5f, 0); my.offsetMin = new Vector2(30, 30); my.offsetMax = new Vector2(-30, 30 + cardH); Box(my, T.panel, T.gold);
++    var inner = R(my, "in", 0.5f, 1, 0.5f, 1); inner.sizeDelta = new Vector2(1000, cardH); inner.pivot = new Vector2(0.5f, 1); inner.anchoredPosition = Vector2.zero;
+     Label(inner, title, 100, 20, 800, 64, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(inner, "rule", 30, 90, 940, 2), T.brass);
+     Label(inner, body, 30, 104, 940, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft);
+     float w = (810f - (perRow - 1) * 16) / Mathf.Max(1, perRow); /* final2: title and buttons inset to x 95–905 so no button corner sits on a brass bracket (5-button ambush) */
+     for (int i = 0; i < opts.Length; i++) { var o = opts[i]; int row = i / perRow, col = i % perRow; Btn(inner, o.Item1, 95 + col * (w + 16), btnY + row * 124, w, 108, () => { o.Item2?.Invoke(); done = true; }, true, i == 0); }
+-    while (!done) yield return null; Destroy0(dialog.gameObject); dialog = null; }
++    try { while (!done) yield return null; }
++    finally { if (my) Destroy0(my.gameObject); if (myDim) Destroy0(myDim.gameObject); if (dialog == my) dialog = null; modalDepth = Mathf.Max(0, modalDepth - 1); } } /* final ask_modal: own panel + own dim only (was: destroyed whatever dialog pointed at) */
+ 
+   Light seaSun; Color sunCol0; float sunInt0; Color amb0, fog0; float fogS0, fogE0;
+   void ApplyMood(string type) {

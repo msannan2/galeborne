@@ -1,0 +1,19 @@
+Galeborne — third-party credits
+
+Kenney.nl — Watercraft (ship-small and related)
+  https://kenney.nl/assets/watercraft
+  License: CC0 1.0 Universal
+  Used as Hasan's player dhow (and harbour craft base). Modified for Galeborne v0.6j:
+  raised stern deck, lateen sail on a long angled yard, recoloured with
+  art/models/kenney_watercraft_colormap_galeborne.png (teak hull, cream sailcloth).
+
+Kay Lousberg — KayKit Adventurers
+  https://kaylousberg.com
+  License: CC0 1.0 Universal (KayKit Character Pack Adventures)
+  Used only as small distant background townsfolk in town scenes
+  (textures: kaykit_townsfolk_a_texture.png, kaykit_hasan_texture.png).
+  Props removed (no wizard hat / crossbow / axes). Never used near camera.
+  Close-up Hasan and raider for the duel remain Galeborne originals.
+
+Original Kenney / KayKit files: /workspace/galeborne/model_src/
+Working / test copies: /workspace/galeborne/model_tests/

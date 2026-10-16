@@ -1,0 +1,33 @@
+diff -ruN a/Assets/Scripts/GameV06k.cs c/Assets/Scripts/GameV06k.cs
+--- a/Assets/Scripts/GameV06k.cs	2026-10-16 10:48:29.007753502 +0500
++++ c/Assets/Scripts/GameV06k.cs	2026-10-16 10:48:29.027753502 +0500
+@@ -60,25 +60,16 @@
+ 
+   /// k4art patch: low headland under an arrival copy, tinted to the town's own rock (same hexes as GameTownArt.K4Skins / GD crags). Matte, no emission.
+   void ShoreBase(GameObject lm, string topHex, string cragHex) {
+-    Rect w = TU((int)TCell.Whitewash); var src = lm.GetComponent<MeshRenderer>().sharedMaterial;
++    Rect w = TU((int)TCell.Whitewash); var lr = lm.GetComponent<MeshRenderer>(); var src = lr.sharedMaterial;
++    { var lit = new Material(src); if (lit.HasProperty("_BaseColor")) lit.SetColor("_BaseColor", new Color(1.22f, 1.22f, 1.2f, 1f)); lr.sharedMaterial = lit; } /* final: sea ambient is blue-grey and the camera sees the keep's shade side → lift albedo (no emission) so whitewash reads white like in town */
+     void Part(string n, MeshB mb, string hex) { var m = new Material(src); ColorUtility.TryParseHtmlString(hex, out var c); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", c); if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.08f);
+       var g = new GameObject(n); g.transform.SetParent(lm.transform, false); g.AddComponent<MeshFilter>().sharedMesh = mb.Build(); g.AddComponent<MeshRenderer>().sharedMaterial = m; }
+     /* k4art final: ~1.8x wider headland (read as a coast, not an islet) */
+     var crag = new MeshB(); crag.Cyl(new Vector3(2f, -3f, 2f), new Vector3(2f, 0.4f, 2f), 27f, 21f, 16, w);                  // wide low crag at the waterline
+     crag.Box(new Vector3(-11f, -0.4f, 12f), new Vector3(13f, 2.6f, 11f), Quaternion.Euler(0, 20f, 4f), w);                       // shoulder of the headland
+     var shelf = new MeshB(); shelf.Cyl(new Vector3(2f, 0.4f, 2f), new Vector3(2f, 0.9f, 2f), 21f, 19f, 16, w);               // shore shelf
+-    shelf.Box(new Vector3(-16f, 0.1f, -7f), new Vector3(11f, 1.2f, 9f), Quaternion.Euler(0, 25f, 0), w);                        // beach spit toward the ship
+-    /* k4art final: low strip of the town's coastline behind/around the landmark, all below the landmark silhouette */
+-    crag.Box(new Vector3(2f, -0.6f, 26f), new Vector3(120f, 3.6f, 14f), w);                                                     // long low headland behind
+-    shelf.Box(new Vector3(2f, 0.15f, 17f), new Vector3(110f, 0.9f, 7f), w);                                                     // beach / quay line
+-    var walls = new MeshB(); var roofs = new MeshB(); var rnd = new System.Random(lm.name.GetHashCode() & 0xffff);
+-    for (int i = 0; i < 14; i++) {
+-      float x = -52f + i * 8f + (float)rnd.NextDouble() * 3f; if (Mathf.Abs(x - 2f) < 14f) continue;                          // keep the landmark's own footprint clear
+-      float bw = 3.5f + (float)rnd.NextDouble() * 3f, bh = 2.2f + (float)rnd.NextDouble() * 2.6f, bd = 3f + (float)rnd.NextDouble() * 2f, z = 19f + (float)rnd.NextDouble() * 5f;
+-      walls.Box(new Vector3(x, 0.6f + bh * 0.5f, z), new Vector3(bw, bh, bd), w);                                               // low blocky house (max ~5 m local, landmark is 14-18)
+-      roofs.Box(new Vector3(x, 0.6f + bh + 0.15f, z), new Vector3(bw + 0.3f, 0.3f, bd + 0.3f), w);                             // flat roof slab, darker tone
+-    }
+-    Part("ShoreTownWalls", walls, topHex); Part("ShoreTownRoofs", roofs, cragHex);
++    shelf.Box(new Vector3(-16f, -0.3f, -7f), new Vector3(11f, 1.2f, 9f), Quaternion.Euler(0, 25f, 0), w);                      // final: top at +0.3, sits in the surf instead of hovering                        // beach spit toward the ship
++    /* final (cut): coast strip removed; wider rock base kept */
+     Part("ShoreCrag", crag, cragHex); Part("ShoreShelf", shelf, topHex);
+   }
+ 

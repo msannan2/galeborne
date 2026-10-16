@@ -1,0 +1,16 @@
+{
+  "_note": "Mechanics for market events. Numbers prefixed with $ are keys read from v06_settings.json at load (no copies, so nothing drifts). Event ids match v06_events_content.json.",
+  "rollsPerPortPerMoon": "$market.eventsPerPortPerMoon",
+  "noSameEventInPortTwiceInARow": true,
+  "rumorLeadWeeks": 1,
+  "events": [
+    {"id": "shortage", "weight": 30, "target": "oneGoodFromPortWant", "priceMult": {"min": "$market.shortageMultMin", "max": "$market.shortageMultMax"}, "durationWeeks": 2, "stockMult": 0.2},
+    {"id": "glut", "weight": 25, "target": "oneGoodFromPortCheap", "priceMult": {"max": "$market.glutMultMax"}, "durationWeeks": 2, "stockMult": 3.0},
+    {"id": "festival", "weight": 15, "target": "luxuries", "luxuries": ["silk", "pearls", "incense"], "priceMult": "$market.festivalLuxuryMult", "durationWeeks": 1},
+    {"id": "sultanWedding", "weight": 5, "target": "luxuries", "luxuries": ["silk", "pearls", "incense", "rugs"], "priceMult": "$market.festivalLuxuryMult", "durationWeeks": 2, "onlyPort": "Muscat"},
+    {"id": "blockade", "weight": 10, "target": "oneGoodFromPortWant", "effect": "seizedOnArrival", "durationWeeks": 2, "warnOnMapBeforeSailing": true},
+    {"id": "foreignShip", "weight": "$market.foreignShipChance", "weightIsChancePerDock": true, "target": "rareGood", "pool": ["silk"], "buyPriceMult": 0.6, "stockUnits": 20, "leavesAfterDocks": 1}
+  ],
+  "priceDrift": {"weeklyMax": "$weeklyDriftMax", "eventMultApplied": "afterDrift", "restockWeeks": "$market.stockRefillWeeks"},
+  "gunpowderOpening": {"buyPort": "Gwadar", "sellPort": "Muscat", "good": "gunpowder", "source": "$portGoods._backAlley", "targetPayoutMult": 3.0, "testedBy": "Game Tester Tools/ check"}
+}

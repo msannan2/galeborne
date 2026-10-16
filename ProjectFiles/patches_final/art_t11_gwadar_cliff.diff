@@ -1,0 +1,18 @@
+diff -ru a/Assets/Scripts/GameV06k.cs b/Assets/Scripts/GameV06k.cs
+--- a/Assets/Scripts/GameV06k.cs	2026-10-16 14:33:07.874518375 +0500
++++ b/Assets/Scripts/GameV06k.cs	2026-10-16 14:33:07.906518375 +0500
+@@ -114,10 +114,12 @@
+       Part("ArrivalCragRock", crag, "#5E574C"); Part("ArrivalCragDark", dark, "#52453A"); Part("ArrivalTower", tw, "#ECE6D8"); /* designer_arrival_shores */
+     } else if (port == "Gwadar") { /* designer_arrival_shores */ // hammerhead: tall flat-topped cliff block on the left, low narrow sandy neck, low sand right
+       var cliff = new MeshB(); var sand = new MeshB(); /* designer_arrival_shores */
+-      TownLayoutsK4.BoulderShared(cliff, TU, new Vector3(-17f, 0f, 20f), new Vector3(9f, 11f, 7f), r, 6, 9f); /* designer_arrival_shores */ // hammerhead block, flat top y 9
++      var cliffBase = new MeshB(); /* art_t11_gwadar_cliff */
++      TownLayoutsK4.BoulderShared(cliff, TU, new Vector3(-9f, -1f, 11f), new Vector3(8f, 9f, 5f), r, 6, 7f); /* art_t11_gwadar_cliff */ // hammerhead moved into frame behind the town's left half (was x -17 z 20, off-frame); flat top y 7 = tower base (LandmarkGwadar tower Cyl starts y 7); front z ≥ ~4.5 stays behind the tower (z 2, r 1.55), nothing sits on it
++      TownLayoutsK4.BoulderShared(cliffBase, TU, new Vector3(-9f, -1.6f, 10.6f), new Vector3(8.8f, 3f, 5.6f), r, 6, 1.1f); /* art_t11_gwadar_cliff */ // darker wave-cut band at the waterline, slightly proud of the face, top y 1.1 local
+       sand.Box(new Vector3(-5f, -1f, 14f), new Vector3(10f, 1.8f, 3f), Quaternion.Euler(0, -12f, 0), TU((int)TCell.Whitewash)); /* designer_arrival_shores */ // narrow neck, top ~-0.1 → barely above water
+       sand.Box(new Vector3(16f, -1.2f, 12f), new Vector3(16f, 1.9f, 6f), TU((int)TCell.Whitewash)); /* designer_arrival_shores */ // low sand flat right side
+-      Part("ArrivalHammerhead", cliff, "#7A4E33"); Part("ArrivalNeck", sand, "#C8A878"); /* designer_arrival_shores */
++      Part("ArrivalHammerhead", cliff, "#9A6E4C"); Part("ArrivalHammerheadBase", cliffBase, "#5A3E2A"); /* art_t11_gwadar_cliff: lighter tan face, dark base band, matte (Part zeroes emission) */ Part("ArrivalNeck", sand, "#C8A878"); /* designer_arrival_shores */
+     } else if (port == "Debal") { /* designer_arrival_shores */ // flat delta, no rock: low mud/sand banks + dark mangrove scrub on the waterline
+       Hide("ShoreCrag"); /* designer_arrival_shores */ // drop the rock headland entirely
+       var mud = new MeshB(); var mang = new MeshB(); Rect w = TU((int)TCell.Whitewash); /* designer_arrival_shores */

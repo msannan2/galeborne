@@ -1,0 +1,11 @@
+--- a/Assets/Scripts/Game.cs	2026-10-16 12:28:42.788789716 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 12:28:42.792789716 +0500
+@@ -526,7 +526,7 @@
+   bool CardBusy => modalDepth > 0 || creditsCard != null || (dialog != null && dialog.name == "QuestMenu");
+   /* final modal_queue_back: one dim colour for Ask, AskCard and Credits (= creditsDim's original 0.05,0.03,0.02,0.6) */
+   static readonly Color ModalDimColor = new Color(0.05f, 0.03f, 0.02f, 0.6f);
+-  RectTransform ModalDim(string n) { var d = R(root, n, 0, 0, 1, 1); var im = d.gameObject.AddComponent<Image>(); im.color = ModalDimColor; im.raycastTarget = true; return d; }
++  RectTransform ModalDim(string n) { var d = R(root, n, 0, 0, 1, 1); Vector2 a0 = root.anchorMin, sz = root.anchorMax - root.anchorMin; if (sz.x > 0.01f && sz.y > 0.01f) { d.anchorMin = new Vector2(-a0.x / sz.x, -a0.y / sz.y); d.anchorMax = new Vector2((1f - a0.x) / sz.x, (1f - a0.y) / sz.y); d.offsetMin = d.offsetMax = Vector2.zero; } /* modal_dim_fullscreen: stays under root (card order unchanged) but anchors stretched past the -gbsafe / safe-area inset to the full screen */ var im = d.gameObject.AddComponent<Image>(); im.color = ModalDimColor; im.raycastTarget = true; return d; }
+   /* final modal_queue_back: Back (Android) / Escape registry. close == null => FORCED (Back ignored). */
+   class BackEntry { public string name; public Func<bool> alive; public Action close; }
+   readonly List<BackEntry> backStack = new List<BackEntry>(); int lastBackFrame = -1;

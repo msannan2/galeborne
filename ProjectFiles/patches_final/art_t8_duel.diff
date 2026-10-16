@@ -1,0 +1,21 @@
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -443,12 +443,14 @@
+   /// prologue duel: exactly three STRIKE taps, unlosable. 1: the raider blocks, 2: an opening, 3: the finishing blow in slow motion.
+   IEnumerator PrologueDuel() {
+     var pnl = Px(root, "Duel", 30, 1480, 1020, 680); /* art_t7_fixes: raised 120 px - the t6 card ran ~30 px off the bottom of the screen */ Box(pnl, T.panel, T.gold);
+-    Label(pnl, "Blade to blade on a burning deck", 100, 12, 800, /* art_t7_fixes: x 100–900, clear of the top-right bracket */ /* art_t4_fixes: clear of the left bracket arm */ 60, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
+-    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 100, 70, 820, /* art_t7_fixes */ /* art_t4_fixes */ 46, T.fontSize, T.text);
++    var dTitle = Label(pnl, "Blade to blade on a burning deck", 100, 12, 800, /* art_t7_fixes: x 100–900, clear of the top-right bracket */ /* art_t4_fixes: clear of the left bracket arm */ 60, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
++    dTitle.verticalOverflow = VerticalWrapMode.Truncate; dTitle.resizeTextForBestFit = true; dTitle.resizeTextMinSize = 20; dTitle.resizeTextMaxSize = T.fontSizeTitle - 4; /* art_t8_duel: always one line at w800, never wraps into the line below */
++    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 100, 80, 800, /* art_t8_duel: y 80, w 800 */ /* art_t7_fixes */ /* art_t4_fixes */ 60, T.fontSize, T.text);
++    score.verticalOverflow = VerticalWrapMode.Truncate; score.resizeTextForBestFit = true; score.resizeTextMinSize = 18; score.resizeTextMaxSize = T.fontSize; /* art_t8_duel: y 80–140, clear of title (12–72) and ring (150) */
+     var arena = Px(pnl, "arena", 110, 150, 380, 380); /* art_t7_fixes: ring x 110–490, y 150–530 (150 px above the card bottom) */
+     var bg = Px(arena, "bg", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); bg.sprite = Ring(0, 1); bg.color = UITheme.C(T.ink);
+-    var goldR = Px(arena, "gold", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); goldR.sprite = Ring(0.7f, 1); goldR.color = UITheme.C(T.gold) * new Color(1, 1, 1, 0.85f); goldR.rectTransform.localScale = Vector3.one * 0.6f;
+-    var closing = Px(arena, "closing", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); closing.sprite = Ring(0.95f, 1); closing.color = UITheme.C(T.parchment);
++    var goldR = Px(arena, "gold", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); goldR.sprite = Ring(0.7f, 1); goldR.color = UITheme.C(T.gold) * new Color(1, 1, 1, 0.85f); goldR.rectTransform.pivot = new Vector2(.5f, .5f); goldR.rectTransform.anchoredPosition = new Vector2(190, -190); /* art_t8_duel: scale about the centre so the band sits concentric in the disc */ goldR.rectTransform.localScale = Vector3.one * 0.6f;
++    var closing = Px(arena, "closing", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); closing.sprite = Ring(0.95f, 1); closing.color = UITheme.C(T.parchment); closing.rectTransform.pivot = new Vector2(.5f, .5f); closing.rectTransform.anchoredPosition = new Vector2(190, -190); /* art_t8_duel: closing ring shrinks to the disc centre, not its top-left */
+     var res = Label(pnl, "", 520, 180, 380, 100, /* art_t7_fixes */ T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleCenter, true);
+     bool tapped = false; var strikeBtn = Btn(pnl, "STRIKE", 520, 300, 380, 190, /* art_t7_fixes: x 520–900, bottom 190 px above the card edge */ () => tapped = true, true, true);
+     string[] beats = { "The raider blocks!", "An opening!", "The finishing blow!" };

@@ -1,0 +1,45 @@
+diff -ru a/Assets/Resources/keeper_lines.json b/Assets/Resources/keeper_lines.json
+--- a/Assets/Resources/keeper_lines.json	2026-10-16 11:35:00.218487482 +0500
++++ b/Assets/Resources/keeper_lines.json	2026-10-16 11:35:00.230487482 +0500
+@@ -28,6 +28,9 @@
+   {"trigger":"jackpotSale","mood":"offended","text":"At that price I should be the captain and you the merchant!"},
+   {"trigger":"emptyStock","mood":"offended","text":"You bought it all. Now what do I shout about?"}
+  ],
++ "innkeeper": [
++  { "trigger": "greet", "mood": "neutral", "text": "Sit, nakhuda. The tea is hot, the fish is fresh, and the gossip costs extra." }
++ ],
+  "farida": [
+   {"trigger":"greet","mood":"suspicious","text":"You walked in like a customs man. Walk out like a friend."},
+   {"trigger":"buyContraband","mood":"neutral","text":"Gunpowder? I see only... very angry sand."},
+diff -ru a/Assets/Scripts/GameTown.cs b/Assets/Scripts/GameTown.cs
+--- a/Assets/Scripts/GameTown.cs	2026-10-16 11:35:00.214487482 +0500
++++ b/Assets/Scripts/GameTown.cs	2026-10-16 11:35:00.226487482 +0500
+@@ -6,7 +6,7 @@
+ using Rnd = UnityEngine.Random;
+ 
+ [Serializable] public class KeeperLine { public string trigger, mood, text; }
+-[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida; }
++[Serializable] public class KeeperBook { public KeeperLine[] banker, moneyLender, shipwright, bazaarMerchant, farida, innkeeper; }
+ 
+ /// v0.6: tall scrolling 3D town with tappable buildings, keepers with mood faces, bank, money lender, shipwright, tavern, palace, chart-table map.
+ public partial class Game {
+@@ -409,7 +409,7 @@
+     { 0, ("bazaarMerchant", "Jalal the bazaar merchant", 0) }, { 1, ("farida", "Farida of the back alley", 2) }, { 3, ("shipwright", "Temple priest", 4) }, /* reuse face row until temple art */
+     { 5, ("banker", "Master Idris, banker", 3) },
+     { 6, ("moneyLender", "Rafiq the lender", 1) }, { 7, ("shipwright", "Old Bashir, shipwright", 4) },
+-    { 8, ("bazaarMerchant", "Innkeeper of the Salt & Lantern", 0) }, { 9, ("banker", "Governor's chamberlain", 3) } };
++    { 8, ("innkeeper", "Innkeeper of the Salt & Lantern", 0) } /* own lines; face: Art/Portraits/innkeeper when painted, else mirrored + tinted row 0 (see KeeperHeader) */, { 9, ("banker", "Governor's chamberlain", 3) } };
+   static readonly string[] Moods = { "neutral", "delighted", "offended", "suspicious" };
+   KeeperLine Line(string key, string trig) { if (book == null) { var ta = Resources.Load<TextAsset>("keeper_lines"); book = ta ? JsonUtility.FromJson<KeeperBook>(ta.text) : new KeeperBook(); }
+     var arr = (KeeperLine[])typeof(KeeperBook).GetField(key).GetValue(book); if (arr == null || arr.Length == 0) return new KeeperLine { mood = "neutral", text = "" };
+@@ -422,7 +422,9 @@
+     var fr = Px(r, "face", 14, 14, KeeperH - 28, KeeperH - 28); Box(fr, T.ink, T.gold);
+     /* v0.6h4: ally Farida until turned in; rival portrait from FaridaState == 2 */
+     var tex = k.key == "farida" ? FaridaPortrait() : Resources.Load<Texture2D>($"Keepers/k{k.row}_{mood}");
+-    if (tex) { var im = Px(fr, "img", 5, 5, KeeperH - 38, KeeperH - 38).gameObject.AddComponent<RawImage>(); im.texture = tex; }
++    bool innVariant = k.key == "innkeeper" && Resources.Load<Texture2D>("Art/Portraits/innkeeper") == null; if (k.key == "innkeeper" && !innVariant) tex = Resources.Load<Texture2D>("Art/Portraits/innkeeper");
++    if (tex) { var im = Px(fr, "img", 5, 5, KeeperH - 38, KeeperH - 38).gameObject.AddComponent<RawImage>(); im.texture = tex;
++      if (innVariant) { im.uvRect = new Rect(1, 0, -1, 1); im.color = new Color(0.78f, 0.84f, 0.95f); } } /* stop-gap until innkeeper art: mirrored, cool lamplit tint so he isn't Jalal's twin */
+     float tx = KeeperH + 6, tw = 1048 - tx - 20;
+     var kn = Label(r, tab == 7 && S.ports[port].name == "Muscat" ? "Harbour master, dock patch" : k.name, tx, 12, tw, 72, T.fontSizeTitle - 8, T.ledgerInk, TextAnchor.UpperLeft, true); kn.horizontalOverflow = HorizontalWrapMode.Wrap; kn.verticalOverflow = VerticalWrapMode.Overflow; /* v0.6k: long keeper titles wrap inside panel */
+     Label(r, line.mood, tx, 88, tw, 36, T.fontSizeSmall - 4, T.ledgerMuted);

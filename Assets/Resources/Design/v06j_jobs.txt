@@ -1,0 +1,1716 @@
+{
+  "_schema": "v0.6j jobs \u2014 Game Designer balance locked 2026-10-16. Deadlines in moons. Thresholds: Honor/Fear low0 mid2 high4; Sultan escorts@1 inspection@2 court/tribute@3. High Honor never blocks smuggling (fewer/better/bigger catch hit). Replaces stubs in v06j_journal_quest_data.md.",
+  "version": "0.6j-balanced",
+  "jobCap": 3,
+  "declineRule": "leave list until next visit, then rotate",
+  "highHonorSmugglingRule": "High Honor never blocks contraband jobs; it applies highHonorModifiers (fewer offers, better pay, bigger hit if caught).",
+  "highHonorThreshold": 4,
+  "jobs": [
+    {
+      "id": "tav_debal_rumour_yusuf",
+      "building": "tavern",
+      "giver": "Debal tavern",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Rumour for Yusuf",
+      "summary": "Carry a tip about Qarin buyers to Gwadar's tavern.",
+      "greeting": "Word travels if you carry it. Interested?",
+      "journalText": "Yusuf at Debal's tavern gave me a tip on House Qarin's buyers. Gwadar's tavern keeper will pay for it.",
+      "objective": {
+        "type": "deliver",
+        "from": "Debal tavern",
+        "to": "Gwadar tavern",
+        "cargo": "sealed tip (no hold space)"
+      },
+      "destination": "Gwadar tavern",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 40,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "40 coins",
+      "risk": "",
+      "gate": {
+        "type": "always"
+      },
+      "hint": "Gwadar's tavern keeper will pay for the tip.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "tav_gwadar_letter_muscat",
+      "building": "tavern",
+      "giver": "Gwadar tavern",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "A Letter for Muscat",
+      "summary": "A pearl diver's letter must reach his brother at Muscat's tavern before the monsoon turns.",
+      "greeting": "The diver can't write twice. Will you take it?",
+      "journalText": "Carry the pearl diver's letter to his brother at Muscat's tavern.",
+      "objective": {
+        "type": "deliver",
+        "from": "Gwadar tavern",
+        "to": "Muscat tavern",
+        "cargo": "letter (no hold space)"
+      },
+      "destination": "Muscat tavern",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 50,
+        "honor": 1,
+        "fear": 0,
+        "sultan": 0,
+        "other": "vague price rumour for Muscat"
+      },
+      "reward": "50 coins + Honor +1 + vague price rumour for Muscat",
+      "risk": "",
+      "gate": {
+        "type": "always"
+      },
+      "hint": "Muscat's innkeeper knows every diver's family.",
+      "status": "active",
+      "deadlineMoons": 2
+    },
+    {
+      "id": "tav_debal_smuggle_indigo",
+      "building": "tavern",
+      "giver": "Debal tavern",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Indigo Without Papers",
+      "summary": "Five bales of unstamped indigo, landed quietly on Muscat's night quay. Customs sleeps after the last prayer.",
+      "greeting": "No stamps, no questions. Do you have a dark hold?",
+      "journalText": "Run 5 bales of unstamped indigo from Debal to Muscat's night quay. Customs may seize it.",
+      "objective": {
+        "type": "smuggle",
+        "from": "Debal tavern",
+        "to": "Muscat night quay",
+        "cargo": "indigo x5 (contraband)"
+      },
+      "destination": "Muscat night quay",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 160,
+        "honor": -1,
+        "fear": 1,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "160 coins + Honor -1 + Fear +1",
+      "risk": "Customs may seize cargo; caught: lose cargo, fine, Honor/Sultan hit",
+      "gate": {
+        "type": "any",
+        "of": [
+          {
+            "stat": "fear",
+            "op": ">=",
+            "value": 1
+          },
+          {
+            "flag": "met_farida"
+          }
+        ],
+        "honorRule": "high_honor_modifies"
+      },
+      "hint": "Sail in after dark; the night quay is left of the lighthouse.",
+      "status": "active",
+      "contraband": true,
+      "highHonorModifiers": {
+        "offerWeight": 0.4,
+        "coinsMult": 1.25,
+        "onCaught": {
+          "honor": -3,
+          "sultan": -2
+        }
+      },
+      "onCaught": {
+        "honor": -1,
+        "sultan": -1,
+        "loseCargo": true
+      },
+      "deadlineMoons": 1
+    },
+    {
+      "id": "tav_gwadar_debt_debal",
+      "building": "tavern",
+      "giver": "Gwadar tavern",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "The Rope-Maker's Debt",
+      "summary": "A Debal rope-maker owes the innkeeper 150 coins. Collect it, or forgive it in his name.",
+      "greeting": "He swore on his father's beard. Bring me something.",
+      "journalText": "Collect the rope-maker's debt in Debal, or forgive it. Return to Gwadar's tavern either way.",
+      "objective": {
+        "type": "collect",
+        "from": "Gwadar tavern",
+        "to": "Debal market",
+        "cargo": "none",
+        "choice": [
+          "press",
+          "forgive"
+        ]
+      },
+      "destination": "Debal market",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 60,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "60 coins (collect) or Honor +2 (forgive)",
+      "risk": "",
+      "gate": {
+        "type": "flag",
+        "flag": "opening_complete"
+      },
+      "hint": "The rope-maker works by Debal's market.",
+      "status": "active",
+      "choiceRewards": {
+        "press": {
+          "coins": 70,
+          "fear": 2
+        },
+        "forgive": {
+          "coins": 20,
+          "honor": 2
+        }
+      },
+      "deadlineMoons": null
+    },
+    {
+      "id": "tav_muscat_quiet_passage",
+      "building": "tavern",
+      "giver": "Muscat tavern",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "A Passenger Without a Name",
+      "summary": "A veiled man needs passage to Gwadar and would rather the harbour master never saw his face.",
+      "greeting": "He pays in silver and silence. You'll ask nothing.",
+      "journalText": "Carry the nameless passenger to Gwadar without docking at the customs quay.",
+      "objective": {
+        "type": "passage",
+        "from": "Muscat tavern",
+        "to": "Gwadar",
+        "cargo": "passenger x1"
+      },
+      "destination": "Gwadar",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 120,
+        "honor": 0,
+        "fear": 1,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "120 coins + Fear +1",
+      "risk": "Inspection may expose him; Sultan standing loss if caught",
+      "gate": {
+        "type": "all",
+        "of": [
+          {
+            "stat": "fear",
+            "op": ">=",
+            "value": 2
+          },
+          {
+            "stat": "sultan",
+            "op": "<",
+            "value": 3
+          }
+        ],
+        "honorRule": "high_honor_modifies"
+      },
+      "hint": "Land him at Gwadar before you visit the harbour master.",
+      "status": "active",
+      "contraband": true,
+      "highHonorModifiers": {
+        "offerWeight": 0.4,
+        "coinsMult": 1.25,
+        "onCaught": {
+          "honor": -3,
+          "sultan": -2
+        }
+      },
+      "onCaught": {
+        "sultan": -2
+      },
+      "deadlineMoons": 2
+    },
+    {
+      "id": "tav_debal_crew_lead",
+      "building": "tavern",
+      "giver": "Debal tavern",
+      "towns": [
+        "Debal"
+      ],
+      "title": "A Navigator Lost Ashore",
+      "summary": "An old navigator who reads the stars is drinking away his wages somewhere in Gwadar. Find him a berth.",
+      "greeting": "He knows the Makran coast like his palm. Find him.",
+      "journalText": "Find the drunken navigator in Gwadar's tavern and sign him to your dhow.",
+      "objective": {
+        "type": "fetch",
+        "from": "Debal tavern",
+        "to": "Gwadar tavern",
+        "cargo": "none"
+      },
+      "destination": "Gwadar tavern",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 0,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": "crew perk: navigator (faster sails)"
+      },
+      "reward": "crew perk: navigator (faster sails)",
+      "risk": "",
+      "gate": {
+        "type": "flag",
+        "flag": "first_voyage_done"
+      },
+      "hint": "Gwadar's tavern after sunset.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "pal_muscat_escort_gwadar",
+      "building": "palace",
+      "giver": "Muscat palace",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "Escort to Gwadar",
+      "summary": "Guard a tribute dhow home to Gwadar.",
+      "greeting": "The Sultan's tribute must not wet a pirate's hands.",
+      "journalText": "Escort the Sultan's tribute dhow from Muscat to Gwadar.",
+      "objective": {
+        "type": "escort",
+        "from": "Muscat palace",
+        "to": "Gwadar",
+        "cargo": "tribute dhow"
+      },
+      "destination": "Gwadar",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 100,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "100 coins + Sultan +1",
+      "risk": "Ambush chance raised on that leg",
+      "gate": {
+        "type": "any",
+        "of": [
+          {
+            "stat": "sultan",
+            "op": ">=",
+            "value": 1
+          },
+          {
+            "flag": "opening_muscat_sale"
+          }
+        ]
+      },
+      "hint": "Set sail for Gwadar with the tribute boat.",
+      "status": "active",
+      "ambushMult": 1.5,
+      "deadlineMoons": null
+    },
+    {
+      "id": "pal_gwadar_sealed_papers",
+      "building": "palace",
+      "giver": "Gwadar palace",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Sealed Papers for Debal",
+      "summary": "The governor's sealed papers must reach Debal's governor. The wax must arrive unbroken.",
+      "greeting": "Break the seal and you break my trust.",
+      "journalText": "Carry the governor's sealed papers to Debal's palace before the deadline.",
+      "objective": {
+        "type": "deliver",
+        "from": "Gwadar palace",
+        "to": "Debal palace",
+        "cargo": "sealed papers (no hold space)"
+      },
+      "destination": "Debal palace",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 70,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "70 coins + Sultan +1",
+      "risk": "Late delivery: Sultan -1",
+      "gate": {
+        "type": "always"
+      },
+      "hint": "Debal's governor holds court before noon.",
+      "status": "active",
+      "onFail": {
+        "sultan": -1
+      },
+      "deadlineMoons": 1
+    },
+    {
+      "id": "pal_debal_bounty_raider",
+      "building": "palace",
+      "giver": "Debal palace",
+      "towns": [
+        "Debal"
+      ],
+      "title": "The Raider of Ras Malan",
+      "summary": "A raider with a red sail preys on the Gwadar run. Sink him, or bring proof of the wreck.",
+      "greeting": "Bring me his sail and I'll fill your purse.",
+      "journalText": "Hunt the red-sailed raider on the Debal-Gwadar route. Report back to Debal's governor.",
+      "objective": {
+        "type": "bounty",
+        "from": "Debal palace",
+        "to": "Debal-Gwadar route",
+        "cargo": "none",
+        "target": "red_sail_raider"
+      },
+      "destination": "Debal-Gwadar route",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 180,
+        "honor": 0,
+        "fear": 1,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "180 coins + Fear +1 + Sultan +1",
+      "risk": "Forced ambush fight on the route",
+      "gate": {
+        "type": "flag",
+        "flag": "survived_first_ambush"
+      },
+      "hint": "He hunts the Gwadar run near Ras Malan.",
+      "status": "active",
+      "fearOption": {
+        "fear": 2,
+        "note": "leave no survivors"
+      },
+      "deadlineMoons": 2
+    },
+    {
+      "id": "pal_muscat_tribute_delivery",
+      "building": "palace",
+      "giver": "Muscat palace",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "Pearls for the Court",
+      "summary": "Deliver 3 chests of Gwadar pearls to the Sultan's treasury, untouched and on time.",
+      "greeting": "The court counts every pearl twice.",
+      "journalText": "Buy or carry 3 chests of pearls from Gwadar to the Muscat palace treasury.",
+      "objective": {
+        "type": "deliver",
+        "from": "Gwadar market",
+        "to": "Muscat palace",
+        "cargo": "pearls x3"
+      },
+      "destination": "Muscat palace",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 220,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 2,
+        "other": ""
+      },
+      "reward": "220 coins + Sultan +2",
+      "risk": "Late or short: Sultan -2",
+      "gate": {
+        "type": "stat",
+        "stat": "sultan",
+        "op": ">=",
+        "value": 3
+      },
+      "hint": "Gwadar's market sells pearls cheap.",
+      "status": "active",
+      "onFail": {
+        "sultan": -2
+      },
+      "deadlineMoons": 2
+    },
+    {
+      "id": "pal_gwadar_inspection",
+      "building": "palace",
+      "giver": "Gwadar palace",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Inspect the Qarin Dhow",
+      "summary": "A House Qarin dhow is moored at Gwadar. Search its hold and report what they hide.",
+      "greeting": "Qarin smiles too much. Look beneath the dates.",
+      "journalText": "Search the Qarin dhow in Gwadar harbour and report to the governor.",
+      "objective": {
+        "type": "inspect",
+        "from": "Gwadar palace",
+        "to": "Gwadar harbour",
+        "cargo": "none"
+      },
+      "destination": "Gwadar harbour",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 90,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "90 coins + Sultan +1",
+      "risk": "If target is Farida's goods: Farida ally loyalty -",
+      "gate": {
+        "type": "stat",
+        "stat": "sultan",
+        "op": ">=",
+        "value": 2
+      },
+      "hint": "The Qarin dhow flies a green pennant.",
+      "status": "active",
+      "conflictsWith": [
+        "farida_ally"
+      ],
+      "deadlineMoons": 1
+    },
+    {
+      "id": "pal_muscat_court_favour",
+      "building": "palace",
+      "giver": "Muscat palace",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "Speak for the Pearl Houses",
+      "summary": "The Sultan's majlis meets tomorrow. Speak for Gwadar's pearl houses and bring a fitting gift.",
+      "greeting": "A captain with a good name is heard at court.",
+      "journalText": "Bring a gift worth at least 100 coins to the Muscat majlis and speak for Gwadar's pearl houses.",
+      "objective": {
+        "type": "favour",
+        "from": "Muscat palace",
+        "to": "Muscat palace",
+        "cargo": "gift (100+ coins value)"
+      },
+      "destination": "Muscat palace",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 60,
+        "honor": 1,
+        "fear": 0,
+        "sultan": 3,
+        "other": ""
+      },
+      "reward": "60 coins + Honor +1 + Sultan +3",
+      "risk": "",
+      "gate": {
+        "type": "any",
+        "of": [
+          {
+            "stat": "honor",
+            "op": ">=",
+            "value": 4
+          },
+          {
+            "stat": "sultan",
+            "op": ">=",
+            "value": 3
+          }
+        ]
+      },
+      "hint": "Pearls or coffee make a fitting gift.",
+      "status": "active",
+      "deadlineMoons": 1
+    },
+    {
+      "id": "mkt_gwadar_bulk_dates",
+      "building": "market",
+      "giver": "Gwadar market",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Dates for Debal",
+      "summary": "Debal's guild wants 10 sacks of Gwadar dates before the fasting month.",
+      "greeting": "Sweet fruit, quick coin. Can your hold take ten sacks?",
+      "journalText": "Deliver 10 sacks of dates from Gwadar to Debal's market.",
+      "objective": {
+        "type": "deliver",
+        "from": "Gwadar market",
+        "to": "Debal market",
+        "cargo": "dates x10"
+      },
+      "destination": "Debal market",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 80,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "80 coins",
+      "risk": "",
+      "gate": {
+        "type": "always"
+      },
+      "hint": "Gwadar's market sells dates cheap.",
+      "status": "active",
+      "deadlineMoons": 2
+    },
+    {
+      "id": "mkt_debal_shortage_pepper",
+      "building": "market",
+      "giver": "Debal market",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Pepper Shortage in Muscat",
+      "summary": "Muscat's cooks are out of pepper. Whoever lands it first takes double.",
+      "greeting": "Speed is the whole bargain, captain.",
+      "journalText": "Rush 6 sacks of pepper from Debal to Muscat's market.",
+      "objective": {
+        "type": "shortage",
+        "from": "Debal market",
+        "to": "Muscat market",
+        "cargo": "pepper x6"
+      },
+      "destination": "Muscat market",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 140,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "140 coins",
+      "risk": "Offer expires fast",
+      "gate": {
+        "type": "always"
+      },
+      "hint": "Muscat's guild knows the shortage.",
+      "status": "active",
+      "deadlineMoons": 1
+    },
+    {
+      "id": "mkt_muscat_arbitration_copper",
+      "building": "market",
+      "giver": "Muscat market",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "An Honest Broker for Copper",
+      "summary": "The guild needs a trusted hand to buy copper in Gwadar and sell at an agreed floor in Muscat.",
+      "greeting": "They want a captain whose word holds.",
+      "journalText": "Buy copper in Gwadar and sell it in Muscat at or above the guild's floor price.",
+      "objective": {
+        "type": "arbitrage",
+        "from": "Gwadar market",
+        "to": "Muscat market",
+        "cargo": "copper x8"
+      },
+      "destination": "Muscat market",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 70,
+        "honor": 1,
+        "fear": 0,
+        "sultan": 0,
+        "other": "plus your trading profit"
+      },
+      "reward": "70 coins + Honor +1 + plus your trading profit",
+      "risk": "",
+      "gate": {
+        "type": "stat",
+        "stat": "honor",
+        "op": ">=",
+        "value": 2
+      },
+      "hint": "Gwadar's copper is cheapest after the caravans arrive.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "mkt_debal_rival_cotton",
+      "building": "market",
+      "giver": "Debal market",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Beat Qarin to Gwadar",
+      "summary": "A Qarin dhow is carrying cotton to Gwadar. Land yours first and the buyers are ours.",
+      "greeting": "Beat them by a day and I'll pay well.",
+      "journalText": "Deliver 8 bales of cotton to Gwadar before the Qarin dhow arrives.",
+      "objective": {
+        "type": "race",
+        "from": "Debal market",
+        "to": "Gwadar market",
+        "cargo": "cotton x8"
+      },
+      "destination": "Gwadar market",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 110,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "110 coins",
+      "risk": "",
+      "gate": {
+        "type": "flag",
+        "flag": "opening_complete"
+      },
+      "hint": "Gwadar wants cotton badly.",
+      "status": "active",
+      "dirtyVariant": {
+        "gate": {
+          "stat": "fear",
+          "op": ">=",
+          "value": 2
+        },
+        "label": "Foul their water casks",
+        "fear": 2,
+        "honor": -1
+      },
+      "deadlineMoons": 1
+    },
+    {
+      "id": "mkt_muscat_coffee_bulk",
+      "building": "market",
+      "giver": "Muscat market",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "Coffee for Gwadar",
+      "summary": "Carry 8 sacks of Muscat coffee to Gwadar's merchants.",
+      "greeting": "Gwadar would trade pearls for one good cup.",
+      "journalText": "Deliver 8 sacks of coffee to Gwadar's market.",
+      "objective": {
+        "type": "deliver",
+        "from": "Muscat market",
+        "to": "Gwadar market",
+        "cargo": "coffee x8"
+      },
+      "destination": "Gwadar market",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 100,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "100 coins",
+      "risk": "",
+      "gate": {
+        "type": "always"
+      },
+      "hint": "Gwadar wants coffee.",
+      "status": "active",
+      "deadlineMoons": 2
+    },
+    {
+      "id": "mkt_gwadar_warehouse_bond",
+      "building": "market",
+      "giver": "Gwadar market",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Hold the Guild's Salt",
+      "summary": "Store 12 sacks of guild salt for one moon, then release them in Debal.",
+      "greeting": "Keep it dry and keep it counted.",
+      "journalText": "Store the guild's salt and deliver it to Debal after one moon.",
+      "objective": {
+        "type": "bond",
+        "from": "Gwadar market",
+        "to": "Debal market",
+        "cargo": "salt x12"
+      },
+      "destination": "Debal market",
+      "deadlineDays": null,
+      "deadline": "Within 3 moons",
+      "rewards": {
+        "coins": 100,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": "warehouse access"
+      },
+      "reward": "100 coins + warehouse access",
+      "risk": "",
+      "gate": {
+        "type": "flag",
+        "flag": "warehouse_unlocked"
+      },
+      "hint": "Your warehouse is by Gwadar's quay.",
+      "status": "active",
+      "deadlineMoons": 3
+    },
+    {
+      "id": "tmp_debal_alms_quay",
+      "building": "temple",
+      "giver": "Debal temple",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Alms for the quay",
+      "summary": "Deliver a small cargo of cloth to Debal's poor quay (local, no voyage).",
+      "greeting": "The poor quay is cold at night. Will you help?",
+      "journalText": "Bring cloth from the temple to Debal's poor quay.",
+      "objective": {
+        "type": "deliver",
+        "from": "Debal temple",
+        "to": "Debal poor quay",
+        "cargo": "cloth x2",
+        "local": true
+      },
+      "destination": "Debal poor quay",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 25,
+        "honor": 1,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "25 coins + Honor +1",
+      "risk": "",
+      "gate": {
+        "type": "always"
+      },
+      "hint": "The quay is past the temple steps.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "tmp_debal_pilgrims_muscat",
+      "building": "temple",
+      "giver": "Debal temple",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Pilgrims to Muscat",
+      "summary": "Twelve pilgrims seek safe passage to Muscat's shrine.",
+      "greeting": "They ask only for a calm sea and an honest captain.",
+      "journalText": "Carry 12 pilgrims safely from Debal to Muscat's temple.",
+      "objective": {
+        "type": "passage",
+        "from": "Debal temple",
+        "to": "Muscat temple",
+        "cargo": "pilgrims x12"
+      },
+      "destination": "Muscat temple",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 90,
+        "honor": 2,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "90 coins + Honor +2",
+      "risk": "Pilgrims lost in an ambush: Honor -2",
+      "gate": {
+        "type": "stat",
+        "stat": "honor",
+        "op": ">=",
+        "value": 2
+      },
+      "hint": "Muscat's temple stands above the harbour.",
+      "status": "active",
+      "scaleWithHonor": true,
+      "deadlineMoons": 2
+    },
+    {
+      "id": "tmp_gwadar_relic",
+      "building": "temple",
+      "giver": "Gwadar temple",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "The Saint's Lamp",
+      "summary": "Carry an old brass lamp to Debal's temple. Shed no blood on the way.",
+      "greeting": "This lamp has crossed the sea before. Honour it.",
+      "journalText": "Deliver the saint's lamp to Debal's temple without fighting.",
+      "objective": {
+        "type": "deliver",
+        "from": "Gwadar temple",
+        "to": "Debal temple",
+        "cargo": "relic"
+      },
+      "destination": "Debal temple",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 80,
+        "honor": 3,
+        "fear": 0,
+        "sultan": 0,
+        "other": "blessing: +1 morale"
+      },
+      "reward": "80 coins + Honor +3 + blessing: +1 morale",
+      "risk": "Fighting voids the Honor reward",
+      "gate": {
+        "type": "stat",
+        "stat": "honor",
+        "op": ">=",
+        "value": 4
+      },
+      "hint": "Flee or bluff if raiders come.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "tmp_muscat_sanctuary",
+      "building": "temple",
+      "giver": "Muscat temple",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "Sanctuary for the Weaver",
+      "summary": "A weaver fled a debt-hunter. Take her to Gwadar's temple before he finds her.",
+      "greeting": "She has done no wrong but owe the wrong man.",
+      "journalText": "Escort the weaver to Gwadar's temple; the debt-hunter is searching the harbour.",
+      "objective": {
+        "type": "escort",
+        "from": "Muscat temple",
+        "to": "Gwadar temple",
+        "cargo": "refugee x1"
+      },
+      "destination": "Gwadar temple",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 40,
+        "honor": 4,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "40 coins + Honor +4",
+      "risk": "Debt-hunter may attack",
+      "gate": {
+        "type": "stat",
+        "stat": "honor",
+        "op": ">=",
+        "value": 4
+      },
+      "hint": "Leave Muscat before dawn.",
+      "status": "active",
+      "conflictsWith": [
+        "active_bounty_jobs"
+      ],
+      "deadlineMoons": 1
+    },
+    {
+      "id": "tmp_gwadar_festival",
+      "building": "temple",
+      "giver": "Gwadar temple",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Offering for the Festival",
+      "summary": "Sail an offering to Muscat's festival on the full moon. The court will notice.",
+      "greeting": "Arrive on the day, not after.",
+      "journalText": "Bring the offering to Muscat's temple for the full-moon festival.",
+      "objective": {
+        "type": "deliver",
+        "from": "Gwadar temple",
+        "to": "Muscat temple",
+        "cargo": "offering"
+      },
+      "destination": "Muscat temple",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 70,
+        "honor": 2,
+        "fear": 0,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "70 coins + Honor +2 + Sultan +1",
+      "risk": "",
+      "gate": {
+        "type": "any",
+        "of": [
+          {
+            "stat": "honor",
+            "op": ">=",
+            "value": 2
+          },
+          {
+            "stat": "sultan",
+            "op": ">=",
+            "value": 2
+          }
+        ],
+        "calendar": "festival"
+      },
+      "hint": "The festival begins at the full moon.",
+      "status": "active",
+      "deadlineMoons": 1
+    },
+    {
+      "id": "hbr_gwadar_timber_yard",
+      "building": "shipwright",
+      "giver": "Gwadar shipwright",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Timber for the yard",
+      "summary": "Bring teak from Debal to Gwadar's shipwright.",
+      "greeting": "My yard can't patch hulls with promises.",
+      "journalText": "Bring 6 logs of teak from Debal to Gwadar's shipwright.",
+      "objective": {
+        "type": "deliver",
+        "from": "Debal market",
+        "to": "Gwadar shipwright",
+        "cargo": "teak x6"
+      },
+      "destination": "Gwadar shipwright",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 55,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": "repair discount once"
+      },
+      "reward": "55 coins + repair discount once",
+      "risk": "",
+      "gate": {
+        "type": "service",
+        "town": "Gwadar",
+        "building": "shipwright"
+      },
+      "hint": "Debal's market sells teak cheap.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "hbr_gwadar_rope_sailcloth",
+      "building": "shipwright",
+      "giver": "Gwadar shipwright",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Rope and Sailcloth",
+      "summary": "Gwadar's yard needs coir rope and sailcloth from Debal for its repairs.",
+      "greeting": "Ropes rot faster than I can buy them.",
+      "journalText": "Bring 4 coils of rope and 4 bolts of sailcloth from Debal to Gwadar's yard.",
+      "objective": {
+        "type": "deliver",
+        "from": "Debal market",
+        "to": "Gwadar shipwright",
+        "cargo": "rope x4, sailcloth x4"
+      },
+      "destination": "Gwadar shipwright",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 60,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": "free minor repair"
+      },
+      "reward": "60 coins + free minor repair",
+      "risk": "",
+      "gate": {
+        "type": "service",
+        "town": "Gwadar",
+        "building": "shipwright"
+      },
+      "hint": "Debal's quay has rope-makers.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "hbr_debal_trial_sail",
+      "building": "shipwright",
+      "giver": "Debal shipwright",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Trial of the New Lateen",
+      "summary": "Take the yard's new small hull out past the lighthouse and back.",
+      "greeting": "Push her hard. Tell me where she groans.",
+      "journalText": "Sail Debal's new hull around the lighthouse and return to the shipwright.",
+      "objective": {
+        "type": "trial",
+        "from": "Debal shipwright",
+        "to": "Debal lighthouse",
+        "cargo": "none",
+        "local": true
+      },
+      "destination": "Debal lighthouse",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 45,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": "discount on small hull purchase"
+      },
+      "reward": "45 coins + discount on small hull purchase",
+      "risk": "",
+      "gate": {
+        "type": "service",
+        "town": "Debal",
+        "building": "shipwright_sells"
+      },
+      "hint": "The lighthouse is north of the harbour.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "hbr_debal_drydock_escort",
+      "building": "shipwright",
+      "giver": "Debal shipwright",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Tow to the Yard",
+      "summary": "A damaged trader is under tow from Gwadar. Guard it to Debal's yard.",
+      "greeting": "Raiders love a crippled ship.",
+      "journalText": "Escort the towed trader from Gwadar to Debal's shipwright.",
+      "objective": {
+        "type": "escort",
+        "from": "Gwadar",
+        "to": "Debal shipwright",
+        "cargo": "towed dhow"
+      },
+      "destination": "Debal shipwright",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 100,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "100 coins",
+      "risk": "Slow voyage; ambush chance raised",
+      "gate": {
+        "type": "flag",
+        "flag": "ship_upgrade_unlocked"
+      },
+      "hint": "The tow waits at Gwadar's harbour.",
+      "status": "active",
+      "ambushMult": 1.3,
+      "deadlineMoons": 1
+    },
+    {
+      "id": "hbr_muscat_clearance",
+      "building": "harbour",
+      "giver": "Muscat harbour",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "Clear the Wreck at the Mouth",
+      "summary": "A sunken trader blocks Muscat's harbour mouth. Mark it and drag its spars clear.",
+      "greeting": "Every captain will thank you, even if none pay.",
+      "journalText": "Clear the wreck at Muscat's harbour mouth.",
+      "objective": {
+        "type": "clearance",
+        "from": "Muscat harbour",
+        "to": "Muscat harbour mouth",
+        "cargo": "none",
+        "local": true
+      },
+      "destination": "Muscat harbour mouth",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 55,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": "safer sailing out of Muscat"
+      },
+      "reward": "55 coins + safer sailing out of Muscat",
+      "risk": "",
+      "gate": {
+        "type": "service",
+        "town": "Muscat",
+        "building": "harbour_master"
+      },
+      "hint": "The wreck lies past the fort.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "hbr_muscat_debt_collect",
+      "building": "harbour",
+      "giver": "Muscat harbour",
+      "towns": [
+        "Muscat"
+      ],
+      "title": "The Harbour Master's Due",
+      "summary": "The harbour master wants back what he spent on your emergency patch.",
+      "greeting": "I patched your hull on trust. Trust has a price.",
+      "journalText": "Pay your emergency patch debt to Muscat's harbour master.",
+      "objective": {
+        "type": "repay",
+        "from": "Muscat harbour",
+        "to": "Muscat harbour",
+        "cargo": "coins (debt amount)"
+      },
+      "destination": "Muscat harbour",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 0,
+        "honor": 1,
+        "fear": 0,
+        "sultan": 0,
+        "other": "debt cleared"
+      },
+      "reward": "Debt cleared + Honor +1",
+      "risk": "Unpaid: harbour fee doubles in Muscat, Honor -1",
+      "gate": {
+        "type": "flag",
+        "flag": "muscat_patch_debt"
+      },
+      "hint": "Pay at Muscat's harbour master.",
+      "status": "active",
+      "mandatory": true,
+      "countsTowardCap": false,
+      "onFail": {
+        "honor": -1,
+        "muscatDockFeeMult": 2
+      },
+      "deadlineMoons": 2
+    },
+    {
+      "id": "hbr_gwadar_hazard_report",
+      "building": "harbour",
+      "giver": "Gwadar harbour",
+      "towns": [
+        "Gwadar"
+      ],
+      "title": "Shoals off Pasni",
+      "summary": "Sound the new shoals off Pasni on the Debal route and report back.",
+      "greeting": "A depth line and a sharp eye, nothing more.",
+      "journalText": "Sail the Debal route and report the Pasni shoals to Gwadar's harbour master.",
+      "objective": {
+        "type": "survey",
+        "from": "Gwadar harbour",
+        "to": "Debal route",
+        "cargo": "none"
+      },
+      "destination": "Debal route",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 40,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "40 coins",
+      "risk": "",
+      "gate": {
+        "type": "service",
+        "town": "Gwadar",
+        "building": "harbour_master"
+      },
+      "hint": "Pasni lies halfway to Debal.",
+      "status": "active",
+      "deadlineMoons": null
+    },
+    {
+      "id": "hbr_debal_smuggled_fittings",
+      "building": "shipwright",
+      "giver": "Debal shipwright",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Fittings Off the Books",
+      "summary": "Brass fittings that never saw a customs stamp. Faster sails, cheaper, riskier.",
+      "greeting": "These came off a Qarin ship. Don't ask how.",
+      "journalText": "Buy smuggled fittings at Debal's yard for a cheap sail upgrade.",
+      "objective": {
+        "type": "purchase",
+        "from": "Debal shipwright",
+        "to": "Debal shipwright",
+        "cargo": "fittings (contraband)"
+      },
+      "destination": "Debal shipwright",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 0,
+        "honor": -1,
+        "fear": 1,
+        "sultan": 0,
+        "other": "sail upgrade at 50% price"
+      },
+      "reward": "Half-price fittings + Honor -1 + Fear +1",
+      "risk": "Inspection may confiscate upgrade",
+      "gate": {
+        "type": "any",
+        "of": [
+          {
+            "stat": "fear",
+            "op": ">=",
+            "value": 2
+          },
+          {
+            "flag": "farida_ally"
+          }
+        ],
+        "honorRule": "high_honor_modifies"
+      },
+      "hint": "Ask the yard foreman after dark.",
+      "status": "active",
+      "contraband": true,
+      "highHonorModifiers": {
+        "offerWeight": 0.4,
+        "priceMult": 0.8,
+        "onCaught": {
+          "honor": -3,
+          "sultan": -2
+        }
+      },
+      "onCaught": {
+        "sultan": -1,
+        "loseUpgrade": true
+      },
+      "deadlineMoons": null
+    },
+    {
+      "id": "aly_farida_rug_run",
+      "building": "alley",
+      "giver": "Debal alley",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Farida's Banned Rugs",
+      "summary": "Buy her banned rugs and sell them in Muscat for about three times the price.",
+      "greeting": "My rugs, your hold, Muscat's silver.",
+      "journalText": "Sell Farida's banned rugs in Muscat's back alley.",
+      "objective": {
+        "type": "smuggle",
+        "from": "Debal alley",
+        "to": "Muscat alley",
+        "cargo": "banned rugs"
+      },
+      "destination": "Muscat alley",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 0,
+        "honor": -1,
+        "fear": 1,
+        "sultan": 0,
+        "other": "~3x profit; ally loyalty +1"
+      },
+      "reward": "Muscat banned sale (~3\u00d7) + Honor -1 + Fear +1",
+      "risk": "Customs may seize rugs",
+      "gate": {
+        "type": "flag",
+        "flag": "farida_ally",
+        "honorRule": "high_honor_modifies"
+      },
+      "hint": "Muscat's alley buyer is behind the souk.",
+      "status": "active",
+      "faridaState": "ally",
+      "contraband": true,
+      "priceMult": 0.8,
+      "logLine": "PAPERS -20%",
+      "highHonorModifiers": {
+        "offerWeight": 0.4,
+        "coinsMult": 1.25,
+        "onCaught": {
+          "honor": -3,
+          "sultan": -2
+        }
+      },
+      "onCaught": {
+        "loseCargo": true,
+        "sultan": -1
+      },
+      "deadlineMoons": null
+    },
+    {
+      "id": "aly_farida_grey_crate",
+      "building": "alley",
+      "giver": "Debal alley",
+      "towns": [
+        "Debal"
+      ],
+      "title": "The Sealed Crate",
+      "summary": "Carry a sealed crate past Gwadar's customs. Don't open it.",
+      "greeting": "Curiosity costs more than customs.",
+      "journalText": "Deliver Farida's sealed crate to Gwadar's alley.",
+      "objective": {
+        "type": "smuggle",
+        "from": "Debal alley",
+        "to": "Gwadar alley",
+        "cargo": "sealed crate (contraband)"
+      },
+      "destination": "Gwadar alley",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 200,
+        "honor": -1,
+        "fear": 2,
+        "sultan": 0,
+        "other": ""
+      },
+      "reward": "200 coins + Honor -1 + Fear +2",
+      "risk": "Confiscation risk; fine",
+      "gate": {
+        "type": "flag",
+        "flag": "farida_ally",
+        "honorRule": "high_honor_modifies"
+      },
+      "hint": "Gwadar's alley man wears a blue turban.",
+      "status": "active",
+      "faridaState": "ally",
+      "contraband": true,
+      "highHonorModifiers": {
+        "offerWeight": 0.4,
+        "coinsMult": 1.25,
+        "onCaught": {
+          "honor": -3,
+          "sultan": -2
+        }
+      },
+      "onCaught": {
+        "loseCargo": true,
+        "sultan": -2
+      },
+      "deadlineMoons": 2
+    },
+    {
+      "id": "aly_farida_fence",
+      "building": "alley",
+      "giver": "Debal alley",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Hot Goods",
+      "summary": "Farida will fence the hot cargo in your hold, no questions.",
+      "greeting": "Whatever burns your hands, I can cool.",
+      "journalText": "Sell any seized or stolen cargo to Farida.",
+      "objective": {
+        "type": "fence",
+        "from": "Debal alley",
+        "to": "Debal alley",
+        "cargo": "any hot cargo"
+      },
+      "destination": "Debal alley",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 0,
+        "honor": 0,
+        "fear": 1,
+        "sultan": 0,
+        "other": "sells hot cargo at 70% value"
+      },
+      "reward": "70% of fenced goods value + Fear +1",
+      "risk": "",
+      "gate": {
+        "type": "flag",
+        "flag": "farida_ally"
+      },
+      "hint": "Farida still waits in the alley.",
+      "status": "active",
+      "faridaState": "ally",
+      "deadlineMoons": null
+    },
+    {
+      "id": "aly_farida_turn_in",
+      "building": "alley",
+      "giver": "Debal alley",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Report Farida",
+      "summary": "Tell the governor everything about Farida's network. There's no going back.",
+      "greeting": "(The governor's clerk) The court rewards loyal captains.",
+      "journalText": "Report Farida to Debal's governor. She will become your rival.",
+      "objective": {
+        "type": "turn_in",
+        "from": "Debal alley",
+        "to": "Debal palace",
+        "cargo": "none"
+      },
+      "destination": "Debal palace",
+      "deadlineDays": null,
+      "deadline": "",
+      "rewards": {
+        "coins": 500,
+        "honor": 0,
+        "fear": 0,
+        "sultan": 2,
+        "other": "Farida becomes rival"
+      },
+      "reward": "500 coins + Sultan +2 + Farida becomes rival",
+      "risk": "Locks all ally jobs permanently",
+      "gate": {
+        "type": "all",
+        "of": [
+          {
+            "flag": "met_farida"
+          },
+          {
+            "notFlag": "farida_turned_in"
+          },
+          {
+            "notFlag": "farida_rival"
+          }
+        ]
+      },
+      "hint": "Debal's governor holds court before noon.",
+      "status": "active",
+      "oneShot": true,
+      "setsFlags": [
+        "farida_turned_in",
+        "farida_rival"
+      ],
+      "clearsFlags": [
+        "farida_ally"
+      ],
+      "offeredBy": [
+        "Debal palace"
+      ],
+      "deadlineMoons": null
+    },
+    {
+      "id": "riv_farida_expose",
+      "building": "alley",
+      "giver": "Debal alley",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Expose the Rug Ring",
+      "summary": "Find Farida's Muscat buyer and name him to the Sultan's court.",
+      "greeting": "(Farida, cold) You chose your side. So did I.",
+      "journalText": "Find Farida's buyer in Muscat's alley and report him to the palace.",
+      "objective": {
+        "type": "inspect",
+        "from": "Debal palace",
+        "to": "Muscat alley",
+        "cargo": "none"
+      },
+      "destination": "Muscat alley",
+      "deadlineDays": null,
+      "deadline": "Within 2 moons",
+      "rewards": {
+        "coins": 160,
+        "honor": 0,
+        "fear": 1,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "160 coins + Fear +1 + Sultan +1",
+      "risk": "Farida's thugs may ambush you",
+      "gate": {
+        "type": "flag",
+        "flag": "farida_rival"
+      },
+      "hint": "Her buyer sits behind Muscat's souk.",
+      "status": "active",
+      "faridaState": "rival",
+      "offeredBy": [
+        "Debal palace",
+        "Muscat palace"
+      ],
+      "deadlineMoons": 2
+    },
+    {
+      "id": "riv_farida_undercut",
+      "building": "alley",
+      "giver": "Debal alley",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Undercut Farida",
+      "summary": "Flood Muscat with cheap rugs before her next shipment lands.",
+      "greeting": "(Market factor) Starve her trade and the guild will thank you.",
+      "journalText": "Sell 6 legal rugs in Muscat before Farida's next run.",
+      "objective": {
+        "type": "race",
+        "from": "Debal market",
+        "to": "Muscat market",
+        "cargo": "rugs x6"
+      },
+      "destination": "Muscat market",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 120,
+        "honor": 0,
+        "fear": 1,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "120 coins + Fear +1 + Sultan +1",
+      "risk": "",
+      "gate": {
+        "type": "flag",
+        "flag": "farida_rival"
+      },
+      "hint": "Muscat buys rugs high this moon.",
+      "status": "active",
+      "faridaState": "rival",
+      "offeredBy": [
+        "Debal market"
+      ],
+      "deadlineMoons": 1
+    },
+    {
+      "id": "riv_farida_sabotage",
+      "building": "alley",
+      "giver": "Debal alley",
+      "towns": [
+        "Debal"
+      ],
+      "title": "Burn Her Warehouse",
+      "summary": "Farida's goods sit in a Gwadar warehouse. A spark would end her season.",
+      "greeting": "(A hired man) Say the word and it burns.",
+      "journalText": "Sabotage Farida's warehouse in Gwadar.",
+      "objective": {
+        "type": "sabotage",
+        "from": "Debal tavern",
+        "to": "Gwadar alley",
+        "cargo": "none"
+      },
+      "destination": "Gwadar alley",
+      "deadlineDays": null,
+      "deadline": "Within 1 moon",
+      "rewards": {
+        "coins": 140,
+        "honor": -2,
+        "fear": 2,
+        "sultan": 1,
+        "other": ""
+      },
+      "reward": "140 coins + Honor -2 + Fear +2 + Sultan +1",
+      "risk": "Caught: Sultan -2",
+      "gate": {
+        "type": "all",
+        "of": [
+          {
+            "flag": "farida_rival"
+          },
+          {
+            "stat": "fear",
+            "op": ">=",
+            "value": 2
+          }
+        ]
+      },
+      "hint": "Strike at night.",
+      "status": "active",
+      "faridaState": "rival",
+      "onCaught": {
+        "sultan": -2
+      },
+      "deadlineMoons": 1
+    }
+  ],
+  "townServices": {
+    "Gwadar": {
+      "shipwright": "repair_only",
+      "harbour_master": true
+    },
+    "Debal": {
+      "shipwright": "sells_small_hulls",
+      "harbour_master": true
+    },
+    "Muscat": {
+      "shipwright": null,
+      "harbour_master": true,
+      "emergencyPatchDebt": true
+    }
+  },
+  "faridaAllyPriceMult": 0.8,
+  "deadlineUnit": "moons",
+  "thresholds": {
+    "honorFear": {
+      "low": 0,
+      "mid": 2,
+      "high": 4
+    },
+    "sultan": {
+      "escorts": 1,
+      "inspection": 2,
+      "courtFavour": 3,
+      "tribute": 3
+    },
+    "highHonor": 4
+  },
+  "fenceGoodsValueMult": 0.7,
+  "smuggledFittingsPriceMult": 0.5,
+  "muscatEmergencyPatch": {
+    "paidHullPercent": 50,
+    "freeHullPercent": 25,
+    "minLeaveHullPercent": 25,
+    "debtDueMoons": 2,
+    "onUnpaid": {
+      "honor": -1,
+      "muscatDockFeeMult": 2
+    },
+    "debtCoins": 45
+  },
+  "_balance": {
+    "by": "Game Designer",
+    "date": "2026-10-16",
+    "notes": [
+      "Deadlines converted from days to moons (short\u22481, mid\u22482, long\u22483).",
+      "Coin band: early 25\u201370, mid 80\u2013140, risky 160\u2013220, turn-in 500.",
+      "Court favour unlocks at Sultan 3 or Honor 4.",
+      "Pilgrim passage at Honor mid (2); relic at Honor high (4).",
+      "Tribute delivery at Sultan 3.",
+      "Muscat patch debt due in 2 moons; unpaid \u2192 dock fees \u00d72 and Honor -1."
+    ]
+  },
+  "seaMerchantOfferMaxCoinsFrac": 0.8,
+  "gwadarRepairMult": 0.8
+}

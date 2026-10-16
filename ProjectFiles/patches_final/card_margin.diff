@@ -1,0 +1,12 @@
+diff -ruN a/Assets/Scripts/GameV06k.cs d/Assets/Scripts/GameV06k.cs
+--- a/Assets/Scripts/GameV06k.cs	2026-10-16 10:48:29.007753502 +0500
++++ d/Assets/Scripts/GameV06k.cs	2026-10-16 10:48:29.027753502 +0500
+@@ -362,7 +362,7 @@
+       horizontalOverflow = HorizontalWrapMode.Wrap, verticalOverflow = VerticalWrapMode.Overflow, updateBounds = true, color = Color.white };
+     float ph = T.regular != null ? new TextGenerator().GetPreferredHeight(body ?? "", st) : 0f;
+     int est = Mathf.Max(1, 1 + (body ?? "").Length / 44 + (body ?? "").Split('\n').Length - 1);
+-    return Mathf.Clamp(ph > 0f ? ph + 8f : est * (T.fontSize + 6), 52f, 1200f); /* final: trust the measured height; char estimate only if no font (it over-counted ~2 lines on the difficulty card) */
++    return Mathf.Clamp(ph > 0f ? ph + 16f : est * (T.fontSize + 6), 52f, 1200f); /* final: +16 → ~10 px more air above the buttons */ /* final: trust the measured height; char estimate only if no font (it over-counted ~2 lines on the difficulty card) */
+   }
+ 
+   void HideSeaIslands(bool hide) {

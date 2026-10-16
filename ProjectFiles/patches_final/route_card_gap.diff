@@ -1,0 +1,13 @@
+diff -u -r a/Assets/Scripts/GameV06.cs c/Assets/Scripts/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 11:33:47.250487482 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 11:33:47.286487482 +0500
+@@ -354,7 +354,8 @@
+     if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 26, y, 1000, 56, T.fontSizeSmall, T.text); y += 58; }
+     bool carries = Enumerable.Range(0, S.goods.Length).Any(g => hold[g] > 0 && bannedHere.Contains(S.goods[g].name));
+     Label(ci, (carries ? ((InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Farida's papers: customs will wave you through this time</color>   " : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>   ") : "") + "Prices unknown until you dock." + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 26, y, 1000, 56, T.fontSizeSmall, T.textMuted); y += 70;
+-    SetSailBtn(ci, 26, 470, 996, 140, $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
++    float routeH = Mathf.Max(cardH, y + 140 + 24); card.offsetMax = new Vector2(-16, 16 + routeH); ci.sizeDelta = new Vector2(1048, routeH); /* final2: card sized to its content (was fixed 640 with Set Sail pinned at 470 → big empty gap); never shorter than the chart cut-out */
++    SetSailBtn(ci, 26, y, 996, 140, $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
+   }
+ 
+   /// one danger wording for town and chart (design ambush.dangerLabels); pirate-free voyages are "Calm waters"

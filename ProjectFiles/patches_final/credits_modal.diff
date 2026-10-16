@@ -1,0 +1,39 @@
+diff -ru a/Assets/Scripts/Game.cs b/Assets/Scripts/Game.cs
+--- a/Assets/Scripts/Game.cs	2026-10-16 12:03:54.156789716 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 12:03:54.168789716 +0500
+@@ -161,6 +161,7 @@
+ 
+   float sailT; int hasanTris;
+   void Update() {
++    if (creditsCard != null && Input.GetKeyDown(KeyCode.Escape)) { if (dialog == creditsCard || dialog == null) CloseCredits(); } /* final credits_modal: Android Back / Esc closes Credits only when it is on top */
+     if (prologuePending && dialog == null && !fighting) { prologuePending = false; StartCoroutine(Prologue()); }
+     if (Input.anyKeyDown || Input.GetMouseButtonDown(0)) lastInput = Time.unscaledTime;
+     if (InOpening && !onTitle && !sailing && !fighting && tab < 0 && dialog == null && Time.unscaledTime - lastInput > 45f) { lastInput = Time.unscaledTime; Nudge(); }
+diff -ru a/Assets/Scripts/GameV06.cs b/Assets/Scripts/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 12:03:54.156789716 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 12:03:54.164789716 +0500
+@@ -276,14 +276,20 @@
+       ("Low", () => ApplyQuality(0)), ("Medium", () => ApplyQuality(1)), ("High", () => ApplyQuality(2))))), ("Credits", () => ShowCredits()), ("Close", null))); }
+   /* final: Credits gets its own card (same look as Ask) with a centred 600 px Close, so the button ends clear the bottom corner brackets (~95 px each).
+      Ask() is untouched; this panel owns and closes only itself. */
++  RectTransform creditsCard, creditsDim; /* final credits_modal: Credits owns its panel AND its dimmer (same pattern as the job-offer myDim fix) */
++  void CloseCredits() {
++    var cp = creditsCard; if (cp) Destroy0(cp.gameObject); if (creditsDim) Destroy0(creditsDim.gameObject);
++    if (cp != null && dialog == cp) dialog = null; creditsCard = null; creditsDim = null; }
+   void ShowCredits() {
++    if (creditsCard != null) return; /* final credits_modal: a second open while one is showing is ignored (double tap stacked two panels) */
+     const string body = "Galeborne\n\nShip models: Watercraft Kit by Kenney (kenney.nl)\nCharacter models: KayKit Adventurers by Kay Lousberg (kaylousberg.com)\nAll models CC0.\n\nThank you for sailing with us.";
+-    float bodyH = CardBodyH(body, 816f), by = 106 + bodyH + 20, panelH = by + 84 + 28;
++    float bodyH = CardBodyH(body, 780f), by = 106 + bodyH + 20, panelH = by + 84 + 28; /* final credits_modal: 780 like Ask() */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+-    var cp = Px(root, "Dialog", 90, top, 900, panelH); dialog = cp; Box(cp, T.panel, T.gold);
++    var dim = R(root, "CreditsDim", 0, 0, 1, 1); creditsDim = dim; var di = dim.gameObject.AddComponent<Image>(); di.color = new Color(0.05f, 0.03f, 0.02f, 0.6f); di.raycastTarget = true; /* blocks Options/Journal taps behind the card */
++    var cp = Px(root, "Dialog", 90, top, 900, panelH); creditsCard = cp; dialog = cp; Box(cp, T.panel, T.gold); dim.SetAsLastSibling(); cp.SetAsLastSibling();
+     Label(cp, "Credits", 100, 16, 700, 52, /* final2: clear of the top-left bracket */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(cp, "rule", 30, 72, 840, 2), T.brass);
+-    Label(cp, body, 42, 106, 816, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft);
+-    Btn(cp, "Close", 150, by, 600, 84, () => { Destroy0(cp.gameObject); if (dialog == cp) dialog = null; }, true, true);
++    Label(cp, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final credits_modal: 30 px inset each side (x 60-840) */
++    Btn(cp, "Close", 150, by, 600, 84, () => CloseCredits(), true, true);
+   }
+ }
+ public partial class Game {

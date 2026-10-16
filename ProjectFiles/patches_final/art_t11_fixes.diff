@@ -1,0 +1,39 @@
+diff -ru a/Scripts/Game.cs b/Scripts/Game.cs
+--- a/Assets/Scripts/Game.cs	2026-10-16 14:30:02.458518375 +0500
++++ b/Assets/Scripts/Game.cs	2026-10-16 14:30:02.494518375 +0500
+@@ -512,7 +512,7 @@
+     float bodyH = CardBodyH(body, 640f); /* art_t10_fixes: body x 130–770 */ /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 132 + bodyH + 20; /* art_t10_fixes: title/rule moved down, body starts at 132 */ /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
+-    float panelH = y + 84 + (wide ? 40 : 110); /* art_t8_brackets: 1-, 2- and 3-button cards (Sail on the horizon, Storm front, Bait/toll result, difficulty) all clear the bottom brackets; 4+ (Options) unchanged */ /* art_t6_fixes: 3-button cards (difficulty) clear the bottom brackets; 1–2 and 4+ button cards unchanged */ /* tight to buttons — no half-empty card */
++    float panelH = y + 84 + 110; /* art_t11_fixes: 4+ button rows (Options) also 110 px above the card bottom, clear of the bottom brackets */ /* art_t8_brackets: 1-, 2- and 3-button cards (Sail on the horizon, Storm front, Bait/toll result, difficulty) all clear the bottom brackets; 4+ (Options) unchanged */ /* art_t6_fixes: 3-button cards (difficulty) clear the bottom brackets; 1–2 and 4+ button cards unchanged */ /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+diff -ru a/Scripts/GameV06.cs b/Scripts/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 14:30:02.458518375 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 14:30:02.498518375 +0500
+@@ -446,9 +446,9 @@
+   /// prologue duel: exactly three STRIKE taps, unlosable. 1: the raider blocks, 2: an opening, 3: the finishing blow in slow motion.
+   IEnumerator PrologueDuel() {
+     var pnl = Px(root, "Duel", 30, 1480, 1020, 680); /* art_t7_fixes: raised 120 px - the t6 card ran ~30 px off the bottom of the screen */ Box(pnl, T.panel, T.gold);
+-    var dTitle = Label(pnl, "Blade to blade on a burning deck", 100, 12, 800, /* art_t7_fixes: x 100–900, clear of the top-right bracket */ /* art_t4_fixes: clear of the left bracket arm */ 60, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true);
++    var dTitle = Label(pnl, "Blade to blade on a burning deck", 130, 40, 640, /* art_t11_fixes: off the top rail, between the corner brackets (AskCore geometry) */ /* art_t7_fixes: x 100–900, clear of the top-right bracket */ /* art_t4_fixes: clear of the left bracket arm */ 52, T.fontSizeTitle - 4, T.parchment, TextAnchor.MiddleLeft, true); Box(Px(pnl, "rule", 130, 100, 640, 2), T.brass); /* art_t11_fixes: rule under title */
+     dTitle.verticalOverflow = VerticalWrapMode.Truncate; dTitle.resizeTextForBestFit = true; dTitle.resizeTextMinSize = 20; dTitle.resizeTextMaxSize = T.fontSizeTitle - 4; /* art_t8_duel: always one line at w800, never wraps into the line below */
+-    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 100, 80, 800, /* art_t8_duel: y 80, w 800 */ /* art_t7_fixes */ /* art_t4_fixes */ 60, T.fontSize, T.text);
++    var score = Label(pnl, "Tap STRIKE as the ring closes on the gold band.", 130, 108, 640, /* art_t11_fixes: below the rule, y 108-146 */ /* art_t8_duel: y 80, w 800 */ /* art_t7_fixes */ /* art_t4_fixes */ 38, T.fontSize, T.text);
+     score.verticalOverflow = VerticalWrapMode.Truncate; score.resizeTextForBestFit = true; score.resizeTextMinSize = 18; score.resizeTextMaxSize = T.fontSize; /* art_t8_duel: y 80–140, clear of title (12–72) and ring (150) */
+     var arena = Px(pnl, "arena", 110, 150, 380, 380); /* art_t7_fixes: ring x 110–490, y 150–530 (150 px above the card bottom) */
+     var bg = Px(arena, "bg", 0, 0, 380, 380) /* art_t7_fixes */.gameObject.AddComponent<Image>(); bg.sprite = Ring(0, 1); bg.color = UITheme.C(T.ink);
+diff -ru a/Scripts/GameV06j.cs b/Scripts/GameV06j.cs
+--- a/Assets/Scripts/GameV06j.cs	2026-10-16 14:30:02.458518375 +0500
++++ b/Assets/Scripts/GameV06j.cs	2026-10-16 14:30:02.498518375 +0500
+@@ -260,7 +260,7 @@
+           Label(card, a.status.ToUpper(), 720, 10, 220, 40, T.fontSizeSmall - 2, a.status == "active" ? T.gold : T.textMuted, TextAnchor.MiddleRight);
+           y += 220;
+         }
+-        Label(inner, $"Active {ActiveJobCount}/{JobCap}", 20, 1540, 400, 40, T.fontSizeSmall, T.textMuted);
++        Label(inner, $"Active {ActiveJobCount}/{JobCap}", 110, 1540, /* art_t11_fixes: inset clear of the left frame */ 400, 40, T.fontSizeSmall, T.textMuted);
+       }
+       yield return null;
+     }

@@ -1,0 +1,24 @@
+diff -ru a/Assets/Scripts/GameV06.cs b/Assets/Scripts/GameV06.cs
+--- a/Assets/Scripts/GameV06.cs	2026-10-16 15:03:24.941924859 +0500
++++ b/Assets/Scripts/GameV06.cs	2026-10-16 15:03:32.845924859 +0500
+@@ -372,7 +372,7 @@
+     if (chartDest < 0 || chartDest == port) { Label(ci, "Tap a port on the chart to plan a route. Drag to pan the map.", 26, 14, 1000, 90, T.fontSize, T.parchment, TextAnchor.MiddleCenter); return; }
+     int dp = chartDest; float ap = AmbushChanceFor(dp); bool risky = RiskyRoute(port, dp); if (routeLogged != dp) { routeLogged = dp; Debug.Log("GB CARD show Route to " + S.ports[dp].name); } /* gamedev_t9 */
+     Label(ci, $"To {S.ports[dp].name}", 100, 16, 440, 76, /* final3: title starts 100 px in, clear of the ~95–110 px top-left bracket */ T.fontSizeTitle + 4, T.parchment, TextAnchor.MiddleLeft, true);
+-    bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 540, 30, 360, 60, /* art_t8_brackets: ends at x 900 (148 px inside), clear of the top-right bracket */ /* art_t7_fixes: ends at x 938 (110 px inside the 1048 card), clear of the top-right bracket */ T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight);
++    bool calmR = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; bool fogCard = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; var routeLbl = Label(ci, fogCard ? "Open sea route" : risky ? "Open water (pirate odds ×2)" : calmR ? "Safe coastal route" : "Coastal route, calm seas", 548, 30, 390, 60, /* art_t8_brackets: ends at x 900 (148 px inside), clear of the top-right bracket */ /* art_t7_fixes: ends at x 938 (110 px inside the 1048 card), clear of the top-right bracket */ T.fontSizeSmall, risky ? T.down : T.up, TextAnchor.MiddleRight); routeLbl.horizontalOverflow = HorizontalWrapMode.Wrap; routeLbl.verticalOverflow = VerticalWrapMode.Truncate; routeLbl.resizeTextForBestFit = true; routeLbl.resizeTextMinSize = 18; routeLbl.resizeTextMaxSize = T.fontSizeSmall; /* art_t12b_route: x548-938 (110 px inside 1048, 8 px right of title end 540), best-fit keeps it one line */
+     float y = 100; bool fogAhead = InOpening && !storyAmbushDone && dp == Muscat && hold[Gp] > 0; string danger = fogAhead ? $"<color={T.gold}>Moderate pirate danger (25%)</color>" : DangerLabel(ap, sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail);
+     Label(ci, danger, 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSize, T.text); y += 62; if (fogAhead) { Label(ci, $"<color={T.gold}>Fog banks reported on this route</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 50, T.fontSizeSmall, T.text); y += 54; }
+     var bannedHere = Enumerable.Range(0, S.goods.Length).Where(g => Banned(g, dp) || bans.Any(b => b.good == g && b.port == dp && b.start <= week + 1 && b.end > week)).Select(g => S.goods[g].name).ToList();
+diff -ru a/Assets/Scripts/GameV06k.cs b/Assets/Scripts/GameV06k.cs
+--- a/Assets/Scripts/GameV06k.cs	2026-10-16 15:03:24.941924859 +0500
++++ b/Assets/Scripts/GameV06k.cs	2026-10-16 15:03:24.993924859 +0500
+@@ -119,7 +119,7 @@
+       TownLayoutsK4.BoulderShared(cliffBase, TU, new Vector3(-9f, -1.6f, 10.6f), new Vector3(8.8f, 3f, 5.6f), r, 6, 1.1f); /* art_t11_gwadar_cliff */ // darker wave-cut band at the waterline, slightly proud of the face, top y 1.1 local
+       sand.Box(new Vector3(-5f, -1f, 14f), new Vector3(10f, 1.8f, 3f), Quaternion.Euler(0, -12f, 0), TU((int)TCell.Whitewash)); /* designer_arrival_shores */ // narrow neck, top ~-0.1 → barely above water
+       sand.Box(new Vector3(16f, -1.2f, 12f), new Vector3(16f, 1.9f, 6f), TU((int)TCell.Whitewash)); /* designer_arrival_shores */ // low sand flat right side
+-      Part("ArrivalHammerhead", cliff, "#9A6E4C"); Part("ArrivalHammerheadBase", cliffBase, "#5A3E2A"); /* art_t11_gwadar_cliff: lighter tan face, dark base band, matte (Part zeroes emission) */ Part("ArrivalNeck", sand, "#C8A878"); /* designer_arrival_shores */
++      Part("ArrivalHammerhead", cliff, "#C29A6B"); Part("ArrivalHammerheadBase", cliffBase, "#7A5638"); /* art_t12b_cliff: face lit from behind reads ~40% darker, so albedo raised to sandy tan; base band stays darker; matte 0.08, no emission */ /* art_t11_gwadar_cliff: lighter tan face, dark base band, matte (Part zeroes emission) */ Part("ArrivalNeck", sand, "#C8A878"); /* designer_arrival_shores */
+     } else if (port == "Debal") { /* designer_arrival_shores */ // flat delta, no rock: low mud/sand banks + dark mangrove scrub on the waterline
+       Hide("ShoreCrag"); /* designer_arrival_shores */ // drop the rock headland entirely
+       var mud = new MeshB(); var mang = new MeshB(); Rect w = TU((int)TCell.Whitewash); /* designer_arrival_shores */

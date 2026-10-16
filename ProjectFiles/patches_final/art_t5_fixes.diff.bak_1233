@@ -1,0 +1,48 @@
+--- a/Assets/Scripts/Game.cs
++++ b/Assets/Scripts/Game.cs
+@@ -511,7 +511,7 @@
+     float bodyH = CardBodyH(body, 700f); /* art_t5_fixes: measured at the x 100–800 body width */ /* final3: measured at the inset width (780 = 840 − 2×30) */
+     float y = 106 + bodyH + 20; /* final: body starts below the corner brackets (~100 px); 20 px body→buttons */
+     bool wide = opts.Length >= 4; /* art_t4_fixes: 4-button rows (Options) clear the bottom + side brackets */
+-    float panelH = y + 84 + 110; /* art_t5_fixes: ~110 px under the buttons, clear of the bottom brackets */ /* tight to buttons — no half-empty card */
++    float panelH = y + 84 + (wide ? 40 : 20); /* tight to buttons — no half-empty card */
+     float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+     var myDim = ModalDim("AskDim"); modalDepth++; /* final ask_modal: own full-screen dim on root, above Content (whole HUD: SET SAIL, Journal, Options, top bar) and just below this card */
+     var my = Px(root, "Dialog", 90, top, 900, panelH); dialog = my; Box(my, T.panel, T.gold); bool done = false; var be = PushBack(title, () => my != null, dismissable ? (Action)(() => done = true) : null); /* k4r2: each Ask closes its OWN panel (k3.1 fix restored) */
+--- a/Assets/Scripts/GameV06.cs
++++ b/Assets/Scripts/GameV06.cs
+@@ -363,7 +363,7 @@
+     Label(ci, bannedHere.Count > 0 ? $"Banned on arrival (back alley pays ×{S.contraband.bannedSellMult:0}): " + string.Join(", ", bannedHere) : "No bans reported.", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 58;
+     if (blockGood[dp] >= 0) { Label(ci, $"<color={T.down}>Blockade: {S.goods[blockGood[dp]].name} will be seized on arrival.</color>", 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.text); y += 58; }
+     bool carries = Enumerable.Range(0, S.goods.Length).Any(g => hold[g] > 0 && bannedHere.Contains(S.goods[g].name));
+-    if (carries) { Label(ci, (InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? $"<color={T.up}>Farida's papers: customs will wave you through this time</color>" : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>", 100, y, 848, 56, T.fontSizeSmall, T.textMuted); y += 58; } /* art_t5_fixes: customs/Farida line on its own row so "Prices unknown" never squeezes against it */
++    if (carries) { Label(ci, papersGiven || (InOpening && OpenFlag("firstRunCustomsAlwaysPass")) || sails + 1 < OpenInt("customsRiskFromVoyage", 4) ? (papersGiven ? $"<color={T.up}>Customs: waved through (Farida's papers)</color>" : $"<color={T.up}>Customs: likely waved through</color>") /* art_t5_fixes: same reason as CustomsWaved() */ : $"<color={T.down}>Customs risk on docking: {Risk(dp):0}%</color>", 100, y, 848, 56, T.fontSizeSmall, T.textMuted); y += 58; } /* art_t5_fixes: customs/Farida line on its own row so "Prices unknown" never squeezes against it */
+     Label(ci, "Prices unknown until you dock." /* art_t5_fixes */ + (HullCur < HullMax * 0.6f ? $"   <color={T.down}>Hull {HullCur:0}/{HullMax:0}</color>" : ""), 100, y, 848, /* final modal_queue_back: x 100-948 like title/SET SAIL */ 56, T.fontSizeSmall, T.textMuted); y += 70;
+     float routeH = Mathf.Max(cardH, y + 140 + 24); card.offsetMax = new Vector2(-16, 16 + routeH); ci.sizeDelta = new Vector2(1048, routeH); /* final2: card sized to its content (was fixed 640 with Set Sail pinned at 470 → big empty gap); never shorter than the chart cut-out */
+     SetSailBtn(ci, 100, y, 848, 140, /* final3: x 100–948 so the rope ends clear the bottom brackets */ $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", () => { chartDest = -1; chartScroll = -1; chartCentered = false; StartCoroutine(Voyage(dp)); });
+--- a/Assets/Scripts/GameV06k.cs
++++ b/Assets/Scripts/GameV06k.cs
+@@ -359,17 +359,17 @@
+     Clear(content); TopBar();
+     {
+       string body = "A black wall of rain marches across the Gulf. The mate waits on your word.";
+-      float bodyH = CardBodyH(body, 780f); /* final3: mirrors Ask() */
++      float bodyH = CardBodyH(body, 700f); /* art_t5_fixes: mirrors Ask() */
+       float y = 106 + bodyH + 20;
+       float panelH = y + 84 + 20;
+       float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
+       dialog = Px(root, "Dialog", 90, top, 900, panelH); Box(dialog, T.panel, T.gold);
+-      Label(dialog, "Storm front", 100, 16, 700, 52, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
++      Label(dialog, "Storm front", 112, 16, 676, 52, /* art_t5_fixes */ T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
+       Box(Px(dialog, "rule", 30, 72, 840, 2), T.brass);
+-      Label(dialog, body, 60, 106, 780, bodyH, T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: same insets as Ask() */
+-      float w = (710f - 16) / 2f;
+-      Btn(dialog, "Run before it", 95, y, w, 84, null, true, true);
+-      Btn(dialog, "Reef and ride", 95 + w + 16, y, w, 84, null, true, false);
++      Label(dialog, body, 100, 106, 700, bodyH, /* art_t5_fixes */ T.fontSize, T.text, TextAnchor.UpperLeft); /* final3: same insets as Ask() */
++      float w = (700f - 16) / 2f; /* art_t5_fixes: buttons x 100–800 like Ask() */
++      Btn(dialog, "Run before it", 100, y, w, 84, null, true, true);
++      Btn(dialog, "Reef and ride", 100 + w + 16, y, w, 84, null, true, false);
+     }
+     yield return null; yield return null;
+     yield return ShotCo(System.IO.Path.Combine(dir, "v06k4art_storm.png"));

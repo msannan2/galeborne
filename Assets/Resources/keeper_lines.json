@@ -1,0 +1,47 @@
+{
+ "_moods": ["neutral","delighted","offended","suspicious"],
+ "banker": [
+  {"trigger":"greet","mood":"neutral","text":"Coins are safest where pirates can't count them. Here."},
+  {"trigger":"deposit","mood":"delighted","text":"Ah, the sweet silence of money doing nothing."},
+  {"trigger":"withdrawAll","mood":"offended","text":"All of it? Was it something my strongbox said?"},
+  {"trigger":"otherPortFee","mood":"neutral","text":"Three percent. The camel who carries the news must eat."},
+  {"trigger":"richPlayer","mood":"suspicious","text":"That much gold, from dates? Remarkable dates."}
+ ],
+ "moneyLender": [
+  {"trigger":"greet","mood":"delighted","text":"My favorite captain! Every captain is my favorite until the due date."},
+  {"trigger":"borrow","mood":"delighted","text":"Fifteen percent a moon. A bargain, if you don't think about it."},
+  {"trigger":"repayOnTime","mood":"offended","text":"On time? You've taken all the fun out of lending."},
+  {"trigger":"late","mood":"delighted","text":"Late! My cousin has a fast ship and very few hobbies."},
+  {"trigger":"refuse","mood":"suspicious","text":"Not today? Debt is patient. Like me."}
+ ],
+ "shipwright": [
+  {"trigger":"greet","mood":"neutral","text":"Show me the damage. Don't tell me the story, the planks will."},
+  {"trigger":"bigRepair","mood":"offended","text":"Did you fight a pirate or a mountain?"},
+  {"trigger":"upgrade","mood":"delighted","text":"Two weeks and she'll outrun her own shadow."},
+  {"trigger":"sellShip","mood":"suspicious","text":"Sixty percent. Love fades, wood rots, prices fall."},
+  {"trigger":"buyShip","mood":"delighted","text":"Treat her better than the last one. I saw the last one."}
+ ],
+ "bazaarMerchant": [
+  {"trigger":"greet","mood":"delighted","text":"Dates! Salt! Copper! Pearls! Everything except a discount!"},
+  {"trigger":"buyLots","mood":"delighted","text":"Buy more, my children need new children."},
+  {"trigger":"sellLow","mood":"suspicious","text":"Selling cheap? Who's chasing you?"},
+  {"trigger":"jackpotSale","mood":"offended","text":"At that price I should be the captain and you the merchant!"},
+  {"trigger":"emptyStock","mood":"offended","text":"You bought it all. Now what do I shout about?"}
+ ],
+ "innkeeper": [
+  { "trigger": "greet", "mood": "neutral", "text": "Sit, nakhuda. The tea is hot, the fish is fresh, and the gossip costs extra." }
+ ],
+ "priest": [
+  { "trigger": "greet", "mood": "neutral", "text": "Leave your sandals and your hurry at the door. The sea waits for no one, but God waits for everyone." }
+ ],
+ "harbourmaster": [
+  { "trigger": "greet", "mood": "neutral", "text": "Name of your dhow, nakhuda, and what is in her hold. Mooring is paid before the tide turns." }
+ ],
+ "farida": [
+  {"trigger":"greet","mood":"suspicious","text":"You walked in like a customs man. Walk out like a friend."},
+  {"trigger":"buyContraband","mood":"neutral","text":"Gunpowder? I see only... very angry sand."},
+  {"trigger":"forgedPapers","mood":"delighted","text":"Papers for you. First run's on me. Second run, I own your soul. Joking. Mostly."},
+  {"trigger":"caughtByCustoms","mood":"offended","text":"You got caught? With MY papers? Hold them right-side up next time."},
+  {"trigger":"jackpotReturn","mood":"delighted","text":"Rich and alive. My two favorite things in a customer."}
+ ]
+}
