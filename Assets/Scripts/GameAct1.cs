@@ -20,14 +20,14 @@ public partial class Game {
 
   // ---------- goals: short = current sale target, medium = next unlock, long = story ----------
   public (string, string, string) Goals3() {
-    if (!InOpening && JournalUnlocked) { var js = JournalGoalsSummary(); return GpGoalPending ? (GpSellGoal, js.Item2, js.Item3) : js; } /* research_gp1: gunpowder goal stays above the Journal summary until sold */
+    if (!InOpening && JournalUnlocked) { var js = JournalGoalsSummary(); return GpGoalOpen ? (GpNowGoal, js.Item2, js.Item3) : js; } /* research_gp2: gunpowder goal always above the Journal summary until sold (buy line, then sell line while held) */
     string l = yusufSeal ? A1s("goalLong", "Find out what House Qarin is hoarding.") : A1s("goalLongBeforeYusuf", "Who burned your ship? The Qarin seal.");
     /* v0.6h4: medium clears on the Muscat gunpowder sale (openingGpSold), not at the tavern; confiscation keeps the gunpowder goal */
     bool midDone = openingGpSold || (fallbackFired && storyStep >= 7);
-    string m = !midDone ? A1s("goalMediumOpening", "Sell the gunpowder in Muscat's Back Alley.") : faridaState == 0 ? A1s("goalMediumAfter", "Run Farida's rugs.") : A1s("goalMediumAfterFarida", "Save for a bigger ship.");
+    string m = !midDone ? A1s("goalMediumOpening", "Get gunpowder from Debal to Muscat's Back Alley.") : faridaState == 0 ? A1s("goalMediumAfter", "Run Farida's rugs.") : A1s("goalMediumAfterFarida", "Save for a bigger ship.");
     string s;
-    bool needGpAgain = !openingGpSold && !fallbackFired && jackpotStartCoins > 0 && hold[Gp] == 0 && (storyStep >= 6 || !InOpening);
-    if (needGpAgain) s = GpBuyGoal; /* research_gp1: Gwadar has no Back Alley (BuildingAvailable), so no Gwadar line; only Debal's alley stocks gunpowder */
+    bool needGpAgain = GpGoalOpen && ((jackpotStartCoins > 0 && storyStep >= 6) || !InOpening);
+    if (needGpAgain) s = GpNowGoal; /* research_gp2 */ /* research_gp1: Gwadar has no Back Alley (BuildingAvailable), so no Gwadar line; only Debal's alley stocks gunpowder */
     else if (InOpening) { s = OpeningGoalLine(); /* gamedev_t9: Now = the shared Journal line */ m = OpeningMediumGoalAt(storyStep); /* gamedev_t10_next: Next = medium goal, not the following step */ }
     else if (hold[Rugs] > 0) s = "Sell rugs in Muscat's alley (x3)";
     else if (!yusufSeal) s = "Show Yusuf the seal in Debal";
@@ -36,7 +36,8 @@ public partial class Game {
     return (s, m, l); }
 
   /* research_gp1: gunpowder goal. Pending = bought (in hold) and not yet sold in Muscat's Back Alley; after the opening it is kept only while held (no alley sells it then). */
-  public const string GpSellGoal = "Gunpowder: sell it in Muscat's Back Alley.", GpBuyGoal = "Buy gunpowder: Farida, Debal's Back Alley", GpSoldLine = "Gunpowder sold. Muscat's garrison won't forget you.";
+  public const string GpSellGoal = "Sell the gunpowder in Muscat's Back Alley.", GpBuyGoal = "Buy gunpowder from Farida in Debal's Back Alley.", GpSoldLine = "Gunpowder sold. Muscat's garrison won't forget you.";
+  public bool GpGoalOpen => Gp >= 0 && !openingGpSold && !fallbackFired; public string GpNowGoal => GpGoalPending ? GpSellGoal : GpBuyGoal; /* research_gp2 */
   public bool GpGoalPending => Gp >= 0 && !openingGpSold && !fallbackFired && hold[Gp] > 0;
   string GpMapFlag(int pi) => pi == Muscat && GpGoalPending ? "⚑ Gunpowder: Back Alley" : null; /* research_gp1 */
 
