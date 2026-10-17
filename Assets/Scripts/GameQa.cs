@@ -106,8 +106,8 @@ public partial class Game {
       tab = -1; Refresh(); }
     // ---- gamedev_continue: dock at a new port, quit on the arrival card, Continue -> that port and week ----
     { tab = -1; dialog = null; port = PortIdx("Gwadar"); safeUntilSail = sails + 100; giftPending = 1; int w0 = week; Refresh(); yield return null;
-      StartCoroutine(Voyage(PortIdx("Debal"))); bool gift = false; float tq = Time.realtimeSinceStartup;
-      while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true;
+      StartCoroutine(Voyage(PortIdx("Debal"))); bool gift = false; float tq = steadyClock;
+      while (steadyClock - tq < 90f) { skipVoyage = true; ff = true;
         if (dialog != null) { bool g = dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("A gift from Yusuf")); if (g) { gift = true; break; } EgTestCloseCard(); }
         yield return null; }
       Chk(gift && sailing && port == PortIdx("Debal"), $"voyage Gwadar->Debal reaches the arrival gift card (port {S.ports[port].name}, week {week})");
@@ -119,8 +119,8 @@ public partial class Game {
     // ---- gamedev_customs_save: coins paid on the leg, quit on the customs card at Muscat, Continue -> Muscat with the coins after the toll, customs replayed ----
     { tab = -1; dialog = null; int mu = PortIdx("Muscat"), gp = G("gunpowder"); port = PortIdx("Debal"); hold[gp] = Mathf.Max(hold[gp], 2); storyAmbushDone = true; safeUntilSail = sails + 100; customsPending = -1; var qaBan = new Ban { good = gp, port = mu, start = 0, end = int.MaxValue / 2 }; bans.Add(qaBan); Refresh(); yield return null;
       Chk(CarriesBanned(mu), "customs check: gunpowder in the hold is banned at Muscat");
-      string vf0 = veForce; veForce = "merchant"; /* gamedev_qa_pin: qa-only pin so a random squall can never change this leg */ StartCoroutine(Voyage(mu)); yield return null; int c0 = coins; coins -= 88; Save(); /* the toll paid mid-leg, saved like the pirate-toll outcome (port still Debal) */ int cAfter = coins; bool cc = false; float tq = Time.realtimeSinceStartup;
-      while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true;
+      string vf0 = veForce; veForce = "merchant"; /* gamedev_qa_pin: qa-only pin so a random squall can never change this leg */ StartCoroutine(Voyage(mu)); yield return null; int c0 = coins; coins -= 88; Save(); /* the toll paid mid-leg, saved like the pirate-toll outcome (port still Debal) */ int cAfter = coins; bool cc = false; float tq = steadyClock;
+      while (steadyClock - tq < 90f) { skipVoyage = true; ff = true;
         if (dialog != null) { if (dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("Customs at"))) { cc = true; break; } EgTestCloseCard(); }
         yield return null; }
       veForce = vf0; Chk(cc && sailing && port == mu, $"voyage Debal->Muscat reaches the customs card (port {S.ports[port].name}, coins {coins})");
@@ -345,12 +345,13 @@ yield return Shot("polish_blk_greyed_button"); }
       veForceVariant = -1; veForce = ""; veForceHail = ""; hailWarned = false; ambushHalveNext = false; lastFamily = lf0; coins = c0; week = w0; port = port0; dest = dest0; hullNow = hn0; System.Array.Copy(h0, hold, hold.Length); price = p0; dialog = null; Refresh(); yield return null; }
     // ---- gamedev_continue: blockade seizure on docking is never silent; HUD Next shows the urgent contract ----
     { tab = -1; dialog = null; int cu = G("copper"), mu = PortIdx("Muscat"); port = PortIdx("Debal"); hold[cu] = 8; blockGood[mu] = cu; blockEnd[mu] = week + 50; blockStart[mu] = -1000; blockKnown[mu] = true; safeUntilSail = sails + 100; Refresh(); yield return null;
-      StartCoroutine(Voyage(mu)); bool card = false; float tq = Time.realtimeSinceStartup;
-      while (Time.realtimeSinceStartup - tq < 90f) { skipVoyage = true; ff = true; if (blockGood[mu] != cu) blockGood[mu] = cu;
+      float ecB = S.encounterChance; S.encounterChance = 0; /* gamedev_v071: a random squall could take 3 copper, then the eg1 delivery used the rest and no seizure was left to show */
+      StartCoroutine(Voyage(mu)); bool card = false; float tq = steadyClock; int tqf = Time.frameCount;
+      while (!(steadyClock - tq > 90f && Time.frameCount - tqf > 600)) { /* gamedev_v071: progress budget, not 90 s real only */ skipVoyage = true; ff = true; if (blockGood[mu] != cu) blockGood[mu] = cu;
         if (dialog != null) { if (dialog.GetComponentsInChildren<Text>().Any(t => t.text.StartsWith("Blockade at Muscat"))) { card = true; break; } EgTestCloseCard(); }
         yield return null; }
       yield return Shot("cont_blockade_card"); if (card) { EgTestCloseCard(); yield return null; } /* gamedev_blockade_warning: Let them take it */ Chk(card && hold[cu] == 0, $"blockade seizure on docking shows a 'Blockade at Muscat' card (copper now {hold[cu]})");
-      for (int k = 0; k < 40 && sailing; k++) { EgTestCloseCard(); yield return null; } blockGood[mu] = -1;
+      for (int k = 0; k < 40 && sailing; k++) { EgTestCloseCard(); yield return null; } blockGood[mu] = -1; S.encounterChance = ecB;
       Chk(msg.Contains("seize"), $"after the card the dock message still names the seizure ({msg})");
       if (eg.active.Count == 0) { coins += 5000; EgRefreshBoards(); foreach (var b in eg.board.ToList()) { if (eg.active.Count >= 1) break; EgAccept(b); } }
       var u = eg.active.OrderBy(c => c.dueWeek).FirstOrDefault(); var g3 = Goals3();
@@ -430,7 +431,7 @@ yield return Shot("polish_blk_greyed_button"); }
         Chk(hullPx > 200 && ringPx > 200 && bad <= hullPx / 200 && rangeRingMat.renderQueue > 2000 && rangeRingMat.renderQueue < 3000, $"range ring renders on the water below both hulls (hull px {hullPx}, changed {bad}, ring px {ringPx})"); }
       // daytime screenshots for review
       yield return At(r0 + 30f); yield return new WaitForSeconds(0.4f); yield return Shot("ring_out_of_range"); yield return At(r0 + 8f); yield return new WaitForSeconds(0.2f); yield return Shot("ring_out_of_range_near"); yield return At(r0 - 20f); yield return new WaitForSeconds(0.1f); yield return Shot("ring_entering_pulse"); yield return new WaitForSeconds(0.6f); yield return Shot("ring_in_range");
-      P.hull = 0; combatPaused = false; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      P.hull = 0; combatPaused = false; float tq = steadyClock; while (fighting && steadyClock - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       Chk(!fighting && (rangeRing == null || !rangeRing.gameObject.activeSelf), "after the fight the range ring is hidden"); if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
     // ---- gamedev_ambush: fog-ambush approach (Game Designer ruling: ~140 m start, 120 m in ~8-10 s at full sail, 30 s idle toll, both numbers in the message) ----
     { var cc = S.combat; float st = cc.storyStartRange; bool startOk = true; float tMin = 99, tMax = 0; bool idleClose = true; string sw = "";
@@ -461,8 +462,8 @@ yield return Shot("polish_blk_greyed_button"); }
       bool af0 = ambushForced, sad0 = storyAmbushDone, bsp0 = boardedStoryPirate; ambushForced = true; StartCoroutine(Fight(true)); yield return null; yield return null;
       var H = core.H; var P = core.P; float r0 = core.Range; H.ammo = 0; H.aim = Part.Hull; H.fullSail = true; bool solid = false, hit = false, cancel = false; float tIn = -1, tHit = -1, hull0 = P.hull; int phase = 0; string lastMsg = "";
       core.OnBroadside += (a, b, shots, hits) => { if (a == core.H && hits > 0 && !hit) { hit = true; tHit = core.t; } };
-      yield return Shot("ambush_hand_0_start"); float rq = Time.realtimeSinceStartup;
-      while (fighting && core.outcome == Outcome.None && core.t < 40f && !hit && Time.realtimeSinceStartup - rq < 120f) {
+      yield return Shot("ambush_hand_0_start"); float rq = steadyClock;
+      while (fighting && core.outcome == Outcome.None && core.t < 40f && !hit && steadyClock - rq < 120f) {
         float br = CombatCore.Bearing(P.x - H.x, P.z - H.z);
         if (!ringInRange && tIn < 0) qaRudder = CombatCore.Steer(H, br); else { if (tIn < 0) { tIn = core.t; solid = ringInRange && rangeRingMat.mainTexture == rangeTexSolid && rangePlaqueTxt.text == (core.InArc(H, P) ? "In range" : "In range · Turn broadside") && fireRangeBorder.gameObject.activeSelf == core.InArc(H, P); /* gamedev_arc: border only when the guns bear */ } qaRudder = CombatCore.Steer(H, CombatCore.Norm(br - CombatCore.Side(H, br))); /* turn her abeam */ }
         if (phase == 0 && core.t > 3f) { phase = 1; yield return Shot("ambush_hand_1_closing"); }
@@ -476,7 +477,7 @@ yield return Shot("polish_blk_greyed_button"); }
       Chk(tIn > 0 && tIn <= 10f && solid, $"gamedev_ambush: by hand (rudder input) the ring turns solid with 'In range' and the brass FIRE border within 10 s ({tIn:0.00} s)");
       Chk(hit && P.hull < hull0, $"gamedev_ambush: by hand the FIRE button lands a hit once in range (hit at {tHit:0.00} s, hull {hull0:0}->{P.hull:0})");
       Chk(lastMsg.StartsWith("Out of range: ") && lastMsg.Contains(", Round reaches 120 m") || lastMsg.StartsWith("Not in arc"), $"gamedev_ambush: FIRE before range in the live fight explains why (both numbers when abeam, else the arc hint) ('{lastMsg}')");
-      P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      P.hull = 0; float tq = steadyClock; while (fighting && steadyClock - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       ambushForced = af0; storyAmbushDone = sad0; boardedStoryPirate = bsp0; if (town3D) town3D.gameObject.SetActive(town0); RenderSettings.ambientLight = amb0; tab = -1; Refresh(); yield return null; }
     // ---- gamedev_rudder: rudder stays where the drag leaves it, snaps to 0 near centre, one-time story hint, drag zones ----
     { tab = -1; dialog = null; Refresh(); yield return null; bool town0 = town3D && town3D.gameObject.activeSelf; if (town3D) town3D.gameObject.SetActive(false); var amb0 = RenderSettings.ambientLight; RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f);
@@ -546,8 +547,8 @@ yield return Shot("polish_blk_greyed_button"); }
           Chk(sbFound && ig1 == ig0 + 1 && ig2 == ig1, $"gamedev_board: a STRIKE tap in the first 0.5 s of the boarding card is ignored, one after 0.6 s counts (ignored {ig1 - ig0}, then {ig2 - ig1})"); }
         // gamedev_toll_fix (a): 90 s of fight firing on every reload through the real FIRE button (pointer click on the button) never trips the idle toll
         { Chk(core.storyBalance && Mathf.Abs(core.P.hull0 - core.C.pirate.hull * CombatCore.StoryPirateHullMult) < 0.01f && core.pirateDmgMult == CombatCore.StoryPirateDamageMult, $"gamedev_balance (c): the live story fog fight is scaled (pirate hull0 {core.P.hull0:0.#} = {CombatCore.StoryPirateHullMult} x {core.C.pirate.hull:0.#}, damage x{core.pirateDmgMult})");
-          float toll0 = core.C.tollSeconds, max0 = core.C.maxFightSeconds; core.C.tollSeconds = core.C.maxFightSeconds = 1e5f; /* only the idle clock may end this window */ float ts0 = Time.timeScale; Time.timeScale = 4f; float t0 = core.t, rq2 = Time.realtimeSinceStartup; int taps = 0, shots = 0; float maxIdle = 0; core.idleT = 0; System.Action<CShip, CShip, int, int> cnt = (a, b, n, h) => { if (a == core.H) shots++; }; core.OnBroadside += cnt;
-          while (fighting && core.outcome == Outcome.None && core.t - t0 < 90f && Time.realtimeSinceStartup - rq2 < 600f) { /* gamedev_v071: realtime cap 120 -> 600 s (a slow machine needs more real time for the same 90 fight seconds; the check is unchanged) */
+          float toll0 = core.C.tollSeconds, max0 = core.C.maxFightSeconds; core.C.tollSeconds = core.C.maxFightSeconds = 1e5f; /* only the idle clock may end this window */ float ts0 = Time.timeScale; Time.timeScale = 4f; float t0 = core.t, rq2 = steadyClock; int taps = 0, shots = 0; float maxIdle = 0; core.idleT = 0; System.Action<CShip, CShip, int, int> cnt = (a, b, n, h) => { if (a == core.H) shots++; }; core.OnBroadside += cnt;
+          while (fighting && core.outcome == Outcome.None && core.t - t0 < 90f && steadyClock - rq2 < 600f) { /* gamedev_v071: realtime cap 120 -> 600 s (a slow machine needs more real time for the same 90 fight seconds; the check is unchanged) */
             H.x = H.z = 0; H.heading = 0; H.rudder = 0; P.x = rg * 0.5f; P.z = 0; H.hull = H.hull0; H.crew = H.crew0; H.gunHp = H.gun0; H.sails = H.sails0; P.hull = P.hull0; P.crew = P.crew0; P.sails = P.sails0; H.burnT = P.burnT = 0;
             if (H.reloadT <= 0) { QaTapFire(); taps++; } maxIdle = Mathf.Max(maxIdle, core.idleT); yield return null; }
           core.OnBroadside -= cnt; Time.timeScale = ts0; core.C.tollSeconds = toll0; core.C.maxFightSeconds = max0; float ran = core.t - t0;
@@ -569,7 +570,7 @@ yield return Shot("polish_blk_greyed_button"); }
           Chk(bowLoss >= bow.Count * 0.8f, $"gamedev_timeout: never turning broadside mostly loses or pays the toll ({bowLoss}/{bow.Count}: " + string.Join(" ", bow.GroupBy(r => r.o).Select(g => g.Key + ":" + g.Count())) + ")"); }
       }
       qaPtrOn = false; qaPtrDown = false;
-      core.P.hull = 0; float tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      core.P.hull = 0; float tq = steadyClock; while (fighting && steadyClock - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       { /* gamedev_flee: a fled pirate is a win with half the spoils */ var cq = core; int c0 = coins, f0 = fame, h0 = fameHalf; var cc = S.combat; core = new CombatCore(cc, 3); core.pirateFled = true; coins = 500; fameHalf = 0;
         var fco = StartCoroutine(Resolve(Outcome.Escaped)); yield return null; yield return null; var ft = dialog ? dialog.GetComponentsInChildren<Text>().Select(t => t.text).ToList() : new System.Collections.Generic.List<string>();
         bool card = ft.Contains("She flees") && ft.Any(t => t.StartsWith(FleeCardText) && !t.Contains("½") && !t.Contains("fame") && !System.Text.RegularExpressions.Regex.IsMatch(t, @"\b0 ")); yield return new WaitForSeconds(0.3f); yield return Shot("polish_flee_card"); EgTestCloseCard(); yield return null; yield return null;
@@ -583,7 +584,7 @@ yield return Shot("polish_blk_greyed_button"); }
         Chk(tollCard && coins == 500 - want && want == 50 && fame == f0 && !storyCapHit, $"gamedev_timeout: running out the clock -> 'The pirates take a toll', {want} coins deducted (500 -> {coins}), no fame"); coins = c0; }
       // second story fight in the same save: no hint
       ambushForced = true; StartCoroutine(Fight(true)); yield return null; yield return null; yield return new WaitForSeconds(0.3f); bool hint3 = SteerHintVisible;
-      core.P.hull = 0; tq = Time.realtimeSinceStartup; while (fighting && Time.realtimeSinceStartup - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+      core.P.hull = 0; tq = steadyClock; while (fighting && steadyClock - tq < 90f) { if (dialog != null) EgTestCloseCard(); yield return null; }
       Chk(!hint3, "gamedev_rudder: the hint shows once per save (not again in the next story fight)");
       // persisted through save/load
       steerHintSeen = true; var sd = JsonUtility.FromJson<SaveData>(JsonUtility.ToJson(new SaveData { steerHintSeen = true })); Chk(sd.steerHintSeen && JsonUtility.ToJson(new SaveData()).Contains("\"steerHintSeen\":false"), "gamedev_rudder: the hint flag is a save field");
@@ -594,7 +595,7 @@ yield return Shot("polish_blk_greyed_button"); }
       port = PortIdx("Gwadar"); for (int i = 0; i < hold.Length; i++) { hold[i] = 0; AvgCost[i] = 0; } coins = 3000; firstProfitDone = false; int fa = fame;
       int pg = Enumerable.Range(0, S.goods.Length).First(x => x != Gp && !Banned(x, port) && !RugsBanSale(x) && StockOf(x) >= 6);
       IEnumerator QTrade(int n, bool sell, string pre = null) { tab = 0; Refresh(); yield return null; var row = FindObjectsByType<Button>(FindObjectsSortMode.None).FirstOrDefault(b => b.name == "row " + S.goods[pg].id); if (row) QClick(row); yield return null;
-        if (qty) qty.value = n; yield return null; if (pre != null) { UpdateSheet(false); yield return Shot(pre); } if (sheet) QClick(sell ? sSellBtn : sBuyBtn); yield return null; float t0 = Time.realtimeSinceStartup; while (busy && Time.realtimeSinceStartup - t0 < 10) yield return null; }
+        if (qty) qty.value = n; yield return null; if (pre != null) { UpdateSheet(false); yield return Shot(pre); } if (sheet) QClick(sell ? sSellBtn : sBuyBtn); yield return null; float t0 = steadyClock; while (busy && steadyClock - t0 < 10) yield return null; }
       // mixed-price cargo: 2 at one price, then 1 after the price jumps
       price[port, pg] = 20; int cA = coins; yield return QTrade(2, false); int spentA = cA - coins; CloseSheet(); price[port, pg] = 41.5f; int cB = coins; yield return QTrade(1, false); int spentB = cB - coins; CloseSheet();
       float wantAvg = (spentA + spentB) / 3f; bool avgOk = hold[pg] == 3 && Mathf.Abs(AvgCost[pg] - wantAvg) < 0.01f && spentB * 2 > spentA;
@@ -605,7 +606,7 @@ yield return Shot("polish_blk_greyed_button"); }
       int flying = FindObjectsByType<Image>(FindObjectsSortMode.None).Count(i => i.name == "profit_coin_fly" && i.sprite && i.sprite.name == "profit_coin"); float sz = FindObjectsByType<Image>(FindObjectsSortMode.None).Where(i => i.name == "profit_coin_fly").Select(i => i.rectTransform.sizeDelta.x).DefaultIfEmpty(0).Max();
       bool ticking = coinShown >= 0 && coinShown < coins;
       yield return new WaitForSeconds(0.25f); bool toastEarly = lastToast != null && !(gaspEndT > 0 && toastShownT >= gaspEndT); yield return Shot("profit_2_sale_gasp"); /* gamedev_v071: judged before the screenshot (a slow capture let the gasp end and the toast appear legitimately) */
-      { float tw = Time.realtimeSinceStartup; while (lastToast == null && Time.realtimeSinceStartup - tw < 5) yield return null; } yield return new WaitForSeconds(0.2f); yield return Shot("profit_3_first_toast");
+      { float tw = steadyClock; while (lastToast == null && steadyClock - tw < 5) yield return null; } yield return new WaitForSeconds(0.2f); yield return Shot("profit_3_first_toast");
       var tc = new Vector3[4]; var hc = new Vector3[4]; if (lastToast) lastToast.transform.parent.GetComponent<RectTransform>().GetWorldCorners(tc); if (topBar) topBar.GetWorldCorners(hc);
       Chk(gaspStartT > 0 && gaspEndT > gaspStartT && !toastEarly && toastShownT >= gaspEndT && lastToast, $"research_profit: 'The merchant gasps!' first ({gaspStartT:0.00}-{gaspEndT:0.00}), then the toast at {toastShownT:0.00}: no overlap");
       Chk(lastToast && tc[1].y <= hc[0].y + 1 && Mathf.Abs((tc[2].x - tc[1].x) / Screen.width - 0.9f) < 0.02f && lastToast.resizeTextForBestFit && lastToast.cachedTextGenerator.lineCount == 1, $"research_profit: toast strip sits under the HUD bar, {(tc[2].x - tc[1].x) / Screen.width * 100:0}% wide, one line ({lastToast?.cachedTextGenerator.lineCount})");
@@ -649,7 +650,7 @@ yield return Shot("polish_blk_greyed_button"); }
       var hold0 = (int[])hold.Clone(); var avg0 = (float[])AvgCost.Clone(); int c0 = coins, f0 = fame, p0 = port; var pr0 = (float[,])price.Clone(); int lb0 = lastBuyQty;
       port = PortIdx("Gwadar"); for (int i = 0; i < hold.Length; i++) { hold[i] = 0; AvgCost[i] = 0; } coins = 3000; int cg = G("cotton"), sg = G("salt"); price[port, cg] = 28; price[port, sg] = 30; var st0 = stock != null ? (int[,])stock.Clone() : null; if (stock != null) { stock[port, cg] = 40; stock[port, sg] = 40; }
       IEnumerator QOpen(int gg) { CloseSheet(); tab = 0; Refresh(); yield return null; var row = FindObjectsByType<Button>(FindObjectsSortMode.None).FirstOrDefault(b => b.name == "row " + S.goods[gg].id); if (row) QC(row); yield return null; yield return null; }
-      IEnumerator QTap(Button b) { QC(b); yield return null; float t0 = Time.realtimeSinceStartup; while (busy && Time.realtimeSinceStartup - t0 < 10) yield return null; yield return null; }
+      IEnumerator QTap(Button b) { QC(b); yield return null; float t0 = steadyClock; while (busy && steadyClock - t0 < 10) yield return null; yield return null; }
       string BL(Button b) => b ? b.GetComponentInChildren<Text>().text : "";
       lastBuyQty = 1; /* a new session */ yield return QOpen(cg); int q1 = sheet ? (int)qty.value : -1;
       Chk(q1 == 1 && BL(sBuyBtn) == "Buy 1" && sBuyBtn.interactable && !sSellBtn.interactable && sSellPrev.text == "None held", $"research_qty: first-ever buy defaults to 1 (slider {q1}, '{BL(sBuyBtn)}'); Sell greyed with 'None held'");

@@ -469,7 +469,7 @@ public partial class Game : MonoBehaviour {
   // ---------------- voyage ----------------
   bool sailing, dockedSave; int dest; RectTransform dialog;
   /// gamedev_v071: every voyage runs through SafeRun (exceptions caught and logged, heartbeat for the dock watchdog)
-  IEnumerator Voyage(int to) { if (sailing) yield break; voyageAlive = true; dockTo = to; dockStage = 0; voyageBeat = Time.unscaledTime;
+  IEnumerator Voyage(int to) { if (sailing) yield break; voyageAlive = true; dockTo = to; dockStage = 0; voyageBeat = steadyClock;
     try { var r = SafeRun(VoyageInner(to), "Voyage"); while (r.MoveNext()) yield return r.Current; } finally { voyageAlive = false; } }
   IEnumerator VoyageInner(int to) {
     if (sailing) yield break; if (!CanLeavePort(out var hullWhy)) { msg = hullWhy; sailing = false; Refresh(); yield break; } if (town3D) town3D.gameObject.SetActive(false); RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f); RenderSettings.fogColor = UITheme.C(T.skyHorizon); RenderSettings.fogEndDistance = 210; SaveVoyageBackup(); sailing = true; dest = to; sails++; backdrop.color = Color.clear; sea3D.gameObject.SetActive(true); BuildLandmarksV06k(); HideAllSeaLandmarks(); EnsureKenneyDhowOnShip(); Refresh(); /* v0.6k3: no landmarks mid-ocean */
@@ -651,8 +651,8 @@ public partial class Game : MonoBehaviour {
   IEnumerator ArrivalHold(string an, int wk) { /* gamedev_t7 */
     arrivalTarget = (seaMarks.TryGetValue(an, out var lmg) && lmg ? lmg.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * 5f; float t0 = Time.time; arrivalPanT0 = t0;
     Debug.Log("GB ARRIVAL hold start " + an + " t=" + t0.ToString("F2"));
-    bool skipped = arrivalTapEarly; arrivalTapEarly = false; bool shot = false; float u0 = Time.unscaledTime; yield return null;
-    while (!skipped && Time.time < t0 + ArrivalPanDur) { if (Time.timeScale <= 0f && pauseCard == null && Time.unscaledTime > u0 + ArrivalPanDur + 10f) { Debug.Log("GB ARRIVAL hold: time frozen with no pause card, ending the hold"); break; } /* gamedev_v071 */
+    bool skipped = arrivalTapEarly; arrivalTapEarly = false; bool shot = false; float u0 = steadyClock; yield return null;
+    while (!skipped && Time.time < t0 + ArrivalPanDur) { if (Time.timeScale <= 0f && pauseCard == null && steadyClock > u0 + ArrivalPanDur + 10f) { Debug.Log("GB ARRIVAL hold: time frozen with no pause card, ending the hold"); break; } /* gamedev_v071 */
       if (arrivalPanT0 < 0 && Time.time < t0 + ArrivalPanDur - 0.05f) skipped = true; /* Update's own tap check fired */
       if (FreshTap() && dialog == null) skipped = true;
       if (!skipped && !shot && playthrough && Time.time >= t0 + ArrivalPanDur * 0.5f) { shot = true; yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{wk}.png")); continue; }

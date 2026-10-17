@@ -19,14 +19,16 @@ public partial class Game {
       try { more = top.MoveNext(); if (more) cur = top.Current; } catch (Exception e) { Debug.Log($"GB COROUTINE {what} failed: {e.GetType().Name}: {e.Message}\n{e.StackTrace}"); yield break; }
       if (!more) { st.Pop(); continue; }
       if (cur is IEnumerator ie) { st.Push(ie); continue; }
-      voyageBeat = Time.unscaledTime; yield return cur; voyageBeat = Time.unscaledTime; } }
+      voyageBeat = steadyClock; yield return cur; voyageBeat = steadyClock; } }
 
   bool DockBlocked => dialog != null || modalDepth > 0 || fighting || pauseCard != null || onTitle;
-  void DockWatchdog() {
+  /// qa budgets run on this clock: real time, but one frame counts at most 0.1 s (a frozen or paused machine does not use up a qa wait)
+  public float steadyClock;
+  void DockWatchdog() { steadyClock += Mathf.Min(Time.unscaledDeltaTime, 0.1f);
     if (stallMs > 0) { if (stallRng.NextDouble() < 0.3) System.Threading.Thread.Sleep(stallRng.Next(stallMs + 1)); }
-    bool idle = sailing && !DockBlocked && Time.timeScale > 0f && (!voyageAlive || Time.unscaledTime - voyageBeat > DockBeatLostSec); /* a live voyage only counts if its heartbeat is gone for 30 s (long waits inside a voyage are normal) */
-    if (!idle) { dockIdleSince = -1; return; } if (dockIdleSince < 0) { dockIdleSince = Time.unscaledTime; return; }
-    if (Time.unscaledTime - dockIdleSince >= (voyageAlive ? 0f : dockWatchdogSec)) DockRecover(voyageAlive ? "voyage heartbeat lost" : "no voyage running"); }
+    bool idle = sailing && !DockBlocked && Time.timeScale > 0f && (!voyageAlive || steadyClock - voyageBeat > DockBeatLostSec); /* a live voyage only counts if its heartbeat is gone for 30 s (long waits inside a voyage are normal) */
+    if (!idle) { dockIdleSince = -1; return; } if (dockIdleSince < 0) { dockIdleSince = steadyClock; return; }
+    if (steadyClock - dockIdleSince >= (voyageAlive ? 0f : dockWatchdogSec)) DockRecover(voyageAlive ? "voyage heartbeat lost" : "no voyage running"); }
 
   void DockRecover(string why) {
     int to = dockTo >= 0 ? dockTo : dest; dockRecovers++; dockIdleSince = -1;
@@ -50,18 +52,18 @@ public partial class Game {
     // (a) the voyage coroutine is gone after arrival; a card is open first (must NOT fire), then nothing (must fire)
     Chk(dockWatchdogSec == 8f && DockWatchdogSec == 8f, $"real-play watchdog time is {DockWatchdogSec} s (qa uses 3 s below to keep the run short)"); dockWatchdogSec = 3f;
     int r0 = dockRecovers, h0 = dockHookRuns; int w0 = week; sailing = true; voyageAlive = false; dockTo = mu; NewWeek(); port = mu; dockStage = 1; msg = "";
-    var hold0 = StartCoroutine(Ask("qa hold", "A card stays open past the watchdog time.", ("OK", null))); float t0 = Time.unscaledTime;
-    while (Time.unscaledTime - t0 < dockWatchdogSec + 2f) yield return null; bool quietUnderCard = dockRecovers == r0 && sailing;
-    EgTestCloseCard(); yield return null; float t1 = Time.unscaledTime; while (sailing && Time.unscaledTime - t1 < dockWatchdogSec + 6f) yield return null; float took = Time.unscaledTime - t1;
+    var hold0 = StartCoroutine(Ask("qa hold", "A card stays open past the watchdog time.", ("OK", null))); float t0 = steadyClock;
+    while (steadyClock - t0 < dockWatchdogSec + 2f) yield return null; bool quietUnderCard = dockRecovers == r0 && sailing;
+    EgTestCloseCard(); yield return null; float t1 = steadyClock; while (sailing && steadyClock - t1 < dockWatchdogSec + 6f) yield return null; float took = steadyClock - t1;
     Chk(quietUnderCard, $"watchdog stays quiet while a card is open ({dockWatchdogSec + 2f:0} s with a card, sailing kept)");
     Chk(!sailing && dockRecovers == r0 + 1 && port == mu && dockHookRuns == h0 + 1 && week == w0 + 1 && took >= dockWatchdogSec - 0.5f, $"forced stuck dock (voyage gone after arrival, no card): GB DOCK RECOVER after {took:0.0} s, docked at {S.ports[port].name}, week {w0}->{week} (not advanced twice), dock hooks run {dockHookRuns - h0}x, msg '{msg}'");
     while (dialog != null) { EgTestCloseCard(); yield return null; }
     // (b) an exception inside a real voyage's dock sequence: SafeRun logs it, the watchdog finishes the dock
     string fail = ""; void Lg(string c, string st, LogType t) { if (c.StartsWith("GB COROUTINE Voyage failed")) fail = c.Split('\n')[0]; }
     Application.logMessageReceived += Lg; float sMin = S.sailSecondsMin, sMax = S.sailSecondsMax, ec = S.encounterChance; S.sailSecondsMin = S.sailSecondsMax = 1f; S.encounterChance = 0;
-    r0 = dockRecovers; port = db; tab = -1; Refresh(); yield return null; qaThrowAtDock = true; StartCoroutine(Voyage(mu)); yield return null; t0 = Time.unscaledTime;
-    while (sailing && Time.unscaledTime - t0 < 60f) { if (dialog != null) EgTestCloseCard(); yield return null; }
+    r0 = dockRecovers; port = db; tab = -1; Refresh(); yield return null; qaThrowAtDock = true; StartCoroutine(Voyage(mu)); yield return null; t0 = steadyClock;
+    while (sailing && steadyClock - t0 < 60f) { if (dialog != null) EgTestCloseCard(); yield return null; }
     Application.logMessageReceived -= Lg; S.sailSecondsMin = sMin; S.sailSecondsMax = sMax; S.encounterChance = ec; qaThrowAtDock = false; dockWatchdogSec = DockWatchdogSec;
-    Chk(fail != "" && !sailing && dockRecovers == r0 + 1 && port == mu && !voyageAlive, $"exception in a real voyage's dock sequence: '{fail}' -> GB DOCK RECOVER, docked at {S.ports[port].name} in {Time.unscaledTime - t0:0.0} s");
+    Chk(fail != "" && !sailing && dockRecovers == r0 + 1 && port == mu && !voyageAlive, $"exception in a real voyage's dock sequence: '{fail}' -> GB DOCK RECOVER, docked at {S.ports[port].name} in {steadyClock - t0:0.0} s");
     while (dialog != null) { EgTestCloseCard(); yield return null; } tab = -1; Refresh(); yield return null; }
 }
