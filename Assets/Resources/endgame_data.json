@@ -499,7 +499,8 @@
    "slot": "Its own slot: does not count toward your 2 contracts. Its cargo is sealed: storms and pirates can't take it.",
    "sealed": "Your sealed {good} stay lashed below.",
    "sealedGold": "It costs you {coins} coins instead.",
-   "sealedHull": "The hull takes the rest."
+   "sealedHull": "The hull takes the rest.",
+   "sealedSquall": "A black squall heels the dhow over."
   },
   "payPriceMult": 0.74,
   "payNote": "pay = qty x the destination's NORMAL price (good's (min+max)/2 x the port's cheap/want multiplier, incl. goodWantBonus) x payPriceMult + bonusCoins, capped at cap. Game Designer final ruling 2026-10-17: payPriceMult 0.74, bonusCoins 1000 -> ~1,800 / 2,665 / 3,590.",

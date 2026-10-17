@@ -90,6 +90,6 @@
   "raceLoss": "you delivered first (he loses the race)",
   "rumour": "tavern, always, names his next port",
   "ticker": "dock ticker",
-  "raceWindow": "race card: his arrival window = your shortest trip + raceSpreadMinWeeks..raceSpreadMaxWeeks, at least 1 week"
+  "raceWindow": "race card: his arrival window = your shortest trip + raceSpreadMinWeeks..raceSpreadMaxWeeks (floored only by raceMinWeeks 0), the same range RivalRaceTime draws from: 0-3 weeks carrying, 1-4 buying first"
  }
 }

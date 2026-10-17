@@ -219,8 +219,8 @@ public partial class Game {
   /// gamedev_v07: race icon is boardIconSize canvas units (1080-wide reference) but never under boardIconMinPx real screen pixels,
   /// so it is 40 px on a 1080-wide phone and still 40 px in a 540-wide window (where the canvas is drawn at 0.5x).
   public float RaceIconSize { get { float sf = scaler ? Mathf.Max(0.01f, scaler.GetComponent<Canvas>().scaleFactor) : 1f; return Mathf.Max(RivalData.ArtF("boardIconSize", 40), RivalData.ArtF("boardIconMinPx", 40) / sf); } }
-  /// gamedev_v07: Rashid's arrival window for a race card: the player's shortest trip + the data bounds, at least 1 week
-  public (int lo, int hi) RaceWindow(EgContract c) { int t = RaceTripWeeks(c); return (Mathf.Max(1, Mathf.FloorToInt(t + RivalData.F("raceSpreadMinWeeks", -1f))), Mathf.Max(1, Mathf.CeilToInt(t + RivalData.F("raceSpreadMaxWeeks", 2f)))); }
+  /// gamedev_v07: Rashid's arrival window for a race card: the player's shortest trip + the data bounds (the same range RivalRaceTime draws from)
+  public (int lo, int hi) RaceWindow(EgContract c) { int t = RaceTripWeeks(c); float mn = RivalData.F("raceMinWeeks", 0); return (Mathf.FloorToInt(Mathf.Max(mn, t + RivalData.F("raceSpreadMinWeeks", -1f))), Mathf.CeilToInt(Mathf.Max(mn, t + RivalData.F("raceSpreadMaxWeeks", 2f)))); } /* exactly RivalRaceTime's range: trip -1..+2 weeks, floored only by raceMinWeeks (0) */
   public string RaceWindowLine(EgContract c) { var w = RaceWindow(c); return RivalData.S("raceWindow", "Red Dhow: {min}–{max} weeks").Replace("{min}", w.lo.ToString()).Replace("{max}", w.hi.ToString()); }
   Image RaceIcon(Transform p, float x, float yCentre) { var s = RivalIcon(); float sz = RaceIconSize; var r = Px(p, "RaceIcon", x, yCentre - sz / 2, sz, sz); var im = r.gameObject.AddComponent<Image>(); im.preserveAspect = true; im.color = Color.white; im.raycastTarget = false; if (s) im.sprite = s; else im.color = UITheme.C("#8E2F25"); return im; }
 }
