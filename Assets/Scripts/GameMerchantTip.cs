@@ -54,7 +54,7 @@ public partial class Game {
       "JoinSentences adds a full stop only where a sentence is not already ended");
     int pp = G("pepper"), bad = 0, n = 0; var badL = new System.Collections.Generic.List<string>();
     foreach (var e in ((System.Collections.Generic.List<object>)DZ.market["events"]).Select(Design.D)) { var ct = Content((string)e["id"]); if (!ct.ContainsKey("headline") || !ct.ContainsKey("text")) continue;
-      int p = mu; StartEvent(p, e, pp); n++; string line = news[0], h = Fill((string)ct["headline"], p, pp).Trim(); bool ok = line.StartsWith(h) && line.Length > h.Length + 1 && (".!?".IndexOf(h[h.Length - 1]) >= 0 ? line[h.Length] == ' ' : line.Substring(h.Length, 2) == ". ");
+      int p = mu, eg = EventGood(p, e); /* the good the game itself picks for this event */ try { StartEvent(p, e, eg); } catch (System.Exception ex) { bad++; badL.Add($"{e["id"]}: {ex.GetType().Name}"); continue; } n++; string line = news[0], h = Fill((string)ct["headline"], p, eg).Trim(); bool ok = line.StartsWith(h) && line.Length > h.Length + 1 && (".!?".IndexOf(h[h.Length - 1]) >= 0 ? line[h.Length] == ' ' : line.Substring(h.Length, 2) == ". ");
       if (!ok) { bad++; badL.Add(line); } }
     var glut = ((System.Collections.Generic.List<object>)DZ.market["events"]).Select(Design.D).FirstOrDefault(e => (string)e["id"] == "glut"); string gl = "";
     if (glut != null) { StartEvent(mu, glut, pp); gl = news[0]; }
