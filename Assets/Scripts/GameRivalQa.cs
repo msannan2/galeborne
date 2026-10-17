@@ -25,6 +25,17 @@ public partial class Game {
   static int RedFramePixels(Texture2D t) { var px = t.GetPixels32(); int w = t.width, n = 0; for (int y = 0; y < t.height; y += 2) for (int x = 0; x < w; x += 2) if (SailRed(px[y * w + x])) n++; return n; }
   /* red-sail pixel in a lit frame: hue within 12 deg of red, saturated; excludes the brown hulls (hue ~20 deg) that ShipArt.IsRed admits */
   static bool SailRed(Color c) { Color.RGBToHSV(c, out float h, out float s, out float v); return (h <= 12f / 360f || h >= 350f / 360f) && s > 0.5f && v > 0.1f; }
+  /// gamedev_v07: a pre-v0.7 save has no news-seen marker; loading it must not replay old news on the first dock
+  IEnumerator V07OldSaveNews(Action<bool, string> Chk, Action<string> L) {
+    Init(); egTestQuiet = true; storyStep = StDone; port = PortIdx("Gwadar"); week = 3 * Wk; tab = -1; rvCards.Clear(); egCards.Clear(); dialog = null; rdNoRoll = true; rdForceNext = false; Rv.next = PortIdx("Muscat"); Rv.arriveWeek = week + 20;
+    string old = "Old word (Week 1 · Moon 1 · Year 1): Debal's quay is crowded with idle dhows."; news.Insert(0, "Rumor (Week 1 · Moon 1 · Year 1): the monsoon is late."); news.Insert(0, old); Rv.newsAtDock = 0; Save();
+    int stripped = 0; foreach (var p in new[] { SavePath, SavePathB, VoyageBackup }) { if (!File.Exists(p)) continue; var t = File.ReadAllText(p); var t2 = System.Text.RegularExpressions.Regex.Replace(t, ",?\"newsAtDock\":-?\\d+", ""); if (t2 != t) { stripped++; File.WriteAllText(p, t2); } }
+    news.Clear(); Rv.newsAtDock = 0; bool ok = Load(); Chk(ok && stripped > 0 && news.Contains(old) && Rv.newsAtDock == news.Count, $"old-format save (newsAtDock removed from {stripped} file(s)) loads; marker set to all {news.Count} news lines seen (marker {Rv.newsAtDock})");
+    float sMin = S.sailSecondsMin, sMax = S.sailSecondsMax, ec0 = S.encounterChance; S.sailSecondsMin = S.sailSecondsMax = 6f; S.encounterChance = 0f; storyAmbushDone = true; sails = 20; Refresh(); yield return null;
+    StartCoroutine(Voyage(PortIdx("Debal"))); yield return null; float tr = Time.time; while (sailing && Time.time - tr < 40f) { if (dialog != null) EgTestCloseCard(); yield return null; } yield return new WaitForSeconds(0.5f);
+    S.sailSecondsMin = sMin; S.sailSecondsMax = sMax; S.encounterChance = ec0; while (dialog != null) { EgTestCloseCard(); yield return null; } rdNoRoll = false;
+    Chk(port == PortIdx("Debal") && !msg.Contains("Old word") && !msg.Contains("monsoon"), $"first dock after loading the old save: no old-news replay ('{msg}')"); }
+
   /// gamedev_v07 sealed cargo (Game Designer): with 20 sealed dates aboard, squalls / squall lines / pirates / customs take other cargo first,
   /// then gold, then hull; the dates stay 20 and the contract completes on arrival.
   IEnumerator V07Sealed(Action<bool, string> Chk, Action<string> L, string dir) {
@@ -65,18 +76,22 @@ public partial class Game {
     storyStep = StDone; storyAmbushDone = true; sails = 20; safeUntilSail = 0; veForce = veForceNext = ""; week = 9; port = gw; tab = -1; dialog = null; eg.active.Clear();
     // voyage 1: Gwadar -> Debal; he is bound for Debal (on this leg) and forced in port there
     Rv.at = -1; Rv.next = db; Rv.arriveWeek = week + 1; rdForceNext = true; rdNoRoll = false; Refresh(); yield return null;
-    int thr = Mathf.RoundToInt(RivalData.F("qaSeaRedPixels", 120)), pre = 0, peak = 0; bool shown = false, shot = false; float runStart = -1, lastRed = -1, best = 0, showT = -1; var tr = Time.time;
+    int thr = Mathf.RoundToInt(RivalData.F("qaSeaRedPixels", 120)), pre = 0, peak = 0; bool shown = false, shot = false; float best = 0, showT = -1; var tr = Time.time;
     StartCoroutine(Voyage(db)); yield return null; Chk(sailing && rdSeaPending, "voyage 1 (Gwadar -> Debal, he is on this leg): Red Dhow scheduled at sea");
+    float cardAt = -1, cardShut = -1, hide0 = -1, visAfter = 0, visOpen = 0, run = 0, lastT = Time.time, sinceRed = 0; bool cardDone = false;
     while (sailing && Time.time - tr < 60f) {
-      if (dialog != null) EgTestCloseCard();
-      yield return new WaitForEndOfFrame(); var t = ScreenCapture.CaptureScreenshotAsTexture(); int red = RedFramePixels(t); bool vis = redDhow && redDhow.gameObject.activeSelf;
+      if (shown && cardAt < 0 && Time.time - showT > 1f) { hide0 = rdSeaHideAt; veForce = "wreckAdrift"; StartCoroutine(Encounter(false, false)); cardAt = Time.time; L($"wreckAdrift card opened {cardAt - showT:0.0} s into his window"); } /* an encounter card during his window */
+      if (dialog != null) { if (cardAt >= 0 && !cardDone && Time.time - cardAt < 2f) { } else { EgTestCloseCard(); if (cardAt >= 0 && !cardDone) { cardDone = true; cardShut = Time.time; veForce = ""; } } }
+      yield return new WaitForEndOfFrame(); var t = ScreenCapture.CaptureScreenshotAsTexture(); int red = RedFramePixels(t); bool vis = redDhow && redDhow.gameObject.activeSelf; float dt = Time.time - lastT; lastT = Time.time; bool open = dialog == null && modalDepth == 0;
       if (vis && !shown) { shown = true; showT = Time.time; } if (!shown) pre = Mathf.Max(pre, red); if (vis) peak = Mathf.Max(peak, red);
-      if (vis && red >= thr) { if (runStart < 0 || Time.time - lastRed > 0.3f) runStart = Time.time; lastRed = Time.time; best = Mathf.Max(best, lastRed - runStart); }
+      if (open) { if (vis && red >= thr) { visOpen += dt; if (cardDone) visAfter += dt; run += dt; sinceRed = 0; best = Mathf.Max(best, run); } else { sinceRed += dt; if (sinceRed > 0.3f) run = 0; } } /* open-sea frames only; card frames neither count nor break the run */
       if (vis && !shot && red >= thr && Time.time - showT > 1.5f) { shot = true; File.WriteAllBytes(Path.Combine(dir, "sea_red_dhow.png"), t.EncodeToPNG()); L($"sea frame saved: {red} red px (of every 4th), cam {cam.name} at {cam.transform.position}"); }
       Destroy(t); }
     yield return new WaitForSeconds(0.5f);
     Chk(shown && pre < thr, $"before he shows, the gameplay frame has no red-sail pixels ({pre} < {thr}): the check can fail");
-    Chk(best >= 3f, $"Red Dhow visible at sea: red-sail pixels in the gameplay camera frame for {best:0.0} s continuous (want >= 3 s; peak {peak} px, threshold {thr})");
+    Chk(best >= 3f, $"Red Dhow visible at sea: red-sail pixels in the gameplay camera frame for {best:0.0} s of continuous open sea (want >= 3 s; peak {peak} px, threshold {thr})");
+    Chk(cardDone && cardShut - cardAt >= 1.9f && rdSeaPaused >= 1.8f, $"an encounter card (wreckAdrift) open {cardShut - cardAt:0.0} s during his window paused it {rdSeaPaused:0.0} s (hide time moved by the card time)");
+    Chk(visAfter >= 3f && visOpen >= 5f, $"after the card closed he is still in the gameplay frame for {visAfter:0.0} s (want >= 3 s); open-sea total {visOpen:0.0} s (target ~6 s)");
     bool OtherPort(string m) => S.ports.Any(pp => pp.name != S.ports[port].name && m.Contains(pp.name));
     Chk(port == db && !OtherPort(msg) && !msg.Contains("called at"), $"dock message names only the port you docked at (no older news line from another port): '{msg}'"); yield return Shot2("dock_message_debal");
     Chk(port == db && RivalHere && Count(msg) == 1, $"voyage 1 arrival at Debal with the Red Dhow in port: ticker '{tk}' shown {Count(msg)}x (want 1) in '{msg}'");
@@ -225,6 +240,7 @@ public partial class Game {
       tab = 8; Refresh(); yield return null; var rr = content ? content.GetComponentsInChildren<Text>(true).FirstOrDefault(t => t.gameObject.name == "RivalRumour") : null; Chk(rr && !rr.text.Contains("Muscat"), $"tavern at Muscat during the race: '{rr?.text}'");
       rdForceNext = true; RivalOnDock(); Chk(RivalHere && RivalRumourPort() != port, $"forced in port at the race port: rumour still names another port ({S.ports[RivalRumourPort()].name})"); tab = -1; eg.active.Remove(rc); rdNoRoll = false; }
     yield return V07Sealed(Chk, L, dir);
+    yield return V07OldSaveNews(Chk, L);
 
     rdForceNext = flagN0; rdForceRace = flagR0; rdForceGrand = flagG0; rdBoardForce = flagB0; v07Fails = fails; v07Checks = checks; L($"{checks} checks, {(fails == 0 ? "ALL PASS" : fails + " FAIL")}");
     if (!standalone) { Fresh(); yield break; }

@@ -47,12 +47,13 @@ public partial class Game {
       var dm = (d.msg ?? "").Replace("Welcome back, Captain.", "").Trim(); msg = (welcomedThisSession ? "" : "Welcome back, Captain. ") + dm; welcomedThisSession = true; return true; /* k4: greeting once per session, never re-saved into msg */
     } catch (Exception e) { Debug.LogWarning("Load failed: " + e.Message); return false; } }
   /// newest slot first, then the older slot, then the voyage-start backup; only if all fail does the title offer New Game alone
-  public bool Load() {
+  readonly Dictionary<string, bool> rawHasNewsMark = new Dictionary<string, bool>();
+  public bool Load() { rawHasNewsMark.Clear();
     var cands = new List<(string path, SaveData d)>();
-    foreach (var p in new[] { SavePath, SavePathB, VoyageBackup }) { if (!File.Exists(p)) continue; SaveData d = null; try { d = JsonUtility.FromJson<SaveData>(File.ReadAllText(p)); } catch (Exception e) { Debug.LogWarning($"Save {Path.GetFileName(p)} unreadable: {e.Message}"); }
+    foreach (var p in new[] { SavePath, SavePathB, VoyageBackup }) { if (!File.Exists(p)) continue; SaveData d = null; try { var raw = File.ReadAllText(p); d = JsonUtility.FromJson<SaveData>(raw); if (d != null) rawHasNewsMark[p] = raw.Contains("\"newsAtDock\""); } catch (Exception e) { Debug.LogWarning($"Save {Path.GetFileName(p)} unreadable: {e.Message}"); }
       cands.Add((p, d)); }
     foreach (var c in cands.OrderByDescending(c => c.d == null ? long.MinValue : c.path == VoyageBackup ? c.d.seq - 1 : c.d.seq)) {
-      if (c.d != null && Apply(c.d)) { saveSeq = Math.Max(c.d.seq, cands.Where(x => x.d != null).Select(x => x.d.seq).DefaultIfEmpty(0).Max()); lastLoadedFrom = Path.GetFileName(c.path); Debug.Log("GB SAVE loaded " + lastLoadedFrom + " seq " + c.d.seq); GbCoins("after load"); return true; }
+      if (c.d != null && Apply(c.d)) { if (!rawHasNewsMark.TryGetValue(c.path, out var hm) || !hm) { Rv.newsAtDock = news.Count; Debug.Log($"GB SAVE pre-v0.7 save: news-seen marker missing, all {news.Count} news lines marked seen"); } /* gamedev_v07: no old-news replay on the first dock */ saveSeq = Math.Max(c.d.seq, cands.Where(x => x.d != null).Select(x => x.d.seq).DefaultIfEmpty(0).Max()); lastLoadedFrom = Path.GetFileName(c.path); Debug.Log("GB SAVE loaded " + lastLoadedFrom + " seq " + c.d.seq); GbCoins("after load"); return true; }
       try { File.Copy(c.path, c.path + ".corrupt-" + DateTime.Now.ToString("yyyyMMdd-HHmmss"), true); File.Delete(c.path); } catch { } /* broken slot set aside */ }
     lastLoadedFrom = ""; return false; }
   /// a copy of the current save at the start of every voyage

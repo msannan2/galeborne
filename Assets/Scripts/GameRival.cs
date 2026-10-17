@@ -157,20 +157,21 @@ public partial class Game {
   string GrandTag(EgContract c) => GStr("offerTag", "Grand contract · {n} of 3").Replace("{n}", (eg.bigStage + 1).ToString());
 
   // ---------------- per-frame: flags, cards, the Red Dhow at sea ----------------
-  bool rdSeaPending; float rdSeaShowAt, rdSeaHideAt; Transform redDhow; Material redSailMat;
+  bool rdSeaPending; float rdSeaShowAt, rdSeaHideAt, rdSeaPaused; Transform redDhow; Material redSailMat;
   void RivalUpdate() {
     if (onTitle || S == null) return;
     if (!sailing && !fighting) {
       if (rdForceGrand) { rdForceGrand = false; storyStep = Mathf.Max(storyStep, StDone); if (eg.rank < 2) AddRenown(ED.RankRenown(2) - eg.renown, "debug -gbendgamecontract"); while (egCards.Count > 0) egCards.Dequeue(); GrandEnsure(); msg = Big != null ? $"Debug: grand contract 1 on the board ({Big.title})." : "Debug: grand contract not posted"; Debug.Log("GB GRAND force applied: rank " + RankName + ", offer " + (Big != null ? Big.tpl : "none")); Save(); Refresh(); }
       if (rdForceRace && IsBoardPort(port)) { rdForceRace = false; rdRaceSticky = Moon; if (eg.boardMoon != Moon || !eg.board.Any(b => b.from == S.ports[port].name)) EgRefreshBoards(true); RivalMarkRace(true); Debug.Log($"GB RIVAL force race posted at {S.ports[port].name} (kept through board refreshes this moon)"); Save(); }
     }
-    if (redDhow != null && redDhow.gameObject.activeSelf) { RedDhowPlace(); if (!sailing || Time.time > rdSeaHideAt) { redDhow.gameObject.SetActive(false); Debug.Log("GB RIVAL sea hide"); } }
+    if (sailing && (dialog != null || modalDepth > 0) && (rdSeaPending || redDhow != null && redDhow.gameObject.activeSelf)) { float dt = Time.deltaTime; rdSeaShowAt += dt; rdSeaHideAt += dt; rdShowT += dt; rdSeaPaused += dt; } /* gamedev_v07 (Game Designer): any open card/modal pauses his window and his slide, so he always gets the full open-sea time */
+    if (redDhow != null && redDhow.gameObject.activeSelf) { RedDhowPlace(); if (!sailing || Time.time > rdSeaHideAt) { redDhow.gameObject.SetActive(false); Debug.Log($"GB RIVAL sea hide (window paused {rdSeaPaused:0.0} s for cards)"); } }
     if (rdSeaPending && sailing && Time.time >= rdSeaShowAt) { rdSeaPending = false; RedDhowShow(); }
     if (!sailing) rdSeaPending = false;
     if (egTestQuiet || rvCards.Count == 0 || sailing || fighting || dialog != null || CardBusy) return;
     var c = rvCards.Dequeue(); StartCoroutine(RivalCard(c.t, c.b, c.mood));
   }
-  void RivalSeaStart(int to, float dur) { if (!RivalOn || Rv.next != to && !eg.active.Any(c => c.race && PortIdx(c.to) == to)) return; rdSeaPending = true; rdSeaShowAt = Time.time + dur * RivalData.F("seaShowFrom", 0.12f); rdSeaHideAt = Time.time + dur * RivalData.F("seaShowTo", 0.55f); Debug.Log($"GB RIVAL sea: the Red Dhow is on the {S.ports[to].name} leg"); }
+  void RivalSeaStart(int to, float dur) { if (!RivalOn || Rv.next != to && !eg.active.Any(c => c.race && PortIdx(c.to) == to)) return; rdSeaPending = true; rdSeaShowAt = Time.time + dur * RivalData.F("seaShowFrom", 0.12f); rdSeaHideAt = Time.time + dur * RivalData.F("seaShowTo", 0.55f); rdSeaPaused = 0; Debug.Log($"GB RIVAL sea: the Red Dhow is on the {S.ports[to].name} leg"); }
   public Material RedSailMaterial() { if (redSailMat) return redSailMat;
     var lit = Shader.Find("Universal Render Pipeline/Lit"); var m = lit ? new Material(lit) : new Material(Shader.Find("Sprites/Default")); m.name = "RedDhowSail"; var tex = Resources.Load<Texture2D>(RivalData.Art("sailTexture", "Art/Ships/red_sail_canvas"));
     if (tex) { tex.wrapMode = TextureWrapMode.Repeat; var bc = UITheme.C(RivalData.Art("sailBaseColor", "#C24A38")); if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex); if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", bc); if (m.HasProperty("_Color")) m.SetColor("_Color", bc); } /* Jeff: base colour #C24A38 multiplied over the canvas */
