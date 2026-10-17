@@ -133,7 +133,7 @@ public partial class Game {
       if (rdForceGrand) { rdForceGrand = false; storyStep = Mathf.Max(storyStep, StDone); if (eg.rank < 2) AddRenown(ED.RankRenown(2) - eg.renown, "debug -gbendgamecontract"); while (egCards.Count > 0) egCards.Dequeue(); GrandEnsure(); msg = Big != null ? $"Debug: grand contract 1 on the board ({Big.title})." : "Debug: grand contract not posted"; Debug.Log("GB GRAND force applied: rank " + RankName + ", offer " + (Big != null ? Big.tpl : "none")); Save(); Refresh(); }
       if (rdForceRace && IsBoardPort(port)) { rdForceRace = false; if (!eg.board.Any(b => b.from == S.ports[port].name)) EgRefreshBoards(true); RivalMarkRace(true); Save(); }
     }
-    if (redDhow != null && redDhow.gameObject.activeSelf) { redDhow.position += new Vector3(Time.deltaTime * 3.2f, 0, Time.deltaTime * 0.6f); if (!sailing || Time.time > rdSeaHideAt || redDhow.position.x > 90) { redDhow.gameObject.SetActive(false); Debug.Log("GB RIVAL sea hide"); } }
+    if (redDhow != null && redDhow.gameObject.activeSelf) { redDhow.position += rdVel * Time.deltaTime; if (!sailing || Time.time > rdSeaHideAt) { redDhow.gameObject.SetActive(false); Debug.Log("GB RIVAL sea hide"); } }
     if (rdSeaPending && sailing && Time.time >= rdSeaShowAt) { rdSeaPending = false; RedDhowShow(); }
     if (!sailing) rdSeaPending = false;
     if (egTestQuiet || rvCards.Count == 0 || sailing || fighting || dialog != null || CardBusy) return;
@@ -149,11 +149,14 @@ public partial class Game {
     Debug.Log("GB RIVAL red sail material: " + (tex ? "red_sail_canvas" : "fallback #8E2F25") + ", no emission"); return redSailMat = m; }
   Transform BuildRedDhow() {
     if (redDhow) return redDhow; if (!sea3D) return null;
-    var k = FreeModels.SpawnKenneyDhow(sea3D, "RedDhow"); bool kenney = k != null; if (!kenney) k = Dhow.Build(sea3D, T, false, "RedDhow");
+    var holder = new GameObject("RedDhow").transform; holder.SetParent(sea3D, false); /* holder: the Kenney FBX keeps its own lay-flat rotation */ var k = FreeModels.SpawnKenneyDhow(holder, "RedDhowModel"); bool kenney = k != null; if (!kenney) k = Dhow.Build(holder, T, false, "RedDhowModel");
     var sm = RedSailMaterial(); int n = 0;
     foreach (var r in k.GetComponentsInChildren<Renderer>(true)) { string nm = r.gameObject.name.ToLower(); if (nm.Contains("creamlateen") || (nm.Contains("sail") && !nm.Contains("yard"))) { r.sharedMaterial = sm; r.gameObject.name = "RedLateen"; n++; } }
-    Debug.Log($"GB RIVAL Red Dhow built ({(kenney ? "Kenney" : "procedural")}), red sail renderers {n}"); k.gameObject.SetActive(false); return redDhow = k; }
-  void RedDhowShow() { var d = BuildRedDhow(); if (!d) return; d.position = new Vector3(-36f, 0.2f, 46f); d.rotation = Quaternion.Euler(0, 100, 0); d.gameObject.SetActive(true); Debug.Log("GB RIVAL sea show: the Red Dhow on the horizon"); }
+    Debug.Log("GB RIVAL Red Dhow parts: " + string.Join(", ", k.GetComponentsInChildren<Renderer>(true).Select(x => x.gameObject.name + (x.enabled ? "" : "(off)") + "[" + (x.sharedMaterial ? x.sharedMaterial.name : "-") + "]")));
+    Debug.Log($"GB RIVAL Red Dhow built ({(kenney ? "Kenney" : "procedural")}), red sail renderers {n}"); holder.gameObject.SetActive(false); return redDhow = holder; }
+  Vector3 rdVel; /* placed in view of the sea camera: ahead and to the left, crossing slowly to the right */
+  void RedDhowShow() { var d = BuildRedDhow(); if (!d) return; var c = cam ? cam.transform : null; Vector3 f = c ? Vector3.ProjectOnPlane(c.forward, Vector3.up).normalized : Vector3.forward, r = c ? Vector3.ProjectOnPlane(c.right, Vector3.up).normalized : Vector3.right; if (f.sqrMagnitude < 0.5f) f = Vector3.forward; if (r.sqrMagnitude < 0.5f) r = Vector3.right;
+    Vector3 o = ship ? ship.position : Vector3.zero; var pos = o + f * 34f + r * 16f; pos.y = 0.2f; d.position = pos; d.rotation = Quaternion.LookRotation(r, Vector3.up); rdVel = r * 2.2f; d.gameObject.SetActive(true); Debug.Log($"GB RIVAL sea show: the Red Dhow on the horizon at {pos} (ship {o}, cam {(c ? c.position.ToString() : "-")} fwd {(c ? c.forward.ToString() : "-")}, scale {d.lossyScale})"); }
   IEnumerator RivalCard(string title, string body, int mood) { /* Ask-style card with Rashid's portrait on the left */
     while (CardBusy) yield return null;
     float bodyH = Mathf.Max(220f, CardBodyH(body, 400f)); var tf = CardTitleFit(title, 640, T.fontSizeTitle); float panelH = 132 + tf.extra + bodyH + 20 + 84 + 110; float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);
