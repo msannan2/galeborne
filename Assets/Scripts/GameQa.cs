@@ -675,6 +675,7 @@ yield return Shot("polish_blk_greyed_button"); }
       Chk(isLoss && pfs > 0 && lfs == pfs && ltx == $"−{-lastProfitN:N0} loss" && lastProfitN < 0, $"research_qty: loss '{ltx}' (want '−{-lastProfitN:N0} loss') font size {lfs} equals the profit font size {pfs}");
       CloseSheet(); for (int i = 0; i < hold.Length; i++) hold[i] = hold0[i]; avgCost = avg0; coins = c0; fame = f0; port = p0; price = pr0; lastBuyQty = lb0; if (st0 != null) stock = st0; tab = -1; Refresh(); yield return new WaitForSeconds(1.5f); }
     yield return QaRealPath(Chk, L); /* gamedev_encounter_fix: the real-path harness lives in GameQaRealPath.cs */
+    yield return QaDockWatchdog(Chk, L); /* gamedev_v071 */
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);

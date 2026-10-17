@@ -30,3 +30,11 @@ Each voyage logs `GB VEVENTS weights ...` (an `x` after a weight = excluded by n
 
 Other v0.7 log lines: `GB RIVAL sea: the Red Dhow is on the <port> leg` / `GB RIVAL sea show` (red-sailed dhow at sea on the leg to his next port), `GB RIVAL visit over`, `GB RIVAL moved on`.
 Tunables: `Assets/Resources/rival_data.json` (rival) and `endgame_data.json` → `endgameContracts` (grand contracts).
+
+## v0.7.1 (dock watchdog, load testing)
+
+| Flag | Env | Effect |
+|---|---|---|
+| `-gbstall <ms>` | `GB_STALL=<ms>` | Simulated machine load: about 30% of frames sleep 0..ms real ms (fixed seed). Logs `GB STALL on`. For qa under load only. |
+
+Log lines: `GB DOCK RECOVER (<why>): stage <n>, at <port>, bound for <port>`: the dock watchdog finished a stuck arrival. This happens when the player is `sailing` with no voyage running (or a voyage with no heartbeat for 30 s) and no card, modal, fight, pause card or title for 8 s real time. A normal qa run must log none. `GB COROUTINE Voyage failed: <exception>`: an exception stopped the voyage coroutine. The watchdog then completes the dock. `GB ARRIVAL hold: time frozen with no pause card, ending the hold`.

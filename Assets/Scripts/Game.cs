@@ -36,7 +36,7 @@ public partial class Game : MonoBehaviour {
 #if UNITY_STANDALONE || UNITY_EDITOR
     Application.runInBackground = true; /* desktop only: a bare Xvfb has no window manager: without focus the player loop paused at the title screen */
 #endif
-    shotMode = Array.IndexOf(Environment.GetCommandLineArgs(), "-gbshots") >= 0; { var ga = Environment.GetCommandLineArgs(); int fi = Array.IndexOf(ga, "-gbforce"); if (fi >= 0 && fi + 1 < ga.Length) gbForce = ga[fi + 1].ToLower(); VeReadForceArg(); VeReadForceHailArg(); /* gamedev_ve_force + gamedev_force_hail */ RivalReadFlags(); /* gamedev_v07 */ if (gbForce.Contains("customs_caught")) ptForceCustoms = 1; if (gbForce.Contains("customs_pass")) ptForceCustoms = 0; if (gbForce != "") Debug.Log("GB FORCE " + gbForce); } Init(); BuildWorld(); BuildUI(); { var qa = Environment.GetCommandLineArgs(); int qi = Array.IndexOf(qa, "-gbquality"); int q0 = qi >= 0 && qi + 1 < qa.Length && int.TryParse(qa[qi + 1], out int qv) ? qv : PlayerPrefs.GetInt("gbQuality", DefaultQuality()); string m0 = msg; ApplyQuality(Mathf.Clamp(q0, 0, 2)); msg = m0; } /* k4: saved graphics level applied at boot */
+    shotMode = Array.IndexOf(Environment.GetCommandLineArgs(), "-gbshots") >= 0; { var ga = Environment.GetCommandLineArgs(); int fi = Array.IndexOf(ga, "-gbforce"); if (fi >= 0 && fi + 1 < ga.Length) gbForce = ga[fi + 1].ToLower(); VeReadForceArg(); VeReadForceHailArg(); /* gamedev_ve_force + gamedev_force_hail */ RivalReadFlags(); /* gamedev_v07 */ DockGuardFlags(); /* gamedev_v071 */ if (gbForce.Contains("customs_caught")) ptForceCustoms = 1; if (gbForce.Contains("customs_pass")) ptForceCustoms = 0; if (gbForce != "") Debug.Log("GB FORCE " + gbForce); } Init(); BuildWorld(); BuildUI(); { var qa = Environment.GetCommandLineArgs(); int qi = Array.IndexOf(qa, "-gbquality"); int q0 = qi >= 0 && qi + 1 < qa.Length && int.TryParse(qa[qi + 1], out int qv) ? qv : PlayerPrefs.GetInt("gbQuality", DefaultQuality()); string m0 = msg; ApplyQuality(Mathf.Clamp(q0, 0, 2)); msg = m0; } /* k4: saved graphics level applied at boot */
     { var ga2 = Environment.GetCommandLineArgs(); int di = Array.IndexOf(ga2, "-gbdueltest"); if (di >= 0 && di + 1 < ga2.Length) { duelTest = true; duelTestDir = ga2[di + 1]; System.IO.Directory.CreateDirectory(duelTestDir); Init(); onTitle = false; StartCoroutine(Prologue()); return; }
       if (Array.IndexOf(ga2, "-gbsavetest") >= 0) { StartCoroutine(SaveTestIfAsked()); return; }
       if (gbForce.Contains("qa_run")) { StartCoroutine(QaRun()); return; } /* gamedev_qa1 */
@@ -166,6 +166,7 @@ public partial class Game : MonoBehaviour {
 
   float sailT; int hasanTris;
   void Update() {
+    DockWatchdog(); /* gamedev_v071 */
     EgUpdate(); /* gamedev_end1 */
     if (Input.GetKeyDown(KeyCode.Escape)) HandleBack(); /* final modal_queue_back: general Back handler (replaces the Credits-only Escape line) */
     if (prologuePending && dialog == null && !fighting) { prologuePending = false; StartCoroutine(Prologue()); }
@@ -467,7 +468,10 @@ public partial class Game : MonoBehaviour {
 
   // ---------------- voyage ----------------
   bool sailing, dockedSave; int dest; RectTransform dialog;
-  IEnumerator Voyage(int to) {
+  /// gamedev_v071: every voyage runs through SafeRun (exceptions caught and logged, heartbeat for the dock watchdog)
+  IEnumerator Voyage(int to) { if (sailing) yield break; voyageAlive = true; dockTo = to; dockStage = 0; voyageBeat = Time.unscaledTime;
+    try { var r = SafeRun(VoyageInner(to), "Voyage"); while (r.MoveNext()) yield return r.Current; } finally { voyageAlive = false; } }
+  IEnumerator VoyageInner(int to) {
     if (sailing) yield break; if (!CanLeavePort(out var hullWhy)) { msg = hullWhy; sailing = false; Refresh(); yield break; } if (town3D) town3D.gameObject.SetActive(false); RenderSettings.ambientLight = new Color(0.40f, 0.46f, 0.58f); RenderSettings.fogColor = UITheme.C(T.skyHorizon); RenderSettings.fogEndDistance = 210; SaveVoyageBackup(); sailing = true; dest = to; sails++; backdrop.color = Color.clear; sea3D.gameObject.SetActive(true); BuildLandmarksV06k(); HideAllSeaLandmarks(); EnsureKenneyDhowOnShip(); Refresh(); /* v0.6k3: no landmarks mid-ocean */
     float dur = Rnd.Range(S.sailSecondsMin, S.sailSecondsMax) / ((S.debugFast || Array.IndexOf(Environment.GetCommandLineArgs(), "-fast") >= 0) ? S.debugFastMultiplier : 1) / Mathf.Max(0.35f, LimpSailMult);
     bool free = sails <= S.pirateFreeSails || sails < safeUntilSail; int firstAmb = OpenInt("firstAmbushOnSailing", 3); bool storyFog = InOpening && !storyAmbushDone && to == Muscat && hold[G("gunpowder")] > 0 && sails + 1 >= firstAmb; /* fog on voyage 3, after two calm voyages */
@@ -493,11 +497,11 @@ public partial class Game : MonoBehaviour {
     PasserHide("voyage_end"); /* gamedev_t11_passer */
     if (!arrivalShown && !fighting) { arrivalShown = true; if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(to); Debug.Log("GB ARRIVAL landmark " + S.ports[to].name + " (late: card/fight covered the window)"); } // k4merge: arrival landmark ShowSeaLandmark(portIndex)
     if (arrivalShown && !fighting) yield return ArrivalHold(S.ports[to].name, week); /* gamedev_t7: shared hold (voyage + intro) */
-    NewWeek(); port = to; adsThisVisit = 0; bool atCustoms = CarriesBanned(port); /* ambush_customs_t6 */ customsPending = atCustoms ? port : -1; dockedSave = true; Save(); /* gamedev_customs_save: the port change is on disk with this leg's costs before the customs card, so a quit there Continues at the arrival port (customs replayed), never back at the departure port with the toll spent */
+    NewWeek(); port = to; dockStage = 1; /* gamedev_v071: arrived (week + port moved) */ if (qaThrowAtDock) { qaThrowAtDock = false; throw new InvalidOperationException("qa: forced failure in the dock sequence"); } adsThisVisit = 0; bool atCustoms = CarriesBanned(port); /* ambush_customs_t6 */ customsPending = atCustoms ? port : -1; dockedSave = true; Save(); /* gamedev_customs_save: the port change is on disk with this leg's costs before the customs card, so a quit there Continues at the arrival port (customs replayed), never back at the departure port with the toll spent */
     if (atCustoms) { PasserHide("customs"); /* gamedev_t11_passer */ if (sea3D) sea3D.gameObject.SetActive(true); ShowSeaLandmark(port); backdrop.color = Color.clear; if (pirateShip) pirateShip.gameObject.SetActive(false); /* gamedev_t7 */ string cn = S.ports[port].name; arrivalTarget = (seaMarks.TryGetValue(cn, out var clm) && clm ? clm.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * CustomsLookUp; customsFrame = true; /* gamedev_t7 */ yield return Customs(); customsPending = -1; /* gamedev_customs_save */ customsFrame = false; /* gamedev_t7 */ } /* ambush_customs_t6: customs card over the port arrival view (+ shared ModalDim from Ask), not blank sand */
     ShowSeaLandmark(-1); sea3D.gameObject.SetActive(false); /* ambush_customs_t6 */
-    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + DockNews(); /* gamedev_v07: only this port's fresh news */ OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); /* gamedev_end1 */ RivalOnDock(); /* gamedev_v07 */ FallbackCheck(); dockedSave = true; Save(); /* gamedev_continue: the arrival is on disk before any arrival card, so a quit on the gift/contract cards still Continues at this port */ if (blockPending == port) yield return BlockadeCard(); /* gamedev_blockade_warning: replaces the seizure card; saved before the card, replayed on Continue */ if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
-    veWxCard = false; /* gamedev_encounter_fix2 */ tithe = false; sailing = false; dockedSave = false; crewInjured = false; tab = -1; Refresh(); Save();
+    if (!atCustoms) /* ambush_customs_t6 */ msg = $"Docked at {S.ports[port].name}. " + DockNews(); /* gamedev_v07: only this port's fresh news */ OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); /* gamedev_end1 */ RivalOnDock(); /* gamedev_v07 */ FallbackCheck(); dockStage = 2; /* gamedev_v071: dock hooks done */ dockedSave = true; Save(); /* gamedev_continue: the arrival is on disk before any arrival card, so a quit on the gift/contract cards still Continues at this port */ if (blockPending == port) yield return BlockadeCard(); /* gamedev_blockade_warning: replaces the seizure card; saved before the card, replayed on Continue */ if (giftPending > 0) { giftPending = 0; yield return Ask("A gift from Yusuf", "\"Take it, Captain. A man with an empty purse makes poor trades. Pay me back in stories, not silver.\"", ("Thank you, Yusuf", null)); }
+    veWxCard = false; /* gamedev_encounter_fix2 */ tithe = false; sailing = false; dockStage = 3; skipVoyage = false; /* gamedev_v071: a skip that lands after the voyage never leaks */ dockedSave = false; crewInjured = false; tab = -1; Refresh(); Save();
   }
   bool ff, skipVoyage; Text ffTxt; bool horizonDone; /* gamedev_t10_lateen */
   /* gamedev_t11_passer: the lateen is visible ONLY during the Sail on the horizon moment */
@@ -647,8 +651,8 @@ public partial class Game : MonoBehaviour {
   IEnumerator ArrivalHold(string an, int wk) { /* gamedev_t7 */
     arrivalTarget = (seaMarks.TryGetValue(an, out var lmg) && lmg ? lmg.transform.position : new Vector3(0, 0, 80f)) + Vector3.up * 5f; float t0 = Time.time; arrivalPanT0 = t0;
     Debug.Log("GB ARRIVAL hold start " + an + " t=" + t0.ToString("F2"));
-    bool skipped = arrivalTapEarly; arrivalTapEarly = false; bool shot = false; yield return null;
-    while (!skipped && Time.time < t0 + ArrivalPanDur) {
+    bool skipped = arrivalTapEarly; arrivalTapEarly = false; bool shot = false; float u0 = Time.unscaledTime; yield return null;
+    while (!skipped && Time.time < t0 + ArrivalPanDur) { if (Time.timeScale <= 0f && pauseCard == null && Time.unscaledTime > u0 + ArrivalPanDur + 10f) { Debug.Log("GB ARRIVAL hold: time frozen with no pause card, ending the hold"); break; } /* gamedev_v071 */
       if (arrivalPanT0 < 0 && Time.time < t0 + ArrivalPanDur - 0.05f) skipped = true; /* Update's own tap check fired */
       if (FreshTap() && dialog == null) skipped = true;
       if (!skipped && !shot && playthrough && Time.time >= t0 + ArrivalPanDur * 0.5f) { shot = true; yield return ShotCo(System.IO.Path.Combine(ptDir, $"arrival_{an.ToLower()}_{wk}.png")); continue; }
