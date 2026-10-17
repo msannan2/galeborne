@@ -10,7 +10,7 @@
   "wantMult": 1.25,
   "weeksPerMoon": 4,
   "moonsPerYear": 12,
-  "encounterChance": 0.333,
+  "encounterChance": 0.5,
   "pirateFreeSails": 2,
   "pirateTollPct": 0.1,
   "pirateWinChance": 0.55,
