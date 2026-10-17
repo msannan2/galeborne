@@ -8,22 +8,24 @@
   "cheapestPriceMult": 1.2,
   "raceChance": 0.34,
   "raceRouteWeeks": 1,
-  "raceSpreadMoons": 0.5,
-  "raceMinWeeks": 1,
+  "raceMinWeeks": 0,
   "raceTieGoesToPlayer": true,
   "raceLossDepositBack": true,
   "raceLossRenown": 0,
   "staysWeeks": 2,
   "seaShowFrom": 0.12,
-  "seaShowTo": 0.55
+  "seaShowTo": 0.55,
+  "raceSpreadMinMoons": -0.25,
+  "raceSpreadMaxMoons": 0.5
  },
  "notes": {
   "fromMoon": "spec: appears from moon 3 (1-based, Moon index 2)",
   "portChance": "spec: ~1 arrival in 4, rolled per arrival",
   "cheapest": "spec: buys the port's cheapest good for the visit: stock halved, price +20% (price restored at the next week tick)",
   "raceRouteWeeks": "every leg is one week at sea in this build",
-  "raceSpreadMoons": "spec: his travel time = route time +/- half a moon, uniform; rounded to whole weeks, never under raceMinWeeks",
-  "OPEN_needs_Game_Designer_ruling": "raceChance (share of moon board refreshes that mark one card as a race), raceTieGoesToPlayer, raceLossDepositBack, raceLossRenown, staysWeeks (how long he waits in the rumoured port before moving on), the race clock starting when the player accepts, and a taunt card each time you meet him in port"
+  "raceSpreadMoons": "Game Designer ruling on 6f9eb00: his time = route time + uniform(raceSpreadMinMoons, raceSpreadMaxMoons) moons, continuous (1 week + U(-1, +2) weeks); you dock on whole weeks, so he wins only if strictly earlier: a straight-sailing player wins ~2 in 3",
+  "OPEN_needs_Game_Designer_ruling": "none open: race chance 0.34, clock on accept, tie to player, deposit back on loss, 2-week stay approved (Game Designer, 6f9eb00 ruling)",
+  "taunts": "taunt1 -> taunt2 -> taunt3 -> taunt1 cycle shared by meetings in port and taking a race; position saved (RivalState.tauntIdx)"
  },
  "art": {
   "portraitPrefix": "Keepers/k7_",

@@ -8,7 +8,7 @@ using ED = EndgameData;
 using Rnd = UnityEngine.Random;
 
 /* gamedev_end1: endgame first slice - Renown, the first 3 ranks, delivery/rush contracts at the Gwadar/Debal/Muscat tavern boards. Data + strings in EndgameData. */
-[Serializable] public class EgContract { public string id, tpl, kind, from, to, title, giver, risk, status = "offer"; public int good, qty, pay, renown, deposit, failRenown, moons, dueWeek = -1; public bool race; public int rivalWeek = -1; } /* gamedev_end1: offer|active|done|failed (gamedev_v07: |taken = Rashid delivered a race first; kind "grand" = endgame contract) */
+[Serializable] public class EgContract { public string id, tpl, kind, from, to, title, giver, risk, status = "offer"; public int good, qty, pay, renown, deposit, failRenown, moons, dueWeek = -1; public bool race; public int rivalWeek = -1; public float rivalAt = -1; } /* gamedev_end1: offer|active|done|failed (gamedev_v07: |taken = Rashid delivered a race first; kind "grand" = endgame contract) */
 [Serializable] public class EgState { public int renown, rank; public List<string> firstSales = new List<string>(); public List<EgContract> board = new List<EgContract>(); public List<EgContract> active = new List<EgContract>(); public int boardMoon = -1, seq; public RivalState rival = new RivalState(); public EgContract big; public int bigStage = -1, bigFails; public bool runComplete; } /* gamedev_end1: saved with the game; gamedev_v07: Rashid + grand contracts */
 
 public partial class Game {

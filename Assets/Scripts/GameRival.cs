@@ -9,7 +9,7 @@ using Rnd = UnityEngine.Random;
 
 /* gamedev_v07: Captain Rashid of the Red Dhow (light rival, never fights) + grand contracts (endgame sequence of 3).
    Tunables and strings: Resources/rival_data.json and endgame_data.json "endgameContracts". State lives in EgState (saved with the game). */
-[Serializable] public class RivalState { public int at = -1, next = -1, arriveWeek = -1, metWeek = -100, metPort = -1, boughtGood = -1, boughtPort = -1, boughtWeek = -1, sightings, raceWins, raceLosses; }
+[Serializable] public class RivalState { public int tauntIdx; public int at = -1, next = -1, arriveWeek = -1, metWeek = -100, metPort = -1, boughtGood = -1, boughtPort = -1, boughtWeek = -1, sightings, raceWins, raceLosses; }
 
 public static class RivalData {
   static Dictionary<string, object> root; static Dictionary<string, object> R { get { if (root == null) { var ta = Resources.Load<TextAsset>("rival_data"); root = ta ? Design.D(MiniJson.Parse(ta.text)) : new Dictionary<string, object>(); Debug.Log("GB RIVAL data " + (ta ? "rival_data.json version=" + (root.TryGetValue("version", out var v) ? v : "?") : "MISSING, fallbacks")); } return root; } }
@@ -70,26 +70,29 @@ public partial class Game {
       Debug.Log($"GB RIVAL bought the cheapest good at {S.ports[port].name}: {S.goods[g].id} stock {s0}->{(stock != null ? stock[port, g] : 0)} price {p0:0.0}->{price[port, g]:0.0}"); }
     var race = eg.active.FirstOrDefault(c => c.race); if (race != null) { r.next = PortIdx(race.to); r.arriveWeek = race.rivalWeek; } else RivalPickNext(port);
     string tk = RivalData.Line("ticker"); news.Insert(0, tk + (g >= 0 ? " " + RivalData.S("tickerBought", "").Replace("{good}", S.goods[g].name.ToLower()) : "")); msg = (msg ?? "").TrimEnd() + " " + tk;
-    string tl = r.sightings % 2 == 1 ? "taunt1" : "taunt2"; rvCards.Enqueue((RivalData.Name, RivalData.Line(tl), RivalData.Mood(tl))); Debug.Log("GB RIVAL meet card " + tl);
+    string tl = RivalNextTaunt(); rvCards.Enqueue((RivalData.Name, RivalData.Line(tl), RivalData.Mood(tl))); Debug.Log("GB RIVAL meet card " + tl);
   }
   void RivalNewWeek() { /* from EgNewWeek, after week++ */
     var r = Rv;
     if (r.boughtGood >= 0 && week > r.boughtWeek) { price[r.boughtPort, r.boughtGood] /= RivalData.F("cheapestPriceMult", 1.2f); Debug.Log($"GB RIVAL visit over: {S.goods[r.boughtGood].id} price at {S.ports[r.boughtPort].name} back to {price[r.boughtPort, r.boughtGood]:0.0}"); r.boughtGood = -1; }
     bool tieP = RivalData.B("raceTieGoesToPlayer", true);
-    foreach (var c in eg.active.Where(c => c.race).ToList()) if (tieP ? week > c.rivalWeek : week >= c.rivalWeek) RivalTookRace(c);
+    foreach (var c in eg.active.Where(c => c.race).ToList()) if (tieP ? week > c.rivalAt : week >= c.rivalAt) RivalTookRace(c); /* he lands at a fractional week; you dock on whole weeks */
     if (RivalOn && r.next >= 0 && week > r.arriveWeek + Mathf.RoundToInt(RivalData.F("staysWeeks", 2))) { r.at = r.next; Debug.Log($"GB RIVAL moved on from {S.ports[r.at].name}"); RivalPickNext(r.at); }
     else if (RivalOn && r.next < 0) RivalPickNext(-1);
   }
   void RivalTookRace(EgContract c) {
     c.status = "taken"; eg.active.Remove(c); Rv.raceWins++; if (RivalData.B("raceLossDepositBack", true)) coins += c.deposit; int rl = Mathf.RoundToInt(RivalData.F("raceLossRenown", 0));
-    Debug.Log($"GB RIVAL race lost by the player: {c.id} {c.qty}x{S.goods[c.good].id} to {c.to}, Rashid arrived week {c.rivalWeek} (now {week}), deposit {(RivalData.B("raceLossDepositBack", true) ? "returned" : "lost")} {c.deposit}");
+    Debug.Log($"GB RIVAL race lost by the player: {c.id} {c.qty}x{S.goods[c.good].id} to {c.to}, Rashid arrived week {c.rivalAt:0.00} (now {week}), deposit {(RivalData.B("raceLossDepositBack", true) ? "returned" : "lost")} {c.deposit}");
     rvCards.Enqueue((RivalData.S("raceLostTitle", "The Red Dhow got there first"), RivalData.S("raceLostBody", "").Replace("{good}", GoodName(c.good, c.qty)).Replace("{port}", c.to) + "\n\n“" + RivalData.Line("raceWin") + "”", RivalData.Mood("raceWin")));
     if (rl != 0) AddRenown(rl, "race lost to Rashid"); }
-  void RivalRaceWonByPlayer(EgContract c) { Rv.raceLosses++; Debug.Log($"GB RIVAL race won by the player: {c.id} delivered week {week}, Rashid due week {c.rivalWeek}");
+  void RivalRaceWonByPlayer(EgContract c) { Rv.raceLosses++; Debug.Log($"GB RIVAL race won by the player: {c.id} delivered week {week}, Rashid due week {c.rivalAt:0.00}");
     rvCards.Enqueue((RivalData.S("raceWonTitle", "You beat the Red Dhow"), "“" + RivalData.Line("raceLoss") + "”", RivalData.Mood("raceLoss"))); }
-  public int RivalRaceWeeks() { float t = RivalData.F("raceRouteWeeks", 1) + Rnd.Range(-1f, 1f) * RivalData.F("raceSpreadMoons", 0.5f) * Wk; return Mathf.Max(Mathf.RoundToInt(RivalData.F("raceMinWeeks", 1)), Mathf.RoundToInt(t)); }
-  void RivalOnAccept(EgContract c) { if (!c.race) return; c.rivalWeek = week + RivalRaceWeeks(); Rv.next = PortIdx(c.to); Rv.arriveWeek = c.rivalWeek; Debug.Log($"GB RIVAL race on: {c.id} to {c.to}, Rashid arrives week {c.rivalWeek} (accepted week {week})");
-    rvCards.Enqueue((RivalData.Name, "“" + RivalData.Line("taunt3") + "”\n\n" + RivalData.S("raceTag", ""), RivalData.Mood("taunt3"))); }
+  /* Game Designer (6f9eb00 ruling): route time + uniform(raceSpreadMinMoons, raceSpreadMaxMoons) moons = 1 week + U(-1, +2) weeks; a straight-sailing player (1 week) wins when he is not earlier: ~2 in 3 */
+  public float RivalRaceTime() => Mathf.Max(RivalData.F("raceMinWeeks", 0), RivalData.F("raceRouteWeeks", 1) + Rnd.Range(RivalData.F("raceSpreadMinMoons", -0.25f), RivalData.F("raceSpreadMaxMoons", 0.5f)) * Wk);
+  /* Game Designer: taunts cycle taunt1 -> taunt2 -> taunt3 -> taunt1 (meetings in port and taking a race share the cycle), saved in RivalState.tauntIdx */
+  public string RivalNextTaunt() { string k = "taunt" + (Rv.tauntIdx % 3 + 1); Rv.tauntIdx++; return k; }
+  void RivalOnAccept(EgContract c) { if (!c.race) return; c.rivalAt = week + RivalRaceTime(); c.rivalWeek = Mathf.CeilToInt(c.rivalAt); Rv.next = PortIdx(c.to); Rv.arriveWeek = c.rivalWeek; Debug.Log($"GB RIVAL race on: {c.id} to {c.to}, Rashid arrives week {c.rivalAt:0.00} (accepted week {week})");
+    string tl = RivalNextTaunt(); rvCards.Enqueue((RivalData.Name, "“" + RivalData.Line(tl) + "”\n\n" + RivalData.S("raceTag", ""), RivalData.Mood(tl))); }
   void RivalMarkRace(bool forced) { /* from EgRefreshBoards: occasionally one notice is a race */
     if (eg.active.Any(c => c.race) || eg.board.Any(b => b.race)) { if (forced) Debug.Log("GB RIVAL race contract already up"); return; }
     if (!forced && (!RivalOn || Rnd.value >= RivalData.F("raceChance", 0.34f))) return;

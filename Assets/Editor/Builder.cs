@@ -66,16 +66,16 @@ public static class Builder {
     var t = new Texture2D(n, n, TextureFormat.RGBA32, false); t.SetPixels(px); t.Apply(); File.WriteAllBytes(path, t.EncodeToPNG()); AssetDatabase.ImportAsset(path);
     var ti = (TextureImporter)AssetImporter.GetAtPath(path); ti.textureType = normal ? TextureImporterType.NormalMap : TextureImporterType.Default; ti.maxTextureSize = 1024; ti.mipmapEnabled = true;
     ti.alphaIsTransparency = alpha; ti.SaveAndReimport(); return AssetDatabase.LoadAssetAtPath<Texture2D>(path); }
-  /* gamedev_v07: the committed pirate atlas predates Game Designer's bone-white sail ruling; repaint it once if its SAIL cell still has red (stripe / skull ring) */
-  static bool PirateAtlasHasRed(string path) { try { var t = new Texture2D(2, 2); if (!t.LoadImage(File.ReadAllBytes(path))) return false; var r = ShipArt.SAIL; int red = 0;
-      for (int y = r.y + 4; y < r.yMax - 4; y += 2) for (int x = r.x + 4; x < r.xMax - 4; x += 2) { var c = t.GetPixel(x * t.width / ShipArt.N, y * t.height / ShipArt.N); if (ShipArt.IsRed(c)) red++; }
-      UnityEngine.Object.DestroyImmediate(t); Debug.Log($"GB SHIPART pirate atlas SAIL red pixels {red}"); return red > 20; } catch { return false; } }
+  /* gamedev_v07: the committed pirate atlas predates Game Designer's bone-white sail ruling; repaint it once if its SAIL or PENNANT cell still has red */
+  static bool PirateAtlasHasRed(string path) { try { var t = new Texture2D(2, 2); if (!t.LoadImage(File.ReadAllBytes(path))) return false; int red = 0;
+      foreach (var r in new[] { ShipArt.SAIL, ShipArt.PENNANT }) for (int y = r.y + 4; y < r.yMax - 4; y += 2) for (int x = r.x + 4; x < r.xMax - 4; x += 2) { var c = t.GetPixel(x * t.width / ShipArt.N, y * t.height / ShipArt.N); if (ShipArt.IsRed(c)) red++; }
+      UnityEngine.Object.DestroyImmediate(t); Debug.Log($"GB SHIPART pirate atlas SAIL+PENNANT red pixels {red}"); return red > 20; } catch { return false; } }
   static void ShipAssets(Shader lit) {
     Directory.CreateDirectory("Assets/Resources/Ship");
     foreach (var pirate in new[] { false, true }) { string k = pirate ? "pirate" : "hasan"; string ap = $"Assets/Resources/Ship/atlas_{k}.png", np = $"Assets/Resources/Ship/normal_{k}.png";
       Texture2D al = AssetDatabase.LoadAssetAtPath<Texture2D>(ap), nm = AssetDatabase.LoadAssetAtPath<Texture2D>(np);
       if (al == null || nm == null) { ShipArt.Paint(pirate, out var a, out var h); al = WriteTex(ap, a, ShipArt.N, false); nm = WriteTex(np, ShipArt.NormalFromHeight(h, 6f), ShipArt.N, true); }
-      if (pirate && al != null && PirateAtlasHasRed(ap)) { ShipArt.Paint(true, out var a2, out _); al = WriteTex(ap, a2, ShipArt.N, false); Debug.Log("GB SHIPART pirate atlas repainted: sail stripe + skull ring bone white #CFC6B0, pennant red kept (Game Designer v0.7)"); } /* gamedev_v07: red belongs only to the Red Dhow */
+      if (pirate && al != null && PirateAtlasHasRed(ap)) { ShipArt.Paint(true, out var a2, out _); al = WriteTex(ap, a2, ShipArt.N, false); Debug.Log("GB SHIPART pirate atlas repainted: stripe, skull ring and pennant bone white #CFC6B0 (Game Designer v0.7)"); } /* gamedev_v07: red belongs only to the Red Dhow */
       var m = Mat(pirate ? "ShipPirate" : "ShipHasan", lit, Color.white); m.SetTexture("_BaseMap", al); m.mainTexture = al; m.SetTexture("_BumpMap", nm); m.EnableKeyword("_NORMALMAP");
       m.SetFloat("_Cull", 2); m.SetFloat("_Smoothness", 0.15f); EditorUtility.SetDirty(m); }
     string fp = "Assets/Resources/Ship/foam.png"; var ft = AssetDatabase.LoadAssetAtPath<Texture2D>(fp); if (ft == null) ft = WriteTex(fp, ShipArt.Foam(128), 128, false, true);
