@@ -545,7 +545,7 @@ public partial class Game {
     float y = chh + 16; int dp = chartDest;
     Label(led, $"To {S.ports[dp].name}", 26, y, 700, 70, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
     bool calmT = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; Label(led, port == GwadarIdx || dp == GwadarIdx ? (calmT ? "Safe coastal route" : "Coastal route, calm seas") : "Open water", 640, y + 10, 360, 56, T.fontSizeSmall, T.textMuted, TextAnchor.MiddleRight); y += 76;
-    string danger = DangerLabel(dp); /* gamedev_route_label */
+    string danger = DangerLabel(dp); /* gamedev_route_label; tier colours via RouteLabelFor (gamedev_route_art) */
     Label(led, danger, 26, y, 980, 54, T.fontSize, T.text); y += 58;
     var bannedHere = Enumerable.Range(0, S.goods.Length).Where(g => Banned(g, dp)).Select(g => S.goods[g].name).ToList();
     Label(led, bannedHere.Count > 0 ? "Banned on arrival: " + string.Join(", ", bannedHere) : "No bans reported.", 26, y, 980, 54, T.fontSizeSmall + 2, T.textMuted); y += 56;

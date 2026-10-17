@@ -52,6 +52,17 @@ public partial class Game {
   public float RoutePirateChance(int from, int to) { if (to < 0 || to == from) return 0; if (FogAhead(to)) return 1f; if (NextSailFree || lastEncFamily == "pirate") return 0;
     var w = VeVoyageWeights(from, to, ambushHalveNext ? 0.5f : 1f); float tot = w.Where(x => x > 0).Sum(); return tot > 0 ? S.encounterChance * w[0] / tot : 0; }
   public static string RouteLabelName(float c) => c < RouteQuietBelow ? "Quiet waters" : c <= RouteDeadlyAbove ? "Pirate waters" : "Deadly waters";
-  public string RouteLabelFor(float c) => $"<color={(c < RouteQuietBelow ? T.up : c <= RouteDeadlyAbove ? T.gold : T.down)}>{RouteLabelName(c)}</color>";
+  public const string QuietHex = "#D9C08A", PirateHex = "#E0B85A", DeadlyHex = "#C0685A"; /* gamedev_route_art: Chief Art Designer tier colours */
+  public static string RouteTierHex(float c) => c < RouteQuietBelow ? QuietHex : c <= RouteDeadlyAbove ? PirateHex : DeadlyHex;
+  public string RouteLabelFor(float c) => $"<color={RouteTierHex(c)}>{RouteLabelName(c)}</color>";
+
+  // ---- gamedev_route_art: sea-map labels (port plaques, contract/gunpowder flags) are nudged inward so a label that shows at all shows whole ----
+  public readonly List<RectTransform> chartLabels = new List<RectTransform>(); readonly Dictionary<RectTransform, Vector2> chartLabelHome = new Dictionary<RectTransform, Vector2>();
+  public const float ChartLabelPad = 8f;
+  /// view = the map viewport (W x H) in map coordinates: x from -pan.x, y-down from pan.y. Labels fully outside the view stay home (masked, not drawn).
+  void ClampChartLabels(float W, float H) { float vl = -chartPanPx.x, vr = vl + W, vt = chartPanPx.y, vb = vt + H;
+    foreach (var l in chartLabels) { if (l == null || !chartLabelHome.TryGetValue(l, out var h)) continue; float x = h.x, yt = -h.y, w = l.sizeDelta.x, hh = l.sizeDelta.y;
+      if (x + w <= vl || x >= vr || yt + hh <= vt || yt >= vb) { l.anchoredPosition = h; continue; }
+      x = Mathf.Clamp(x, vl + ChartLabelPad, vr - ChartLabelPad - w); yt = Mathf.Clamp(yt, vt + ChartLabelPad, vb - ChartLabelPad - hh); l.anchoredPosition = new Vector2(x, -yt); } }
   public string RouteLabel(int from, int to) => RouteLabelFor(RoutePirateChance(from, to));
 }

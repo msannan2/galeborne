@@ -274,6 +274,31 @@ yield return Shot("polish_blk_greyed_button"); }
         var rl_rc = GameObject.Find("RouteCard"); var rl_txts = rl_rc ? rl_rc.GetComponentsInChildren<UnityEngine.UI.Text>().Select(rl_t => rl_t.text).ToList() : new System.Collections.Generic.List<string>(); string rl_dl = rl_txts.FirstOrDefault(rl_t => rl_t.Contains("waters")) ?? "";
         yield return Shot("route_label_debal_muscat");
         Chk(rl_rc != null && rl_dl.Contains(RouteLabelName(RoutePirateChance(rl_dbx, rl_mux))) && !rl_dl.Contains("%") && !rl_txts.Any(rl_t => (rl_t.Contains("waters") || rl_t.Contains("danger")) && rl_t.Contains("%")) && !rl_txts.Any(rl_t => rl_t.Contains("odds")), $"gamedev_route_label: route card Debal->Muscat shows '{rl_dl}' with no % in the danger label ({rl_txts.Count} texts)");
+        { /* gamedev_route_art: ONE danger label on the route card, drawn in the tier colour; sea-map labels fully inside the view at 16:9, 19.5:9 and 4:3 */
+          Rect ra_SR(RectTransform ra_q) { var ra_cs = new Vector3[4]; ra_q.GetWorldCorners(ra_cs); var ra_p0 = RectTransformUtility.WorldToScreenPoint(null, ra_cs[0]); var ra_p1 = RectTransformUtility.WorldToScreenPoint(null, ra_cs[2]); return Rect.MinMaxRect(ra_p0.x, ra_p0.y, ra_p1.x, ra_p1.y); }
+          var ra_bad = new System.Collections.Generic.List<string>(); var ra_rows = new System.Collections.Generic.List<string>(); string[] ra_old = { "Open water", "Open sea route", "Safe coastal route", "Coastal route, calm seas" };
+          for (int ra_k = 0; ra_k < 3; ra_k++) { string ra_want = ra_k == 0 ? "Pirate waters" : ra_k == 1 ? "Quiet waters" : "Deadly waters", ra_hex = ra_k == 0 ? "#E0B85A" : ra_k == 1 ? "#D9C08A" : "#C0685A";
+            if (ra_k == 1) sails = 0; if (ra_k == 2) { sails = S.pirateFreeSails + 5; firstRun = true; storyStep = StDone - 1; storyAmbushDone = false; hold[Gp] = 3; }
+            port = rl_dbx; chartDest = rl_mux; chartCenterOn = rl_mux; chartCentered = false; tab = 4; Refresh(); yield return null; yield return null;
+            var ra_rc = GameObject.Find("RouteCard"); var ra_tx = ra_rc ? ra_rc.GetComponentsInChildren<UnityEngine.UI.Text>().ToList() : new System.Collections.Generic.List<UnityEngine.UI.Text>();
+            var ra_dl = ra_tx.Where(ra_t => ra_t.text.Contains("waters") || ra_t.text.Contains("danger")).ToList(); var ra_c = ra_dl.Count == 1 ? ra_dl[0].color : Color.clear; var ra_e = UITheme.C(ra_hex);
+            bool ra_ok = ra_dl.Count == 1 && ra_dl[0].text == ra_want && ra_dl[0].gameObject.name == "DangerLabel" && Mathf.Abs(ra_c.r - ra_e.r) < 0.01f && Mathf.Abs(ra_c.g - ra_e.g) < 0.01f && Mathf.Abs(ra_c.b - ra_e.b) < 0.01f && !ra_tx.Any(ra_t => ra_old.Contains(ra_t.text)) && !ra_tx.Any(ra_t => ra_t.text.Contains("<color"));
+            ra_rows.Add($"{ra_want}: {ra_dl.Count} label(s) '{(ra_dl.Count > 0 ? ra_dl[0].text : "")}' drawn #{ColorUtility.ToHtmlStringRGB(ra_c)} (want {ra_hex}){(ra_ok ? "" : " BAD")}"); if (!ra_ok) ra_bad.Add(ra_want);
+            yield return Shot(ra_k == 0 ? "route_art_pirate" : ra_k == 1 ? "route_art_quiet" : "route_art_deadly");
+            if (ra_k == 2) { firstRun = rl_fr0; storyStep = rl_st0; storyAmbushDone = true; System.Array.Copy(rl_hd0, hold, hold.Length); sails = S.pirateFreeSails + 5; } }
+          Chk(ra_bad.Count == 0, "gamedev_route_art: route card has one danger label in the tier colour, no route-type label: " + string.Join("; ", ra_rows));
+          int ra_w0 = Screen.width, ra_h0 = Screen.height; var ra_mrows = new System.Collections.Generic.List<string>(); bool ra_mok = true;
+          foreach (var (ra_w, ra_h, ra_n) in new[] { (540, 960, "16:9"), (540, 1170, "19.5:9"), (720, 960, "4:3") }) {
+            Screen.SetResolution(ra_w, ra_h, false); for (int ra_f = 0; ra_f < 8; ra_f++) yield return null; yield return new WaitForSecondsRealtime(0.3f);
+            foreach (var ra_pan in new[] { "centred", "right", "left" }) { port = rl_dbx; chartDest = rl_mux; tab = 4; if (ra_pan == "centred") { chartCenterOn = rl_dbx; chartCentered = false; } else { chartCentered = true; chartPanPx = new Vector2(ra_pan == "right" ? -99999 : 99999, chartPanPx.y); }
+              Refresh(); yield return null; yield return null; var ra_mv = GameObject.Find("MapView")?.GetComponent<RectTransform>(); if (ra_mv == null) { ra_mok = false; ra_mrows.Add($"{ra_n} {ra_pan}: no map"); continue; }
+              var ra_v = ra_SR(ra_mv); int ra_vis = 0, ra_out = 0; string ra_cut = "";
+              foreach (var ra_l in FindObjectsByType<RectTransform>(FindObjectsSortMode.None).Where(ra_x => ra_x.name.StartsWith("plaque ") || ra_x.name.StartsWith("egflag "))) { var ra_r = ra_SR(ra_l); if (!ra_r.Overlaps(ra_v)) continue; ra_vis++;
+                bool ra_in = ra_r.xMin >= ra_v.xMin - 1 && ra_r.xMax <= ra_v.xMax + 1 && ra_r.yMin >= ra_v.yMin - 1 && ra_r.yMax <= ra_v.yMax + 1 && ra_r.xMin >= -1 && ra_r.xMax <= Screen.width + 1 && ra_r.yMin >= -1 && ra_r.yMax <= Screen.height + 1; if (!ra_in) { ra_out++; ra_cut += $" {ra_l.name}:{ra_r}"; } }
+              if (ra_out > 0 || ra_vis == 0) ra_mok = false; ra_mrows.Add($"{ra_n} {Screen.width}x{Screen.height} {ra_pan}: {ra_vis} labels on view, {ra_out} cut{ra_cut}");
+              if (ra_pan == "centred") yield return Shot($"route_art_map_{ra_w}x{ra_h}"); } }
+          Screen.SetResolution(ra_w0, ra_h0, false); for (int ra_f = 0; ra_f < 8; ra_f++) yield return null; yield return new WaitForSecondsRealtime(0.3f);
+          Chk(ra_mok, "gamedev_route_art: every sea-map label on view is fully inside the map view and the screen: " + string.Join("; ", ra_mrows)); }
         tab = rl_tab0; chartDest = rl_cd0; port = rl_port0; sails = rl_s0; safeUntilSail = rl_su0; week = rl_wk0; ambushHalveNext = rl_ah0; storyAmbushDone = rl_sad0; lastEncFamily = rl_le0; Refresh(); yield return null; }
       int cust = 0, wthr = 0; for (int k = 0; k < 400; k++) { lastFamily = ""; if (EncIds[VePickEncounter(wDG)] == "customsLaunch") cust++; lastFamily = "weather"; var id = EncIds[VePickEncounter(wDM)]; if (id == "squall" || id == "squallLine") wthr++; }
       Chk(cust == 0 && wthr == 0 && VeFamily("squallLine") == "weather", $"gamedev_voyage_events2: 400 Debal-Gwadar draws gave {cust} customs; after a weather card, {wthr} squall/squallLine draws (shared 'weather' family)");
