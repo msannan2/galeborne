@@ -5,7 +5,7 @@ using UnityEngine;
 /// gamedev_tip (v0.7.1 follow-up, Game Designer ruling): a merchant meeting a hold full of sealed grand-contract goods gives a free price tip
 /// instead of an (unaffordable, hidden) offer; and news/dock sentences are joined with a full stop.
 public partial class Game {
-  public const string MerchantTipFmt = "A trader eyes your sealed hold and laughs. 'Nothing for me there. But {good} fetches a fine price in {port} this moon.'";
+  public const string MerchantTipFmt = "A trader eyes your sealed hold and laughs. 'Nothing for me there. But there's a fine price for {good} in {port} this moon.'";
   public string MerchantTipText(int g, int p) => MerchantTipFmt.Replace("{good}", S.goods[g].name.ToLower()).Replace("{port}", S.ports[p].name);
   /// the good with the best sale price in any port other than the current destination (contraband excluded)
   public (int g, int p) MerchantTip() { int bg = -1, bp = -1; float best = -1;
@@ -34,7 +34,7 @@ public partial class Game {
     var tx = Texts(); bool hasBuy = dialog && dialog.GetComponentsInChildren<UnityEngine.UI.Button>().Any(b => b.GetComponentInChildren<UnityEngine.UI.Text>() && b.GetComponentInChildren<UnityEngine.UI.Text>().text.StartsWith("Buy"));
     yield return new WaitForSeconds(0.3f); yield return ShotCo(System.IO.Path.Combine(dir, "merchant_tip_card.png")); yield return new WaitForSecondsRealtime(0.7f); EgTestCloseCard(); yield return null; yield return null;
     Chk(tx.Contains("A merchant hails you") && tx.Contains(wantText) && !hasBuy, $"sealed full hold: the merchant hails with the tip card '{wantText}' (got '{string.Join(" | ", tx)}'), no Buy button");
-    Chk(want.g >= 0 && want.p >= 0 && want.p != dest && !S.goods[want.g].contraband && Mathf.Approximately(price[want.p, want.g], bestElsewhere) && wantText == $"A trader eyes your sealed hold and laughs. 'Nothing for me there. But {S.goods[want.g].name.ToLower()} fetches a fine price in {S.ports[want.p].name} this moon.'",
+    Chk(want.g >= 0 && want.p >= 0 && want.p != dest && !S.goods[want.g].contraband && Mathf.Approximately(price[want.p, want.g], bestElsewhere) && wantText == $"A trader eyes your sealed hold and laughs. 'Nothing for me there. But there's a fine price for {S.goods[want.g].name.ToLower()} in {S.ports[want.p].name} this moon.'",
       $"tip names the best sale price outside the destination {S.ports[dest].name}: {(want.g >= 0 ? S.goods[want.g].id : "-")} in {(want.p >= 0 ? S.ports[want.p].name : "-")} at {(want.g >= 0 ? price[want.p, want.g] : 0):0} (best elsewhere {bestElsewhere:0})");
     Chk(coins == c0 && hold.SequenceEqual(h0) && lastFamily == "merchant" && dialog == null, $"tip: no trade, no cost (coins {c0}->{coins}, hold unchanged {hold.SequenceEqual(h0)}), the encounter counts as shown ({lastFamily})");
     // (b) normal merchant (no sealed goods, room in the hold): the offer as before
