@@ -545,14 +545,14 @@ public partial class Game {
     float y = chh + 16; int dp = chartDest;
     Label(led, $"To {S.ports[dp].name}", 26, y, 700, 70, T.fontSizeTitle, T.parchment, TextAnchor.MiddleLeft, true);
     bool calmT = sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; Label(led, port == GwadarIdx || dp == GwadarIdx ? (calmT ? "Safe coastal route" : "Coastal route, calm seas") : "Open water", 640, y + 10, 360, 56, T.fontSizeSmall, T.textMuted, TextAnchor.MiddleRight); y += 76;
-    string danger = DangerLabel(AmbushChance(), sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail);
+    string danger = DangerLabel(dp); /* gamedev_route_label */
     Label(led, danger, 26, y, 980, 54, T.fontSize, T.text); y += 58;
     var bannedHere = Enumerable.Range(0, S.goods.Length).Where(g => Banned(g, dp)).Select(g => S.goods[g].name).ToList();
     Label(led, bannedHere.Count > 0 ? "Banned on arrival: " + string.Join(", ", bannedHere) : "No bans reported.", 26, y, 980, 54, T.fontSizeSmall + 2, T.textMuted); y += 56;
     Label(led, "Prices unknown until you dock.", 26, y, 980, 54, T.fontSizeSmall + 2, T.textMuted); y += 66;
     Btn(led, $"SET SAIL FOR {S.ports[dp].name.ToUpper()}", 26, y, 980, 150, () => StartCoroutine(Voyage(dp)), true, true);
   }
-  public float AmbushChance() => AmbushChanceFor(chartDest >= 0 && chartDest != port ? chartDest : (port + 1) % S.ports.Length); /* v06_ambush_data roll, see GameV06 */
+  public float AmbushChance() => RoutePirateChance(port, chartDest >= 0 && chartDest != port ? chartDest : (port + 1) % S.ports.Length); /* gamedev_route_label: the real one-roll pirate chance (was the old v06_ambush_data per-leg roll) */
 
   // ---- difficulty ----
   void OptionsDialog() { StartCoroutine(AskD("Options · difficulty", $"Current: {S.combat.difficulties[difficulty].name}.\n\nRelaxed: strong aim help at the breach, gentler pirates.\nCaptain: light aim help (recommended).\nHard: no help, fiercer pirates.",

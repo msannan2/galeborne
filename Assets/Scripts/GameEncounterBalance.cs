@@ -42,4 +42,16 @@ public partial class Game {
   /// voyage start: arm a pending hail force for this voyage only
   void VeArmHailForce() { if (veHailFromFlag) { veForceHail = ""; veHailFromFlag = false; veForceHorizonNext = false; }
     if (veForceHailNext != "") { veForceHail = veForceHailNext; veForceHailNext = ""; veHailFromFlag = true; veForceHorizonNext = true; Debug.Log("GB HAIL forced this voyage: " + veForceHail); } }
+
+  // ---- gamedev_route_label (Game Designer ruling): the route danger label is the REAL pirate chance of the next voyage under the one-roll system, no percentage shown ----
+  public const float RouteQuietBelow = 0.10f, RouteDeadlyAbove = 0.20f; /* Quiet < 10% <= Pirate <= 20% < Deadly */
+  public bool NextSailFree => sails + 1 <= S.pirateFreeSails || sails + 1 < safeUntilSail; /* the same test Voyage makes after sails++ */
+  public bool FogAhead(int to) => InOpening && !storyAmbushDone && to == Muscat && hold[Gp] > 0; /* the scripted story fog ambush: certain */
+  /// encounterChance x pirate weight share of the leg's pool, with this voyage's modifiers: free sail 0, lighthouse warning x0.5 on the pirate weight,
+  /// no pirate right after a pirate encounter (lastEncFamily). lastFamily's other families are not taken out: the voyage's decision cards replace lastFamily before the pick.
+  public float RoutePirateChance(int from, int to) { if (to < 0 || to == from) return 0; if (FogAhead(to)) return 1f; if (NextSailFree || lastEncFamily == "pirate") return 0;
+    var w = VeVoyageWeights(from, to, ambushHalveNext ? 0.5f : 1f); float tot = w.Where(x => x > 0).Sum(); return tot > 0 ? S.encounterChance * w[0] / tot : 0; }
+  public static string RouteLabelName(float c) => c < RouteQuietBelow ? "Quiet waters" : c <= RouteDeadlyAbove ? "Pirate waters" : "Deadly waters";
+  public string RouteLabelFor(float c) => $"<color={(c < RouteQuietBelow ? T.up : c <= RouteDeadlyAbove ? T.gold : T.down)}>{RouteLabelName(c)}</color>";
+  public string RouteLabel(int from, int to) => RouteLabelFor(RoutePirateChance(from, to));
 }
