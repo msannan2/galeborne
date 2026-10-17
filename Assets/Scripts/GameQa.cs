@@ -678,7 +678,8 @@ yield return Shot("polish_blk_greyed_button"); }
     log.Close();
     // ---- endgame logic: deliver, fail, rank-up, save/load, cards (existing self-test) ----
     egFails = 0; yield return EgSelfTest(false);
-    log = new StreamWriter(Path.Combine(dir, "qa_results.txt"), true); L($"endgame self-test: {(egFails == 0 ? "PASS" : egFails + " FAIL")} (GB EGTEST lines in the player log; its screenshots are in {Path.Combine(SaveDir, "egtest")})"); fails += egFails;
+    v07Fails = 0; yield return V07SelfTest(false); /* gamedev_v07: Rashid + grand contracts */
+    log = new StreamWriter(Path.Combine(dir, "qa_results.txt"), true); L($"endgame self-test: {(egFails == 0 ? "PASS" : egFails + " FAIL")} (GB EGTEST lines in the player log; its screenshots are in {Path.Combine(SaveDir, "egtest")})"); fails += egFails; L($"v0.7 self-test: {(v07Fails == 0 ? "PASS" : v07Fails + " FAIL")} ({v07Checks} checks, GB V07TEST lines; screenshots in {Path.Combine(SaveDir, "v07test")})"); fails += v07Fails;
     L(fails == 0 ? $"QA ALL PASS ({n} checks + endgame self-test)" : $"QA {fails} FAIL"); log.Close(); yield return new WaitForSeconds(0.5f); Application.Quit(fails == 0 ? 0 : 1);
   }
 }

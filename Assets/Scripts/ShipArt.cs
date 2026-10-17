@@ -2,6 +2,13 @@ using UnityEngine;
 /// Paints the 1024 ship texture atlas (albedo + height for the normal map). Run at edit time by Builder.Setup.
 public static class ShipArt {
   public const int N = 1024;
+  /* gamedev_v07 (Game Designer final pirate sail spec): red belongs only to the Red Dhow's sail. Stripe and skull ring bone white (were #8A2420 / #9A2A22),
+     black canvas unchanged, pennant keeps its red #8A2420 + black #1A1716. One-line switches. */
+  public const string PirateStripeHex = "#CFC6B0";
+  public const string PirateSkullRingHex = "#CFC6B0";
+  public const string PiratePennantHex = "#8A2420";
+  /* gamedev_v07: "red hue" test shared by the atlas repaint check and qa: hue within 20 deg of red, saturation > 0.35, value > 0.2 */
+  public static bool IsRed(Color c) { Color.RGBToHSV(c, out float h, out float s, out float v); return (h < 20f / 360f || h > 340f / 360f) && s > 0.35f && v > 0.2f; }
   // atlas cells in pixels (x, y, w, h), y up
   public static readonly RectInt HULL = new RectInt(0, 0, 512, 256), TRIM = new RectInt(512, 0, 512, 128), BRASS = new RectInt(512, 128, 128, 128), ROPE = new RectInt(640, 128, 128, 128),
     LATTICE = new RectInt(768, 128, 256, 128), SAIL = new RectInt(0, 256, 512, 512), DECK = new RectInt(512, 256, 256, 256), CRATE = new RectInt(768, 256, 256, 256),
@@ -17,7 +24,7 @@ public static class ShipArt {
   public static void Paint(bool pirate, out Color[] albedo, out float[] height) {
     var a = new Color[N * N]; var h = new float[N * N];
     Color wood = pirate ? H("#3B2A20") : H("#7A4E2C"), woodDark = pirate ? H("#1E1510") : H("#4E3019"), trim = pirate ? H("#4A1A18") : H("#2E3478"), trimGold = pirate ? H("#6E5A3A") : H("#C9A44C");
-    Color brass = pirate ? H("#6E5A3A") : H("#B8913E"), cream = pirate ? H("#1C1A19") : H("#F4E9CF"), stripe = pirate ? H("#8A2420") : H("#2BB0A8");
+    Color brass = pirate ? H("#6E5A3A") : H("#B8913E"), cream = pirate ? H("#1C1A19") : H("#F4E9CF"), stripe = pirate ? H(PirateStripeHex) : H("#2BB0A8");
     void Cell(RectInt r, System.Func<float, float, int, int, (Color, float)> f) { for (int y = 0; y < r.height; y++) for (int x = 0; x < r.width; x++) { var (c, hh) = f(x / (float)r.width, y / (float)r.height, x, y); int i = (r.y + y) * N + r.x + x; a[i] = c; h[i] = hh; } }
     // planks: horizontal boards with seams, butt joints, wear and (pirate) scorch
     Cell(HULL, (u, v, x, y) => { float rows = 8; int row = Mathf.FloorToInt(v * rows); float fv = v * rows - row; float off = Hash(row, 7) * 0.5f;
@@ -50,7 +57,7 @@ public static class ShipArt {
         bool cran = new Vector2(sx, sy * 1.1f).magnitude < 0.065f, jaw = Mathf.Abs(sx) < 0.035f && sy < -0.045f && sy > -0.1f;
         bool eye = new Vector2(Mathf.Abs(sx) - 0.026f, sy + 0.005f).magnitude < 0.017f, nose = Mathf.Abs(sx) < 0.008f && sy < -0.02f && sy > -0.04f, teeth = jaw && Mathf.Repeat(sx * 70, 1) < 0.18f;
         float hr = new Vector2(Mathf.Abs(sx) - 0.1f, sy - 0.02f).magnitude; bool horn = hr > 0.045f && hr < 0.045f + 0.02f * Mathf.Clamp01((0.11f - Mathf.Abs(sx)) * 12 + 0.3f) && sy > 0.0f && Mathf.Abs(sx) > 0.05f;
-        if (r < 0.15f && r > 0.135f) c = H("#9A2A22");
+        if (r < 0.15f && r > 0.135f) c = H(PirateSkullRingHex); /* gamedev_v07: was red #9A2A22 */
         if (cran || jaw || horn) c = bone * (0.85f + 0.15f * Fbm(u * 30, v * 30)); if (eye || nose || teeth) c = H("#120E0C"); }
       if (seam) c *= 0.8f; c *= Mathf.Lerp(0.85f, 1f, Fbm(u * 3, v * 3)); return (c, seam ? 0.3f : 0.5f); });
     Cell(DECK, (u, v, x, y) => { int col = Mathf.FloorToInt(u * 10); bool seam = Mathf.Repeat(u * 10, 1) < 0.05f; var c = Color.Lerp(woodDark, wood * 1.25f, 0.5f + Fbm(u * 4, v * 30 + col) * 0.5f); return (seam ? woodDark * 0.6f : c, seam ? 0 : 0.6f); });
@@ -60,7 +67,7 @@ public static class ShipArt {
     Cell(JAR, (u, v, x, y) => { var c = H("#A0522D") * (0.85f + 0.2f * Fbm(u * 10, v * 10)); if (Mathf.Abs(v - 0.6f) < 0.04f) c = H("#E3C9A0"); return (c, 0.5f); });
     Cell(MAST, (u, v, x, y) => { float g = Fbm(u * 6, v * 50); return (Color.Lerp(woodDark, wood, 0.4f + g * 0.6f), g); });
     Cell(GLASS, (u, v, x, y) => { float d = new Vector2(u - .5f, v - .5f).magnitude; return (Color.Lerp(H("#FFE6A0"), H("#C8822A"), d * 2), 0.5f); });
-    Cell(PENNANT, (u, v, x, y) => { var c = pirate ? (v > 0.5f ? H("#1A1716") : H("#8A2420")) : H("#2E3478"); if (!pirate && new Vector2(u - 0.35f, v - 0.5f).magnitude < 0.12f) c = trimGold; return (c, 0.5f); });
+    Cell(PENNANT, (u, v, x, y) => { var c = pirate ? (v > 0.5f ? H("#1A1716") : H(PiratePennantHex)) : H("#2E3478"); if (!pirate && new Vector2(u - 0.35f, v - 0.5f).magnitude < 0.12f) c = trimGold; return (c, 0.5f); });
     Cell(CABIN, (u, v, x, y) => { bool frame = Mathf.Repeat(u * 4, 1) < 0.08f || v < 0.06f || v > 0.94f; var c = (frame ? woodDark : wood * 1.1f) * (0.85f + 0.2f * Fbm(u * 10, v * 30)); return (c, frame ? 1 : 0.4f); });
     Cell(FIGURE, (u, v, x, y) => { float carve = Mathf.Sin(u * 40 + Mathf.Sin(v * 30) * 2) * 0.5f + 0.5f; var c = Color.Lerp(woodDark, pirate ? woodDark : trimGold, carve * 0.6f); return (c, carve); });
     Cell(DARK, (u, v, x, y) => (H("#120D0A"), 0));

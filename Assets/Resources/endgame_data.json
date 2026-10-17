@@ -441,5 +441,62 @@
     }
    ]
   }
+ },
+ "endgameContracts": {
+  "note": "Game Designer final endgame ruling 2026-10-17: starts on reaching Merchant (300 Renown); one big contract at a time in its own slot (not counted in the 2-contract limit); fixed sequence of 3, each to a different port; 2 moons each; pay = expected sale value at the destination + bonusCoins, own cap; Renown = renownMult x a normal delivery's Renown; no fame; the 3rd completion finishes the run. Amounts are being checked by Game Researcher against the price table.",
+  "moons": 2,
+  "bonusCoins": 1000,
+  "cap": 6000,
+  "renownMult": 3,
+  "failRenown": -30,
+  "failNote": "OPEN (needs Game Designer ruling): on a miss the same contract is offered again; failRenown = 3x a normal delivery's fail",
+  "kind": "grand",
+  "label": "Grand contract",
+  "sequence": [
+   {
+    "id": "eg_big1",
+    "title": "Dates for the Debal feast",
+    "giver": "Twenty sacks, and the whole quarter eats. Buy them in Gwadar or Muscat.",
+    "good": "dates",
+    "qty": 20,
+    "buyAt": [
+     "Gwadar",
+     "Muscat"
+    ],
+    "dest": "Debal",
+    "risk": "A full hold rides low. Pirates notice."
+   },
+   {
+    "id": "eg_big2",
+    "title": "Copper for the Muscat foundry",
+    "giver": "The Sultan's foundry wants Gwadar copper, twenty ingots, no less.",
+    "good": "copper",
+    "qty": 20,
+    "buyAt": [
+     "Gwadar"
+    ],
+    "dest": "Muscat",
+    "risk": "Customs in Muscat search some ships."
+   },
+   {
+    "id": "eg_big3",
+    "title": "Indigo for the Gwadar dyers",
+    "giver": "Bring Debal's blue home. Twenty bales and your name is made.",
+    "good": "indigo",
+    "qty": 20,
+    "buyAt": [
+     "Debal"
+    ],
+    "dest": "Gwadar",
+    "risk": "Rain can stain a careless cargo."
+   }
+  ],
+  "strings": {
+   "offerTag": "Grand contract · {n} of 3",
+   "runComplete": "Run complete",
+   "runCompleteBody": "Three grand contracts, three ports, every one delivered on time. Your name is made from Gwadar to Muscat.\n\nThe run is finished. Free trading goes on.",
+   "buyAt": "Buy at {ports}",
+   "slot": "Its own slot: does not count toward your 2 contracts."
+  }
  }
 }

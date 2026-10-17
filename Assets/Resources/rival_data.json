@@ -1,0 +1,81 @@
+{
+ "version": "v07_rival_1",
+ "source": "Game Designer v0.7 spec (room, 2026-10-17): light rival, never fights the player. Name ruling: Captain Rashid of the Red Dhow.",
+ "tuning": {
+  "fromMoon": 3,
+  "portChance": 0.25,
+  "cheapestStockMult": 0.5,
+  "cheapestPriceMult": 1.2,
+  "raceChance": 0.34,
+  "raceRouteWeeks": 1,
+  "raceSpreadMoons": 0.5,
+  "raceMinWeeks": 1,
+  "raceTieGoesToPlayer": true,
+  "raceLossDepositBack": true,
+  "raceLossRenown": 0,
+  "staysWeeks": 2,
+  "seaShowFrom": 0.12,
+  "seaShowTo": 0.55
+ },
+ "notes": {
+  "fromMoon": "spec: appears from moon 3 (1-based, Moon index 2)",
+  "portChance": "spec: ~1 arrival in 4, rolled per arrival",
+  "cheapest": "spec: buys the port's cheapest good for the visit: stock halved, price +20% (price restored at the next week tick)",
+  "raceRouteWeeks": "every leg is one week at sea in this build",
+  "raceSpreadMoons": "spec: his travel time = route time +/- half a moon, uniform; rounded to whole weeks, never under raceMinWeeks",
+  "OPEN_needs_Game_Designer_ruling": "raceChance (share of moon board refreshes that mark one card as a race), raceTieGoesToPlayer, raceLossDepositBack, raceLossRenown, staysWeeks (how long he waits in the rumoured port before moving on), the race clock starting when the player accepts, and a taunt card each time you meet him in port"
+ },
+ "art": {
+  "portraitPrefix": "Keepers/k7_",
+  "sailTexture": "Art/Ships/red_sail_canvas",
+  "sailFallbackColor": "#8E2F25",
+  "sailSmoothness": 0.1,
+  "boardIcon": "Art/UI/rival_sail_icon",
+  "boardIconSize": 30,
+  "moods": {
+   "neutral": 0,
+   "delighted": 1,
+   "offended": 2,
+   "suspicious": 3
+  },
+  "note": "design/rival_art_spec.md (Chief Art Designer). Portrait rows art/rashid-portrait bac7f0a; sail + icon art/rival-sail 6e45f5a."
+ },
+ "strings": {
+  "name": "Captain Rashid",
+  "ship": "the Red Dhow",
+  "ticker": "The Red Dhow is in port.",
+  "tickerBought": "Rashid has bought up the {good}.",
+  "raceTag": "Rashid is chasing this one too. First to deliver gets paid.",
+  "raceWonTitle": "You beat the Red Dhow",
+  "raceLostTitle": "The Red Dhow got there first",
+  "raceLostBody": "Rashid delivered the {good} to {port} before you. The buyer paid him. Your deposit is returned.",
+  "seaSighted": "A red lateen on the horizon: Rashid's Red Dhow.",
+  "inPort": "Your hold smells of my profits, friend.",
+  "taunt1": "The Red Dhow was here first. As always.",
+  "taunt2": "I left you the scraps. Generous, no?",
+  "taunt3": "Following me? Wise. Late, but wise.",
+  "raceWin": "The sea favours the swift. Try again, little dhow.",
+  "raceLoss": "Hm. Well sailed. Enjoy it while it lasts.",
+  "rumour": "They say the Red Dhow makes for {port}."
+ },
+ "lineMoods": {
+  "inPort": "suspicious",
+  "taunt1": "neutral",
+  "taunt2": "delighted",
+  "taunt3": "suspicious",
+  "raceWin": "delighted",
+  "raceLoss": "offended",
+  "rumour": "suspicious",
+  "ticker": "neutral"
+ },
+ "lineNotes": {
+  "inPort": "tavern, when he is in port",
+  "taunt1": "town card when you dock where he is (first meeting this visit)",
+  "taunt2": "town card when he bought up the cheapest good (shown with taunt1 on alternating visits)",
+  "taunt3": "when you accept a race contract",
+  "raceWin": "he delivered first (he wins the race)",
+  "raceLoss": "you delivered first (he loses the race)",
+  "rumour": "tavern, always, names his next port",
+  "ticker": "dock ticker"
+ }
+}

@@ -8,14 +8,14 @@ using ED = EndgameData;
 using Rnd = UnityEngine.Random;
 
 /* gamedev_end1: endgame first slice - Renown, the first 3 ranks, delivery/rush contracts at the Gwadar/Debal/Muscat tavern boards. Data + strings in EndgameData. */
-[Serializable] public class EgContract { public string id, tpl, kind, from, to, title, giver, risk, status = "offer"; public int good, qty, pay, renown, deposit, failRenown, moons, dueWeek = -1; } /* gamedev_end1: offer|active|done|failed */
-[Serializable] public class EgState { public int renown, rank; public List<string> firstSales = new List<string>(); public List<EgContract> board = new List<EgContract>(); public List<EgContract> active = new List<EgContract>(); public int boardMoon = -1, seq; } /* gamedev_end1: saved with the game */
+[Serializable] public class EgContract { public string id, tpl, kind, from, to, title, giver, risk, status = "offer"; public int good, qty, pay, renown, deposit, failRenown, moons, dueWeek = -1; public bool race; public int rivalWeek = -1; } /* gamedev_end1: offer|active|done|failed (gamedev_v07: |taken = Rashid delivered a race first; kind "grand" = endgame contract) */
+[Serializable] public class EgState { public int renown, rank; public List<string> firstSales = new List<string>(); public List<EgContract> board = new List<EgContract>(); public List<EgContract> active = new List<EgContract>(); public int boardMoon = -1, seq; public RivalState rival = new RivalState(); public EgContract big; public int bigStage = -1, bigFails; public bool runComplete; } /* gamedev_end1: saved with the game; gamedev_v07: Rashid + grand contracts */
 
 public partial class Game {
   public EgState eg = new EgState(); /* gamedev_end1 */
   readonly Queue<(string t, string b, string btn)> egCards = new Queue<(string, string, string)>(); /* gamedev_end1: rank-up / delivered / failed cards, shown when nothing else is up */
   bool EgForce => gbForce.Contains("endgame"); /* gamedev_end1: -gbforce endgame unlocks the board before the opening ends */
-  bool EgBoardOpen => EgForce || OpeningDone; /* gamedev_end1 */
+  bool EgBoardOpen => EgForce || rdBoardForce || OpeningDone; /* gamedev_end1; gamedev_v07: race/endgame debug flags open it too */
   void EgTestCloseCard() { var bs = dialog ? dialog.GetComponentsInChildren<Button>() : null; if (bs != null && bs.Length > 0) bs[bs.Length - 1].onClick.Invoke(); } /* gamedev_title1: close a test card the normal way (last button: Onward/Flee/Leave) so its panel + dim go */
   bool egTestQuiet; /* gamedev_title1: endgame_test shows cards itself */
   void EgReset() { eg = new EgState(); egCards.Clear(); } /* gamedev_end1 */
@@ -23,11 +23,13 @@ public partial class Game {
   public void AddRenown(int n, string why) { /* gamedev_end1: the ONLY way Renown changes */
     if (n == 0) return; int floor = ED.RenownFloorAtRank ? ED.RankRenown(eg.rank) : 0; eg.renown = Mathf.Max(floor, eg.renown + n); Debug.Log($"GB RENOWN {(n > 0 ? "+" : "")}{n} ({why}) -> {eg.renown} rank={RankName}");
     while (eg.rank + 1 < ED.RankCount && eg.renown >= ED.RankRenown(eg.rank + 1)) { eg.rank++; Debug.Log("GB RENOWN rank up -> " + RankName); egCards.Enqueue((ED.RankUpHeading(eg.rank), ED.RankPromo(eg.rank), ED.RankUpButtonFor(eg.rank))); /* gamedev_end1b: per-rank heading + button, no rival line */ eg.boardMoon = -1; /* full board at Trader: re-post now */ }
+    GrandEnsure(); /* gamedev_v07: Merchant starts the grand contracts */
   }
   public string RenownLine() => eg.rank + 1 < ED.RankCount ? ED.NextRank(ED.RankName(eg.rank + 1), eg.renown, ED.RankRenown(eg.rank + 1)) : $"{RankName}, {eg.renown:N0} Renown"; /* gamedev_end1 */
   void EgFirstSale(int g) { string k = port + ":" + g; if (eg.firstSales.Contains(k)) return; eg.firstSales.Add(k); AddRenown(ED.RenownFirstSale, "first sale of " + S.goods[g].name + " at " + S.ports[port].name); msg = ED.FirstSale(GoodName(g, 1), ED.RenownFirstSale); } /* gamedev_end1 */
   void EgFightWon(string how) => AddRenown(ED.RenownFightWin, "fight won: " + how); /* gamedev_end1 */
   void EgUpdate() { /* gamedev_end1: from Update - show queued cards one at a time when the screen is free */
+    RivalUpdate(); /* gamedev_v07 */
     if (egTestQuiet || egCards.Count == 0 || onTitle || fighting || sailing || dialog != null || CardBusy) return;
     var c = egCards.Dequeue(); Refresh(); /* gamedev_badge1: top-bar badge shows the new rank with its card */ StartCoroutine(Ask(c.t, c.b, (c.btn, null)));
   }
@@ -46,12 +48,14 @@ public partial class Game {
       foreach (var t in pool) { int pay = Mathf.Min(t.coins, ED.Cap(t.kind)); /* design cap, clamped in code */
         eg.board.Add(new EgContract { id = "eg" + (++eg.seq), tpl = t.id, kind = t.kind, from = pn, to = t.dest, title = t.title, giver = t.giver, risk = t.risk, good = G(t.good), qty = t.qty, pay = pay, renown = t.renown, deposit = Mathf.Min(t.deposit, pay), failRenown = t.failRenown, moons = t.moons }); }
       stats.Add(pn + "=" + pool.Count); }
+    RivalMarkRace(false); GrandEnsure(); /* gamedev_v07 */
     Debug.Log($"GB CONTRACT board refresh moon={week / Wpm} rank={RankName} " + string.Join(" ", stats));
   }
   bool EgAccept(EgContract c) {
+    if (c.kind == "grand") return GrandAccept(c); /* gamedev_v07: own slot, not counted in the 2-contract limit */
     if (eg.active.Count >= ED.MaxActive) { msg = ED.Full; return false; } if (coins < c.deposit) { msg = ED.CantAfford; return false; }
     coins -= c.deposit; c.status = "active"; c.dueWeek = week + c.moons * Wpm - 1; eg.board.Remove(c); eg.active.Add(c);
-    Debug.Log($"GB CONTRACT accept {c.id} {c.kind} {c.qty}x{S.goods[c.good].id} {c.from}->{c.to} pay={c.pay} dep={c.deposit} dueWeek={c.dueWeek} (week {week})"); msg = c.title + ": " + EgMoonsText(c) + "."; Save(); return true;
+    Debug.Log($"GB CONTRACT accept {c.id} {c.kind} {c.qty}x{S.goods[c.good].id} {c.from}->{c.to} pay={c.pay} dep={c.deposit} dueWeek={c.dueWeek} (week {week})"); msg = c.title + ": " + EgMoonsText(c) + "."; RivalOnAccept(c); /* gamedev_v07 */ Save(); return true;
   }
   void EgOnDock() { /* gamedev_end1: deliver on arrival if the cargo is in the hold (story cargo is never used) */
     var sg = StoryGoods();
@@ -59,9 +63,11 @@ public partial class Game {
       if (hold[c.good] < c.qty || sg.Contains(c.good)) { Debug.Log($"GB CONTRACT at {c.to} but hold {hold[c.good]}/{c.qty} {S.goods[c.good].id}: not delivered"); msg = ED.NeedCargo; continue; }
       hold[c.good] -= c.qty; coins += c.pay + c.deposit; c.status = "done"; eg.active.Remove(c);
       Debug.Log($"GB CONTRACT delivered {c.id} +{c.pay} coins +{c.renown} renown, deposit {c.deposit} back");
-      egCards.Enqueue((c.title, ED.Delivered(c.pay, c.renown) + "\n\n" + ED.Deposit(c.deposit).Replace(", returned on delivery", " returned."), "Continue")); AddRenown(c.renown, "contract " + c.kind); }
+      egCards.Enqueue((c.title, ED.Delivered(c.pay, c.renown) + "\n\n" + ED.Deposit(c.deposit).Replace(", returned on delivery", " returned."), "Continue")); AddRenown(c.renown, "contract " + c.kind); if (c.race) RivalRaceWonByPlayer(c); /* gamedev_v07 */ }
+    GrandOnDock(); /* gamedev_v07 */
   }
   void EgNewWeek() { /* gamedev_end1: from NewWeek, after week++ */
+    RivalNewWeek(); GrandNewWeek(); /* gamedev_v07: races resolve before deadlines */
     foreach (var c in eg.active.ToList()) if (EgWeeksLeft(c) < 0) { c.status = "failed"; eg.active.Remove(c);
       Debug.Log($"GB CONTRACT failed {c.id} {c.failRenown} renown, deposit {c.deposit} lost"); egCards.Enqueue((c.title, ED.Failed(c.failRenown), "Continue")); AddRenown(c.failRenown, "contract failed"); } /* never touches cargo or the ship */
     EgRefreshBoards();
@@ -69,7 +75,7 @@ public partial class Game {
 
   // ---- UI ----
   Button EgBoardBtn(RectTransform led, float y, float x = 26, float w = 980) { /* gamedev_end1: tavern entry */
-    if (!IsBoardPort(port)) return null; EgRefreshBoards(); int n = eg.board.Count(b => b.from == S.ports[port].name);
+    if (!IsBoardPort(port)) return null; EgRefreshBoards(); int n = eg.board.Count(b => b.from == S.ports[port].name) + (GrandOffer != null ? 1 : 0); /* gamedev_v07 */
     return Btn(led, EgBoardOpen ? $"{ED.BoardTitle} ({n})" : ED.BoardTitle, x, y, w, 110, () => { if (!EgBoardOpen) { msg = ED.BoardLocked; Refresh(); return; } StartCoroutine(EgBoardCo()); }, true, false);
   }
   IEnumerator EgBoardCo() {
@@ -84,34 +90,38 @@ public partial class Game {
     backStack.Remove(be); if (my) Destroy0(my.gameObject); if (dim) Destroy0(dim.gameObject); if (dialog == my) dialog = null; Refresh();
   }
   RectTransform EgList(Action<EgContract> pick, Action close) {
-    var here = eg.board.Where(b => b.from == S.ports[port].name).ToList(); float H = 330 + Mathf.Max(1, here.Count) * 132 + 110;
+    var here = eg.board.Where(b => b.from == S.ports[port].name).ToList(); if (GrandOffer != null) here.Insert(0, GrandOffer); /* gamedev_v07 */ float H = 330 + Mathf.Max(1, here.Count) * 132 + 110;
     var p = Px(root, "EgBoard", 30, 300, 1020, H); Box(p, T.panel, T.gold);
     Label(p, ED.BoardTitle + " · " + S.ports[port].name, 130, 40, 760, 60, T.fontSizeTitle - 4, "#C9A55A", TextAnchor.MiddleLeft, true);
     Label(p, RenownLine() + $"   ·   Active {eg.active.Count}/{ED.MaxActive}", 130, 104, 760, 40, T.fontSizeSmall - 2, T.textMuted);
     float y = 160; if (here.Count == 0) { Label(p, ED.BoardEmpty, 130, y, 760, 100, T.fontSize, T.textMuted); y += 132; }
     foreach (var c in here) { var cc = c; var b = Btn(p, "", 110, y, 800, 116, () => pick(cc));
-      Label(b.transform, ED.ListRow(c.kind == "rush" ? "Rush" : "Delivery", c.to, c.moons == 1 ? "1 moon" : c.moons + " moons", c.pay), 24, 0, 680, 116, T.fontSizeSmall, T.buttonText);
-      var pip = Px(b.transform, "pip", 730, 40, 36, 36).gameObject.AddComponent<Image>(); pip.sprite = Dot(); pip.color = UITheme.C(c.kind == "rush" ? ED.AmberColor : "#5FA35A"); pip.raycastTarget = false; y += 132; }
+      float lx = 24; if (c.race) { RaceIcon(b.transform, 20, 58); lx = 20 + RivalData.ArtF("boardIconSize", 30) + 6; } /* gamedev_v07: red-sail icon left of a race notice */
+      var rl = Label(b.transform, ED.ListRow(c.kind == "grand" ? GrandTag(c) : c.kind == "rush" ? "Rush" : "Delivery", c.to, c.moons == 1 ? "1 moon" : c.moons + " moons", c.pay), lx, 0, 704 - lx, 116, T.fontSizeSmall, T.buttonText); if (c.race) rl.gameObject.name = "RaceRow"; if (c.kind == "grand") rl.gameObject.name = "GrandRow";
+      var pip = Px(b.transform, "pip", 730, 40, 36, 36).gameObject.AddComponent<Image>(); pip.sprite = Dot(); pip.color = UITheme.C(c.kind == "grand" ? "#C9A55A" : c.kind == "rush" ? ED.AmberColor : "#5FA35A"); pip.raycastTarget = false; y += 132; }
     if (eg.rank < ED.FullBoardRank) { Label(p, $"The full board opens at {ED.RankName(ED.FullBoardRank)}.", 130, y, 760, 50, T.fontSizeSmall - 2, T.textMuted); }
     Btn(p, "Close", 110, H - 110 - 84 + 60, 800, 84, close); return p;
   }
   RectTransform EgCard(EgContract c, Action accept, Action notNow) { /* layout per contract_card_mock.jpg, existing styles: title x130, body from y132, 110 px bottom gap */
     float H = 1010; var p = Px(root, "EgCard", 30, 260, 1020, H); Box(p, T.panel, T.gold);
     var tf = CardTitle(p, c.title, 130, 760, T.fontSizeTitle - 2, "#C9A55A", TextAnchor.MiddleCenter, CardTitleFit(c.title, 760, T.fontSizeTitle - 2)); /* gamedev_title1: shared title (was y30 h70, rule y106) */
+    if (c.race) { var ic = RaceIcon(p, 92, 66); ic.gameObject.name = "RaceIconCard"; } /* gamedev_v07: red-sail icon left of the title */
     float y = 132 + tf.extra; H += tf.extra; p.sizeDelta = new Vector2(p.sizeDelta.x, H); Label(p, $"<i>{c.giver}</i>", 130, y, 760, 56, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 72;
     void Row(string head, string val, string col) { Label(p, head, 130, y, 760, 38, T.fontSizeSmall - 4, T.textMuted); Label(p, val, 130, y + 36, 760, 50, T.fontSize, col); Box(Px(p, "sep", 130, y + 98, 760, 1), T.brass); y += 108; }
     Row(ED.S("cargo", "Cargo"), GoodCount(c.good, c.qty), T.parchment); Row(ED.S("deliverTo", "Deliver to"), c.to, T.parchment); Row(ED.S("deadline", "Deadline"), EgMoonsText(c), EgMoonsColor(c));
-    Label(p, ED.Reward(c.pay, c.renown), 130, y + 6, 760, 54, T.fontSize, T.parchment, TextAnchor.MiddleCenter, true); Label(p, $"<i>{ED.Deposit(c.deposit)}</i>", 130, y + 60, 760, 40, T.fontSizeSmall - 4, T.textMuted, TextAnchor.MiddleCenter); y += 116;
+    Label(p, ED.Reward(c.pay, c.renown), 130, y + 6, 760, 54, T.fontSize, T.parchment, TextAnchor.MiddleCenter, true); Label(p, $"<i>{(c.kind == "grand" ? "No deposit." : ED.Deposit(c.deposit))}</i>", 130, y + 60, 760, 40, T.fontSizeSmall - 4, T.textMuted, TextAnchor.MiddleCenter); y += 116;
     Box(Px(p, "sep2", 130, y, 760, 1), T.brass); Label(p, c.risk, 130, y + 10, 760, 60, T.fontSizeSmall - 2, T.text, TextAnchor.MiddleCenter); y += 86;
-    bool can = eg.active.Count < ED.MaxActive && coins >= c.deposit; string why = eg.active.Count >= ED.MaxActive ? ED.Full : coins < c.deposit ? ED.CantAfford : "";
+    bool grand = c.kind == "grand"; bool can = grand || eg.active.Count < ED.MaxActive && coins >= c.deposit; string why = grand ? "" : eg.active.Count >= ED.MaxActive ? ED.Full : coins < c.deposit ? ED.CantAfford : ""; /* gamedev_v07: grand = own slot, no deposit */
+    if (c.race) { var rt = Label(p, RivalData.S("raceTag", ""), 130, y + 28, 760, 40, T.fontSizeSmall - 4, "#D0503A", TextAnchor.MiddleCenter); rt.gameObject.name = "RaceTag"; }
+    if (grand) { var gt = Label(p, GrandTag(c) + " · " + GStr("buyAt", "Buy at {ports}").Replace("{ports}", c.from.Replace("/", " or ")) + "\n" + GStr("slot", ""), 130, y - 6, 760, 76, T.fontSizeSmall - 6, T.textMuted, TextAnchor.MiddleCenter); gt.gameObject.name = "GrandTag"; }
     if (why != "") Label(p, why, 130, y - 6, 760, 36, T.fontSizeSmall - 4, T.down, TextAnchor.MiddleCenter);
     float by = H - 110 - 96; Btn(p, ED.S("accept", "Accept"), 110, by, 390, 96, accept, can, true); Btn(p, ED.S("notNow", "Not now"), 520, by, 390, 96, notNow);
     return p;
   }
   string EgJournalBlock() { /* gamedev_end1: under the goal line: next rank + active contracts with moons left */
-    var s = RenownLine(); foreach (var c in eg.active) s += $"\n• {c.title}: {GoodCount(c.good, c.qty)} to {c.to}, <color={EgMoonsColor(c)}>{EgMoonsText(c)}</color>"; return s; }
+    var s = RenownLine(); foreach (var c in EgActiveAll()) s += $"\n• {c.title}: {GoodCount(c.good, c.qty)} to {c.to}, <color={EgMoonsColor(c)}>{EgMoonsText(c)}</color>"; return s; }
   string EgMapFlag(int pi) { /* gamedev_end1: brass flag text on the sea map for a contract destination */
-    var cs = eg.active.Where(c => PortIdx(c.to) == pi).ToList(); if (cs.Count == 0) return null; var c = cs.OrderBy(EgWeeksLeft).First();
+    var cs = EgActiveAll().Where(c => PortIdx(c.to) == pi).ToList(); /* gamedev_v07: + grand */ if (cs.Count == 0) return null; var c = cs.OrderBy(EgWeeksLeft).First();
     return $"<color={EgMoonsColor(c)}>⚑ {EgMoonsText(c)}</color>"; }
 
   /* gamedev_end1: -gbforce endgame_test (with -gbsavedir under /tmp): scripted smoke test of the slice, logs "GB EGTEST ...", screenshots the card, quits.

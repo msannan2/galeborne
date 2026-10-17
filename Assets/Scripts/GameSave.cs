@@ -62,7 +62,7 @@ public partial class Game {
 
   public int customsPending = -1; /* gamedev_customs_save */
   /// gamedev_customs_save: Continue after a quit on the customs card: already at the arrival port (coins/cargo as at arrival), the inspection is replayed so a quit never skips customs
-  public IEnumerator ResumeCustoms() { sailing = true; dockedSave = true; yield return Customs(); customsPending = -1; OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); FallbackCheck(); Save(); if (blockPending == port) { yield return BlockadeCard(); Save(); } /* gamedev_blockade_warning */
+  public IEnumerator ResumeCustoms() { sailing = true; dockedSave = true; yield return Customs(); customsPending = -1; OnDockV06(); TryCompleteJobsOnDock(); EgOnDock(); RivalOnDock(); /* gamedev_v07 */ FallbackCheck(); Save(); if (blockPending == port) { yield return BlockadeCard(); Save(); } /* gamedev_blockade_warning */
     tithe = false; sailing = false; dockedSave = false; crewInjured = false; tab = -1; Refresh(); Save(); }
   /// gamedev_blockade_warning: Continue after a quit on the blockade card replays it (cargo still aboard, nothing paid)
   public IEnumerator ResumeBlockade() { sailing = true; dockedSave = true; yield return BlockadeCard(); Save(); tithe = false; sailing = false; dockedSave = false; tab = -1; Refresh(); Save(); }
