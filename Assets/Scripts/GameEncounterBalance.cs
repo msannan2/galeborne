@@ -16,11 +16,14 @@ public partial class Game {
   /// the single per-voyage roll
   public float veLastRoll = -1; /* gamedev_encounter_fix: the roll value is logged on the weight line */
   public bool VeRollEncounter() { veLastRoll = Rnd.value; return veLastRoll < S.encounterChance; }
+  public bool veWxCard; /* gamedev_encounter_fix2 (Game Designer): a weather decision card (Storm front / Weather ahead / The sky turns) already showed this voyage -> no squall/squallLine encounter */
+  /* gamedev_encounter_fix2: voyage clock step. While an encounter is still owed the ship cannot pass 90% of the voyage, so a long frame or a card/fight over the 45% window never skips it */
+  public static float VeAdvance(float t, float dt, float dur, bool owed) { float n = t + dt; return owed && n > dur * 0.9f ? Mathf.Max(t, dur * 0.9f) : n; }
   public string lastEncId = ""; /* gamedev_encounter_fix (Game Designer): saved id of the last encounter; no id comes twice in a row, weather blocks its whole family */
   /// the pool the normal voyage roll draws from: VePoolIds order (pirate first), pirate scaled by this voyage's multiplier
   public float[] VeVoyageWeights(int from, int to, float pirateMult) { var w = VePoolWeights(from, to); w[0] *= pirateMult; return w; }
   /// pool indices still drawable: weight > 0, not the family just shown, and no pirate right after a pirate encounter
-  public List<int> VeEligible(float[] w) { bool noPirate = lastFamily == "pirate" || lastEncFamily == "pirate"; bool noWeather = lastEncFamily == "weather";
+  public List<int> VeEligible(float[] w) { bool noPirate = lastFamily == "pirate" || lastEncFamily == "pirate"; bool noWeather = lastEncFamily == "weather" || veWxCard;
     var ok = Enumerable.Range(0, w.Length).Where(i => w[i] > 0 && VeFamily(VePoolIds[i]) != lastFamily && !(i == 0 && noPirate) && VePoolIds[i] != lastEncId && !(noWeather && VeFamily(VePoolIds[i]) == "weather")).ToList();
     if (ok.Count == 0) ok = Enumerable.Range(1, w.Length - 1).Where(i => w[i] > 0 && VePoolIds[i] != lastEncId).ToList(); return ok; }
   public int VePickPool(float[] w) { var ok = VeEligible(w); if (ok.Count == 0) return 4; /* rumor */ float tot = ok.Sum(i => w[i]), r = Rnd.value * tot; foreach (int i in ok) { if ((r -= w[i]) < 0) return i; } return ok[ok.Count - 1]; }
@@ -52,8 +55,11 @@ public partial class Game {
   /// encounterChance x pirate weight share of the leg's pool, with this voyage's modifiers: free sail 0, lighthouse warning x0.5 on the pirate weight,
   /// no pirate right after a pirate encounter (lastEncFamily). lastFamily's other families are not taken out: the voyage's decision cards replace lastFamily before the pick.
   public float RoutePirateChance(int from, int to) { if (to < 0 || to == from) return 0; if (FogAhead(to)) return 1f; if (NextSailFree || lastEncFamily == "pirate" || lastEncId == "pirate") return 0;
-    var w = VeVoyageWeights(from, to, ambushHalveNext ? 0.5f : 1f); string lf = lastFamily; lastFamily = ""; var ok = VeEligible(w); lastFamily = lf; /* gamedev_encounter_fix: the last encounter's id (and the weather family after a weather encounter) are out of the pool; lastFamily is replaced by the voyage's decision cards before the pick */
-    float tot = ok.Sum(i => w[i]); return tot > 0 && ok.Contains(0) ? S.encounterChance * w[0] / tot : 0; }
+    /* gamedev_encounter_fix2: averaged over the voyage's first decision card (always before the 45% pick): its family is out of the pick, and a weather card also takes squall/squallLine out */
+    var w = VeVoyageWeights(from, to, ambushHalveNext ? 0.5f : 1f); string lf = lastFamily; bool wx0 = veWxCard;
+    var fk = veForceHailNext != "" ? new List<int> { 0 } : VeFreeKinds(0); var fams = fk.Count == 0 ? new List<string> { lf } : fk.Select(k => VeFamily(DecisionIds[k])).ToList();
+    float acc = 0; foreach (var f in fams) { lastFamily = f; veWxCard = f == "weather"; var ok = VeEligible(w); float tot = ok.Sum(i => w[i]); if (tot > 0 && ok.Contains(0)) acc += w[0] / tot; }
+    lastFamily = lf; veWxCard = wx0; return S.encounterChance * acc / fams.Count; }
   public static string RouteLabelName(float c) => c < RouteQuietBelow ? "Quiet waters" : c <= RouteDeadlyAbove ? "Pirate waters" : "Deadly waters";
   public const string QuietHex = "#D9C08A", PirateHex = "#E0B85A", DeadlyHex = "#C0685A"; /* gamedev_route_art: Chief Art Designer tier colours */
   public static string RouteTierHex(float c) => c < RouteQuietBelow ? QuietHex : c <= RouteDeadlyAbove ? PirateHex : DeadlyHex;
