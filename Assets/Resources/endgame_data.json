@@ -496,7 +496,10 @@
    "runComplete": "Run complete",
    "runCompleteBody": "Three grand contracts, three ports, every one delivered on time. Your name is made from Gwadar to Muscat.\n\nThe run is finished. Free trading goes on.",
    "buyAt": "Buy at {ports}",
-   "slot": "Its own slot: does not count toward your 2 contracts."
+   "slot": "Its own slot: does not count toward your 2 contracts. Its cargo is sealed: storms and pirates can't take it.",
+   "sealed": "Your sealed {good} stay lashed below.",
+   "sealedGold": "It costs you {coins} coins instead.",
+   "sealedHull": "The hull takes the rest."
   },
   "payPriceMult": 0.74,
   "payNote": "pay = qty x the destination's NORMAL price (good's (min+max)/2 x the port's cheap/want multiplier, incl. goodWantBonus) x payPriceMult + bonusCoins, capped at cap. Game Designer final ruling 2026-10-17: payPriceMult 0.74, bonusCoins 1000 -> ~1,800 / 2,665 / 3,590.",
@@ -508,6 +511,8 @@
    ],
    "tolerance": 0.1,
    "note": "Game Designer final ruling 2026-10-17: targets ~1,800 dates / ~2,650 copper / ~3,600 indigo incl. the +1,000, pass within +-10%, never near the cap. qa: each grand contract's pay must be within tolerance of expected[i]."
-  }
+  },
+  "sealedHullLoss": 5,
+  "sealedNote": "Game Designer ruling 2026-10-17: an active grand contract's goods are SEALED up to its qty. Encounters, squalls, pirates and customs take other cargo first, then gold (the good's price at the current port per unit owed), then hull (sealedHullLoss)."
  }
 }

@@ -49,13 +49,13 @@ public partial class Game {
     } else if (id == "customsLaunch") { int mu = Muscat; var banned = LosableGoods().Where(g => Banned(g, mu)).ToList(); int fee = Mathf.Clamp(Mathf.RoundToInt(coins * CustomsFeePct), CustomsFeeMin, CustomsFeeMax);
       if (banned.Count == 0) { Debug.Log("GB VEVENT customsLaunch: no banned goods, waved through"); yield return Ask(title, "Customs waved you through.", ("Continue", () => msg = "Customs waved you through.")); Refresh(); yield break; }
       yield return Ask(title, body,
-        (L(0), () => { LoseWeek(); foreach (int g in banned) hold[g] = 0; outT = O(0) + " Seized: " + string.Join(", ", banned.Select(g => S.goods[g].name)) + "."; }),
+        (L(0), () => { LoseWeek(); foreach (int g in banned) hold[g] -= LosableQty(g); /* gamedev_v07: sealed units stay */ outT = O(0) + " Seized: " + string.Join(", ", banned.Select(g => S.goods[g].name)) + "."; }),
         (coins >= fee ? L(1) : Off(L(1), "Not enough coins"), () => { coins -= fee; outT = VeFill(O(1), ("fee", fee.ToString())); }),
         (L(2), () => { if (VeR() < RunEscape) outT = O(2); else { int f2 = Mathf.Min(coins, fee * 2); coins -= f2; HullHit(RunHullLoss); outT = VeFill(O(2, "outFail"), ("fee", f2.ToString())); } }));
     } else if (id == "squallLine") {
       yield return Ask(title, body,
         (L(0), () => { LoseWeek(); outT = O(0); }),
-        (L(1), () => { var held = SquallLosableGoods(); /* gamedev_squall_storysafe */ if (held.Count == 0 && HoldUsed > 0 && VeR() < CutLossChance) { HullHit(SquallStoryHullLoss); outT = O(1); } else if (held.Count > 0 && VeR() < CutLossChance) { int g = held[Rnd.Range(0, held.Count)], lost = Mathf.Min(hold[g], Rnd.Range(1, 3)); hold[g] -= lost; outT = VeFill(O(1, "outFail"), ("lost", GoodCount(g, lost))); } else outT = O(1); }),
+        (L(1), () => { var held = SquallLosableGoods(); /* gamedev_squall_storysafe */ if (held.Count == 0 && SealedTotal > 0 && VeR() < CutLossChance) { outT = O(1) + " " + SealedFallback(Rnd.Range(1, 3), "squallLine"); /* gamedev_v07 sealed */ } else if (held.Count == 0 && HoldUsed > 0 && VeR() < CutLossChance) { HullHit(SquallStoryHullLoss); outT = O(1); } else if (held.Count > 0 && VeR() < CutLossChance) { int g = held[Rnd.Range(0, held.Count)], want = Rnd.Range(1, 3), lost = Mathf.Min(LosableQty(g), want); hold[g] -= lost; outT = VeFill(O(1, "outFail"), ("lost", GoodCount(g, lost))); string sx = SealedFallback(want - lost, "squallLine"); if (sx.Length > 0) outT += " " + sx; } else outT = O(1); }),
         (L(2), () => { HullHit(HeaveHullLoss); outT = O(2); }));
     } else if (id == "lighthouse") { var held = LosableGoods(); int cg = held.Count > 0 ? held.OrderBy(g => price[port, g]).First() : -1;
       yield return Ask(title, body,

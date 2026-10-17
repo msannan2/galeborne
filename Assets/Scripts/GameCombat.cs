@@ -20,12 +20,13 @@ public partial class Game {
     int choice = 0;
     yield return Ask("Pirate dhow off the bow", $"A dark-sailed dhow runs up the black flag and turns to cut you off.\n\nFlee: {flee * 100:0}% with this wind.  Toll: {toll} of your {cargo} cargo.",
       ("Fight", () => choice = 0), ($"Flee {flee * 100:0}%", () => choice = 1), (cargo > 0 ? "Pay toll" : "Pay nothing", () => choice = 2));
-    if (choice == 2) { PayCargo(toll); msg = toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off."; yield break; }
+    if (choice == 2) { string sx = PayCargoSealed(toll, "toll"); msg = (toll > 0 ? $"You hand over {toll} cargo. The pirates sheer off." : "Your hold is empty; they jeer and sheer off.") + (sx.Length > 0 ? " " + sx : ""); yield break; }
     if (choice == 1 && Rnd.value < flee) { msg = "Hasan catches the gust and the pirate falls astern."; yield break; }
     if (choice == 1) msg = "The wind fails you. They close to fight!";
     yield return Fight();
   }
-  void PayCargo(int n, bool spareGp = false, HashSet<int> keep = null) { int gp = G("gunpowder"); for (int i = 0; i < n && HoldUsed > 0; i++) { var held = LosableGoods() /* gamedev_t15_storysafe */ .Where(g => !(spareGp && g == gp) && (keep == null || !keep.Contains(g)) /* gamedev_t8 */).ToList(); if (held.Count == 0) break; hold[held[Rnd.Range(0, held.Count)]]--; } } /* the opening spares the gunpowder on a first-ambush loss */
+  string PayCargoSealed(int n, string why, bool spareGp = false, HashSet<int> keep = null) => SealedFallback(n - PayCargo(n, spareGp, keep), why); /* gamedev_v07: sealed grand cargo -> gold -> hull */
+  int PayCargo(int n, bool spareGp = false, HashSet<int> keep = null) { int gp = G("gunpowder"), taken = 0; for (int i = 0; i < n && HoldUsed > 0; i++) { var held = LosableGoods() /* gamedev_t15_storysafe */ .Where(g => !(spareGp && g == gp) && (keep == null || !keep.Contains(g)) /* gamedev_t8 */).ToList(); if (held.Count == 0) break; hold[held[Rnd.Range(0, held.Count)]]--; taken++; } return taken; } /* the opening spares the gunpowder on a first-ambush loss */
   int AddCargo(int g, int q) { q = Mathf.Min(q, S.holdSize - HoldUsed); if (q > 0) hold[g] += q; return Mathf.Max(0, q); }
 
   public IEnumerator Fight(bool scripted = false) {
@@ -147,8 +148,8 @@ public partial class Game {
   IEnumerator Lose(string why) {
     if (InOpening && OpenFlag("openingAmbushNoDefeat")) { int toll = Mathf.Min(coins, Mathf.Max(20, Mathf.RoundToInt(coins * 0.1f))); coins -= toll; storyAmbushDone = true; if (playthrough) PLog2("pirate toll", $"no defeat in the opening: toll {toll} coins, cargo kept");
       yield return Ask("The pirates take a toll", $"The pirates have you pinned, but their captain only wants silver. They take {toll} coins and sheer off into the fog. Your cargo is untouched.", ("Continue", null)); msg = $"Paid a {toll}-coin toll. The hold is intact."; yield break; }
-    var c = S.combat; int lost = Mathf.CeilToInt(HoldUsed * c.loseCargoPct); PayCargo(lost, spareGunpowder); crewInjured = true; safeUntilSail = sails + c.postLossSafeSails;
-    yield return Ask("Defeat", $"{why} You lose {lost} cargo and {c.loseCrewInjuredPct * 100:0}% of your crew are injured (slower reloads until you reach port).\n\nNo pirate will trouble you for the next {c.postLossSafeSails} voyages.", ("Continue", null));
+    var c = S.combat; int lost = Mathf.CeilToInt(HoldUsed * c.loseCargoPct); string sx = PayCargoSealed(lost, "defeat", spareGunpowder); crewInjured = true; safeUntilSail = sails + c.postLossSafeSails;
+    yield return Ask("Defeat", $"{why} You lose {lost} cargo{(sx.Length > 0 ? " (" + sx + ")" : "")} and {c.loseCrewInjuredPct * 100:0}% of your crew are injured (slower reloads until you reach port).\n\nNo pirate will trouble you for the next {c.postLossSafeSails} voyages.", ("Continue", null));
     msg = "You limp on, bruised but alive.";
     if (sailing && AdsUnlocked && AdBlockReason() == null) yield return Ask("Tow to port?", "A fishing crew offers a tow to the next port, straight away.", ("Watch ad: tow me", () => StartCoroutine(ShowAd("instantTowToPort", () => skipVoyage = true))), ("Limp on", null)); }
 

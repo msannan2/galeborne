@@ -20,10 +20,41 @@ public partial class Game {
 
   /// gamedev_v07: real voyages with the gameplay camera. Reads the frame the player sees (ScreenCapture after the camera + UI drew) and counts
   /// red-sail pixels; asserts the Red Dhow is in that frame for >= 3 continuous seconds, and that the dock ticker appears once per arrival.
+  static Rect ScreenRect(Graphic g) { var c = new Vector3[4]; g.rectTransform.GetWorldCorners(c); return Rect.MinMaxRect(c[0].x, c[0].y, c[2].x, c[2].y); }
+  static float ScreenPx(Graphic g) { if (!g) return 0; var c = new Vector3[4]; g.rectTransform.GetWorldCorners(c); return Mathf.Abs(c[1].y - c[0].y); } /* overlay canvas: world corners are screen pixels */
   static int RedFramePixels(Texture2D t) { var px = t.GetPixels32(); int w = t.width, n = 0; for (int y = 0; y < t.height; y += 2) for (int x = 0; x < w; x += 2) if (SailRed(px[y * w + x])) n++; return n; }
   /* red-sail pixel in a lit frame: hue within 12 deg of red, saturated; excludes the brown hulls (hue ~20 deg) that ShipArt.IsRed admits */
   static bool SailRed(Color c) { Color.RGBToHSV(c, out float h, out float s, out float v); return (h <= 12f / 360f || h >= 350f / 360f) && s > 0.5f && v > 0.1f; }
+  /// gamedev_v07 sealed cargo (Game Designer): with 20 sealed dates aboard, squalls / squall lines / pirates / customs take other cargo first,
+  /// then gold, then hull; the dates stay 20 and the contract completes on arrival.
+  IEnumerator V07Sealed(Action<bool, string> Chk, Action<string> L, string dir) {
+    int hs0 = S.holdSize; Init(); egTestQuiet = true; storyStep = StDone; port = PortIdx("Gwadar"); week = 3 * Wk; tab = -1; rvCards.Clear(); egCards.Clear(); Refresh();
+    int dt = G("dates"), cu = G("copper"), db = PortIdx("Debal"); AddRenown(ED.RankRenown(2) - eg.renown, "qa sealed"); egCards.Clear(); GrandEnsure(); var c = Big; GrandAccept(c);
+    Chk(GrandActive != null && c.good == dt && c.qty == 20, $"sealed setup: grand contract {c?.tpl} active ({c?.qty}x{(c != null ? S.goods[c.good].id : "?")} -> {c?.to})");
+    // order: other cargo -> gold -> hull (the code path pirate toll and defeat use)
+    S.holdSize = 22; System.Array.Clear(hold, 0, hold.Length); hold[dt] = 20; hold[cu] = 2; coins = 100; hullNow = -1; float h0 = HullCur; int unit = Mathf.CeilToInt(price[port, dt]);
+    Chk(SealedQty(dt) == 20 && LosableQty(dt) == 0 && LosableGoods().SequenceEqual(new[] { cu }), $"20 dates sealed, losable: {string.Join(",", LosableGoods().Select(g => S.goods[g].id))}");
+    string s1 = PayCargoSealed(3, "qa toll 3"); Chk(hold[dt] == 20 && hold[cu] == 0 && coins == 100 - unit && Mathf.Approximately(HullCur, h0), $"toll of 3: 2 copper first, then 1 unit in gold ({unit}); dates {hold[dt]}, coins {coins}, hull {HullCur:0} ('{s1}')");
+    coins = 0; string s2 = PayCargoSealed(2, "qa toll 2"); Chk(hold[dt] == 20 && coins == 0 && HullCur < h0, $"no gold left: the hull takes it ({h0:0} -> {HullCur:0}); dates {hold[dt]} ('{s2}')");
+    S.holdSize = hs0; System.Array.Clear(hold, 0, hold.Length); hold[dt] = 20; hullNow = -1; coins = 300;
+    // real events: classic squall, squall line (cut loss), customs seize of a banned good, lighthouse "spare cargo" (off)
+    for (int k = 0; k < 4; k++) { int c0 = coins; float hh = HullCur; yield return QaVe("squall", 0, k == 0 ? "sealed_squall" : null); Chk(hold[dt] == 20, $"squall {k + 1}: dates stay 20 (coins {c0} -> {coins}, hull {hh:0} -> {HullCur:0}) card '{qvCard.Replace("\n", " ")}'"); if (k == 0) { L("sealed squall card: " + qvCard); } }
+    for (int k = 0; k < 4; k++) { yield return QaVe("squallLine", 1); Chk(hold[dt] == 20, $"squall line 'cut loss' {k + 1}: dates stay 20 ('{qvOut}')"); }
+    yield return QaVe("lighthouse", 1); Chk(hold[dt] == 20 && !qvTapOk, "lighthouse 'spare cargo' is off when only sealed cargo is aboard");
+    { int c0 = coins; float hh = HullCur; string sx = PayCargoSealed(Mathf.CeilToInt(HoldUsed * S.combat.loseCargoPct), "qa defeat"); Chk(hold[dt] == 20 && (coins < c0 || HullCur < hh), $"pirate defeat loss: dates stay 20, gold/hull pay instead ('{sx}')"); }
+    { int tollable = LosableGoods().Sum(g => LosableQty(g)); Chk(tollable == 0 && SealedTotal == 20, "pirate toll: nothing tollable but the toll stays offered (paid in gold, then hull)"); }
+    { int mu = PortIdx("Muscat"); bans.Add(new Ban { port = mu, good = dt, start = week - 1, end = week + 10 }); bool bn = Banned(dt, mu); yield return QaVe("customsLaunch", 0); Chk(bn && hold[dt] == 20, $"customs launch with dates banned in Muscat: sealed dates stay ({hold[dt]}; '{qvCard.Replace("\n", " ")}')"); bans.RemoveAll(b => b.good == dt && b.port == mu); }
+    // the contract completes on arrival (real voyage, forced squall on the way, no gold so the hull pays)
+    coins = 0; hullNow = -1; storyAmbushDone = true; sails = 20; float sMin = S.sailSecondsMin, sMax = S.sailSecondsMax; S.sailSecondsMin = S.sailSecondsMax = 8f; veForceNext = "squall"; float ec0 = S.encounterChance; S.encounterChance = 1f; Refresh(); int rn0 = eg.renown;
+    StartCoroutine(Voyage(db)); yield return null; float tr = Time.time; bool shot = false;
+    while (sailing && Time.time - tr < 60f) { if (dialog != null) { if (!shot && qvCardText().Contains(GStr("sealed", "sealed").Split('{')[0].Trim())) { shot = true; yield return ShotCo(Path.Combine(dir, "sealed_cargo.png")); } EgTestCloseCard(); } yield return null; }
+    yield return new WaitForSeconds(0.5f); S.sailSecondsMin = sMin; S.sailSecondsMax = sMax; veForceNext = ""; S.encounterChance = ec0;
+    Chk(port == db && c.status == "done" && hold[dt] == 0 && eg.renown == rn0 + c.renown, $"arrival at Debal with 20 sealed dates: grand contract {c.status}, +{eg.renown - rn0} Renown, coins {coins} (sealed card shot {shot})");
+    while (dialog != null) { EgTestCloseCard(); yield return null; } egCards.Clear(); rvCards.Clear(); }
+  string qvCardText() => dialog ? string.Join(" | ", dialog.GetComponentsInChildren<Text>().Select(t => t.text)) : "";
+
   IEnumerator V07SeaVoyages(Action<bool, string> Chk, Action<string> L, string dir) {
+    IEnumerator Shot2(string n) { tab = -1; Refresh(); yield return null; yield return null; yield return ShotCo(Path.Combine(dir, n + ".png")); yield return new WaitForSeconds(0.3f); }
     float sMin = S.sailSecondsMin, sMax = S.sailSecondsMax, enc = S.encounterChance; bool ffl = S.debugFast; S.sailSecondsMin = S.sailSecondsMax = 14f; S.encounterChance = 0f; S.debugFast = false;
     int gw = PortIdx("Gwadar"), db = PortIdx("Debal"), mu = PortIdx("Muscat"); string tk = RivalData.Line("ticker"); int Count(string s) { int n = 0, k = 0; while (s != null && (k = s.IndexOf(tk, k, StringComparison.Ordinal)) >= 0) { n++; k += tk.Length; } return n; }
     storyStep = StDone; storyAmbushDone = true; sails = 20; safeUntilSail = 0; veForce = veForceNext = ""; week = 9; port = gw; tab = -1; dialog = null; eg.active.Clear();
@@ -41,13 +72,15 @@ public partial class Game {
     yield return new WaitForSeconds(0.5f);
     Chk(shown && pre < thr, $"before he shows, the gameplay frame has no red-sail pixels ({pre} < {thr}): the check can fail");
     Chk(best >= 3f, $"Red Dhow visible at sea: red-sail pixels in the gameplay camera frame for {best:0.0} s continuous (want >= 3 s; peak {peak} px, threshold {thr})");
+    bool OtherPort(string m) => S.ports.Any(pp => pp.name != S.ports[port].name && m.Contains(pp.name));
+    Chk(port == db && !OtherPort(msg) && !msg.Contains("called at"), $"dock message names only the port you docked at (no older news line from another port): '{msg}'"); yield return Shot2("dock_message_debal");
     Chk(port == db && RivalHere && Count(msg) == 1, $"voyage 1 arrival at Debal with the Red Dhow in port: ticker '{tk}' shown {Count(msg)}x (want 1) in '{msg}'");
     if (content && content.Find("TownTitle")) { var tx = content.Find("TownTitle").GetComponentInChildren<Text>(); Chk(tx && tx.text == S.ports[port].name.ToUpper(), $"after a real arrival the town header '{tx?.text}' matches the port {S.ports[port].name}"); }
     while (dialog != null) { EgTestCloseCard(); yield return null; } rvCards.Clear();
     // voyage 2: Debal -> Gwadar; no roll, he is not bound there: no ticker at all (the last ticker must not leak into the next arrival)
     rdForceNext = false; rdNoRoll = true; Rv.next = mu; Rv.arriveWeek = week + 5; tr = Time.time; StartCoroutine(Voyage(gw)); yield return null;
     while (sailing && Time.time - tr < 60f) { if (dialog != null) EgTestCloseCard(); yield return null; } yield return new WaitForSeconds(0.5f);
-    Chk(port == gw && !RivalHere && Count(msg) == 0 && (news == null || news.Count == 0 || Count(news[0]) == 0), $"voyage 2 arrival at Gwadar, no Red Dhow: ticker shown {Count(msg)}x (want 0) in '{msg}'");
+    Chk(port == gw && !RivalHere && Count(msg) == 0 && !msg.Contains("Red Dhow") && !OtherPort(msg) && (news == null || news.Count == 0 || Count(news[0]) == 0), $"voyage 2 arrival at Gwadar after Debal-with-Rashid: no Red Dhow line, no other port's news in the dock message '{msg}'"); yield return Shot2("dock_message_gwadar");
     while (dialog != null) { EgTestCloseCard(); yield return null; } rvCards.Clear(); rdNoRoll = false;
     S.sailSecondsMin = sMin; S.sailSecondsMax = sMax; S.encounterChance = enc; S.debugFast = ffl; }
 
@@ -57,7 +90,7 @@ public partial class Game {
     string dir = Path.Combine(SaveDir, "v07test"); Directory.CreateDirectory(dir); IEnumerator Shot(string n) { yield return null; yield return null; HeaderCheck(n); yield return ShotCo(Path.Combine(dir, n + ".png")); yield return new WaitForSeconds(0.3f); }
     void HeaderCheck(string n) { var tt = content ? content.Find("TownTitle") : null; var tx = tt ? tt.GetComponentInChildren<Text>() : null; if (tx) Chk(tx.text == S.ports[port].name.ToUpper(), $"shot {n}: town header '{tx.text}' matches the current port {S.ports[port].name}"); } /* gamedev_v07: the qa used to move `port` without redrawing the town (stale MUSCAT header) */
     bool flagN0 = rdForceNext, flagR0 = rdForceRace, flagG0 = rdForceGrand, flagB0 = rdBoardForce; rdForceNext = rdForceRace = rdForceGrand = false;
-    void Fresh() { Init(); egTestQuiet = true; storyStep = StDone; coins = 8000; port = PortIdx("Gwadar"); week = 0; tab = -1; rvCards.Clear(); egCards.Clear(); rdForceNext = rdForceRace = rdForceGrand = rdNoRoll = false; Refresh(); }
+    void Fresh() { Init(); egTestQuiet = true; storyStep = StDone; coins = 8000; port = PortIdx("Gwadar"); week = 0; tab = -1; rvCards.Clear(); egCards.Clear(); rdForceNext = rdForceRace = rdForceGrand = rdNoRoll = false; rdRaceSticky = -1; Refresh(); }
     if (standalone) yield return new WaitForSeconds(1f); onTitle = false; Fresh(); Refresh(); yield return null;
     int gw = PortIdx("Gwadar"), db = PortIdx("Debal"), mu = PortIdx("Muscat");
 
@@ -115,11 +148,20 @@ public partial class Game {
     var race = eg.board.FirstOrDefault(b => b.race); Chk(race != null && race.from == "Gwadar" && eg.board.Count(b => b.race) == 1, $"race contract posted at Gwadar: {race?.title} -> {race?.to}");
     { var co = StartCoroutine(EgBoardCo()); yield return null; yield return null; var bd = dialog; var rows = bd ? bd.GetComponentsInChildren<Button>(true).Where(b => b.GetComponentsInChildren<Text>(true).Any(t => t.gameObject.name == "RaceRow" || t.text.Contains(" · "))).ToList() : new List<Button>();
       var raceRow = rows.FirstOrDefault(b => b.GetComponentsInChildren<Text>(true).Any(t => t.gameObject.name == "RaceRow")); var icon = raceRow ? raceRow.GetComponentsInChildren<Image>(true).FirstOrDefault(i => i.gameObject.name == "RaceIcon") : null; var rowTxt = raceRow ? raceRow.GetComponentsInChildren<Text>(true).First(t => t.gameObject.name == "RaceRow") : null;
-      Chk(icon && icon.sprite && icon.sprite.name.StartsWith("rival_sail_icon") && icon.preserveAspect && Mathf.Abs(icon.rectTransform.rect.width - 40) < 0.5f && Mathf.Abs(RivalData.ArtF("boardIconSize", 0) - 40) < 0.5f && rowTxt && icon.rectTransform.anchoredPosition.x + 40 <= rowTxt.rectTransform.anchoredPosition.x, $"board: red-sail icon ({(icon && icon.sprite ? icon.sprite.name : "none")}, {(icon ? icon.rectTransform.rect.width : 0):0} px) left of the race notice");
+      float ipx = ScreenPx(icon), sf = scaler ? scaler.GetComponent<Canvas>().scaleFactor : 1f, cap = rowTxt ? rowTxt.fontSize * sf * 0.7f : 999f;
+      Chk(icon && icon.sprite && icon.sprite.name.StartsWith("rival_sail_icon") && icon.preserveAspect && ipx >= RivalData.ArtF("boardIconMinPx", 40) - 0.5f && ipx >= cap && rowTxt && icon.rectTransform.anchoredPosition.x + icon.rectTransform.rect.width <= rowTxt.rectTransform.anchoredPosition.x,
+        $"board: red-sail icon ({(icon && icon.sprite ? icon.sprite.name : "none")}) measured {ipx:0.#} screen px in a {Screen.width}x{Screen.height} window (canvas scale {sf:0.###}, {icon?.rectTransform.rect.width:0} canvas units; want >= {RivalData.ArtF("boardIconMinPx", 40)} px and >= the row text cap height {cap:0.#} px), left of the race notice"); L($"ICONPX board {ipx:0.#} px, screen dpi {Screen.dpi:0}, canvas scale {sf:0.###}");
       Chk(rows.Count(b => b.GetComponentsInChildren<Image>(true).Any(i => i.gameObject.name == "RaceIcon")) == 1, $"only the race notice has the icon ({rows.Count} rows)"); yield return Shot("board_race_icon");
       var close = FindBtn(bd, "Close"); if (close) close.onClick.Invoke(); yield return null; yield return null; }
     { var dm = ModalDim("EgDim"); var cc = EgCard(race, () => { }, () => { }); yield return null; var ic = cc.GetComponentsInChildren<Image>(true).FirstOrDefault(i => i.gameObject.name == "RaceIconCard"); var tag = cc.GetComponentsInChildren<Text>(true).FirstOrDefault(t => t.gameObject.name == "RaceTag");
-      var ttl = ic ? ic.transform.parent.GetComponent<Text>() : null; Chk(ic && ic.sprite && ttl && ttl.text == race.title && ic.rectTransform.anchoredPosition.x + 15 <= -Mathf.Min(ttl.preferredWidth, ttl.rectTransform.rect.width) / 2 - 5 && tag && tag.text == RivalData.S("raceTag"), $"race card: icon left of the title, tag '{(tag ? tag.text : "")}'"); yield return Shot("contract_card_race"); Destroy0(cc.gameObject); Destroy0(dm.gameObject); dialog = null; yield return null; }
+      var ttl = ic ? ic.transform.parent.GetComponent<Text>() : null; Chk(ic && ic.sprite && ttl && ttl.text == race.title && ic.rectTransform.anchoredPosition.x + 15 <= -Mathf.Min(ttl.preferredWidth, ttl.rectTransform.rect.width) / 2 - 5 && tag && tag.text == RivalData.S("raceTag"), $"race card: icon left of the title, tag '{(tag ? tag.text : "")}'");
+      { var rw = cc.GetComponentsInChildren<Text>(true).FirstOrDefault(t => t.gameObject.name == "RaceWindow"); int trip = RaceTripWeeks(race); int lo = Mathf.Max(1, trip - 1), hi = trip + 2; var w = RaceWindow(race); float cpx = ScreenPx(ic), ttl2 = ttl ? ttl.fontSize * (scaler ? scaler.GetComponent<Canvas>().scaleFactor : 1f) * 0.7f : 999;
+        var acc = FindBtn(cc, ED.S("accept", "Accept")); bool clear = rw && acc && ScreenRect(rw).yMin > ScreenRect(acc.GetComponent<Graphic>()).yMax; Chk(clear, "race window line sits above the Accept button (not hidden behind it)");
+        Chk(rw && w.lo == lo && w.hi == hi && rw.text == $"Red Dhow: {lo}–{hi} weeks", $"race card window line '{rw?.text}' (trip {trip} week(s), {RivalData.F("raceSpreadMinWeeks", 0)}/+{RivalData.F("raceSpreadMaxWeeks", 0)} weeks, min 1)");
+        int h0 = hold[race.good]; var sx = stock[port, race.good]; hold[race.good] = 0; stock[port, race.good] = 0; var w2 = RaceWindow(race); int t2 = RaceTripWeeks(race); hold[race.good] = h0; stock[port, race.good] = sx;
+        Chk(t2 == 2 && w2.lo == 1 && w2.hi == 4, $"source-then-deliver race window: trip {t2} -> {w2.lo}–{w2.hi} weeks (want 1–4)");
+        Chk(cpx >= RivalData.ArtF("boardIconMinPx", 40) - 0.5f && cpx >= ttl2, $"race card icon measured {cpx:0.#} screen px (title cap height {ttl2:0.#} px)"); L($"ICONPX card {cpx:0.#} px"); }
+      yield return Shot("contract_card_race"); Destroy0(cc.gameObject); Destroy0(dm.gameObject); dialog = null; yield return null; }
     { coins = 8000; int r0 = eg.renown; int ti0 = Rv.tauntIdx; Chk(EgAccept(race) && race.rivalAt >= week && race.rivalAt <= week + 3, $"race accepted: Rashid due week {race.rivalAt:0.00} (now {week})");
       var tc = rvCards.LastOrDefault(); string tk = "taunt" + (ti0 % 3 + 1); Chk(tc.b.Contains(want[tk].text) && tc.mood == want[tk].mood && Rv.tauntIdx == ti0 + 1, $"accepting a race: next taunt in the cycle ({tk}) with k7_{tc.mood}"); yield return CardCheck(tk, tc.t, tc.b, null); rvCards.Clear();
       race.rivalAt = week + 1; hold[race.good] += race.qty; NewWeek(); Chk(race.status == "active", "tie week: Rashid due this week, the race is still open when you dock (tie goes to the player)");
@@ -168,6 +210,16 @@ public partial class Game {
     // ---- debug flags in play ----
     Fresh(); rdForceGrand = true; RivalUpdate(); Chk(eg.rank == 2 && Big != null && Big.tpl == "eg_big1" && EgBoardOpen, $"-gbendgamecontract: Merchant, first grand contract on the board ({Big?.tpl})");
     Fresh(); rdForceRace = true; rdBoardForce = true; RivalUpdate(); Chk(eg.board.Any(b => b.race && b.from == "Gwadar") && EgBoardOpen, "-gbracecontract: a race contract on the Gwadar board");
+    Fresh(); rdForceGrand = true; rdForceRace = true; rdBoardForce = true; RivalUpdate(); for (int k = 0; k < 5; k++) { RivalUpdate(); EgRefreshBoards(); yield return null; } EgRefreshBoards(true);
+    Chk(Big != null && eg.board.Any(b => b.race && b.from == "Gwadar") && EgBoardOpen, $"-gbracecontract + -gbendgamecontract: the forced race survives the Merchant board refresh (grand {Big?.tpl}, race {eg.board.FirstOrDefault(b => b.race)?.title})");
+    // ---- rumour during a race names the race's destination, never his current port ----
+    { Fresh(); week = 3 * Wk; var rc = new EgContract { id = "rq", race = true, good = G("tea"), qty = 4, to = "Muscat", status = "active", rivalAt = week + 2, rivalWeek = week + 2 }; eg.active.Add(rc);
+      port = gw; Rv.next = mu; Chk(RivalRumourPort() == mu, $"race on, you at Gwadar: rumour names {S.ports[RivalRumourPort()].name} (the race's destination Muscat)");
+      port = mu; Rv.next = mu; Rv.arriveWeek = week; rdNoRoll = true; RivalOnDock(); Chk(!RivalHere, "race to Muscat on: docking at Muscat before his time, he is not in port there");
+      Chk(RivalRumourPort() != mu && RivalRumourPort() >= 0, $"race on, you at Muscat (the race port): rumour names {(RivalRumourPort() >= 0 ? S.ports[RivalRumourPort()].name : "none")}, never Muscat");
+      tab = 8; Refresh(); yield return null; var rr = content ? content.GetComponentsInChildren<Text>(true).FirstOrDefault(t => t.gameObject.name == "RivalRumour") : null; Chk(rr && !rr.text.Contains("Muscat"), $"tavern at Muscat during the race: '{rr?.text}'");
+      rdForceNext = true; RivalOnDock(); Chk(RivalHere && RivalRumourPort() != port, $"forced in port at the race port: rumour still names another port ({S.ports[RivalRumourPort()].name})"); tab = -1; eg.active.Remove(rc); rdNoRoll = false; }
+    yield return V07Sealed(Chk, L, dir);
 
     rdForceNext = flagN0; rdForceRace = flagR0; rdForceGrand = flagG0; rdBoardForce = flagB0; v07Fails = fails; v07Checks = checks; L($"{checks} checks, {(fails == 0 ? "ALL PASS" : fails + " FAIL")}");
     if (!standalone) { Fresh(); yield break; }

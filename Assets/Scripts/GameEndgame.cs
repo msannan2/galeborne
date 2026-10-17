@@ -48,7 +48,7 @@ public partial class Game {
       foreach (var t in pool) { int pay = Mathf.Min(t.coins, ED.Cap(t.kind)); /* design cap, clamped in code */
         eg.board.Add(new EgContract { id = "eg" + (++eg.seq), tpl = t.id, kind = t.kind, from = pn, to = t.dest, title = t.title, giver = t.giver, risk = t.risk, good = G(t.good), qty = t.qty, pay = pay, renown = t.renown, deposit = Mathf.Min(t.deposit, pay), failRenown = t.failRenown, moons = t.moons }); }
       stats.Add(pn + "=" + pool.Count); }
-    RivalMarkRace(false); GrandEnsure(); /* gamedev_v07 */
+    RivalMarkRace(rdRaceSticky == Moon && IsBoardPort(port)); GrandEnsure(); /* gamedev_v07 (+ a forced race survives the refresh) */
     Debug.Log($"GB CONTRACT board refresh moon={week / Wpm} rank={RankName} " + string.Join(" ", stats));
   }
   bool EgAccept(EgContract c) {
@@ -96,23 +96,23 @@ public partial class Game {
     Label(p, RenownLine() + $"   ·   Active {eg.active.Count}/{ED.MaxActive}", 130, 104, 760, 40, T.fontSizeSmall - 2, T.textMuted);
     float y = 160; if (here.Count == 0) { Label(p, ED.BoardEmpty, 130, y, 760, 100, T.fontSize, T.textMuted); y += 132; }
     foreach (var c in here) { var cc = c; var b = Btn(p, "", 110, y, 800, 116, () => pick(cc));
-      float lx = 24; if (c.race) { RaceIcon(b.transform, 20, 58); lx = 20 + RivalData.ArtF("boardIconSize", 30) + 6; } /* gamedev_v07: red-sail icon left of a race notice */
+      float lx = 24; if (c.race) { RaceIcon(b.transform, 20, 58); lx = 20 + RaceIconSize + 6; } /* gamedev_v07: red-sail icon left of a race notice */
       var rl = Label(b.transform, ED.ListRow(c.kind == "grand" ? GrandTag(c) : c.kind == "rush" ? "Rush" : "Delivery", c.to, c.moons == 1 ? "1 moon" : c.moons + " moons", c.pay), lx, 0, 704 - lx, 116, T.fontSizeSmall, T.buttonText); if (c.race) rl.gameObject.name = "RaceRow"; if (c.kind == "grand") rl.gameObject.name = "GrandRow";
       var pip = Px(b.transform, "pip", 730, 40, 36, 36).gameObject.AddComponent<Image>(); pip.sprite = Dot(); pip.color = UITheme.C(c.kind == "grand" ? "#C9A55A" : c.kind == "rush" ? ED.AmberColor : "#5FA35A"); pip.raycastTarget = false; y += 132; }
     if (eg.rank < ED.FullBoardRank) { Label(p, $"The full board opens at {ED.RankName(ED.FullBoardRank)}.", 130, y, 760, 50, T.fontSizeSmall - 2, T.textMuted); }
     Btn(p, "Close", 110, H - 110 - 84 + 60, 800, 84, close); return p;
   }
   RectTransform EgCard(EgContract c, Action accept, Action notNow) { /* layout per contract_card_mock.jpg, existing styles: title x130, body from y132, 110 px bottom gap */
-    float H = 1010; var p = Px(root, "EgCard", 30, 260, 1020, H); Box(p, T.panel, T.gold);
+    float H = 1010 + (c.race || c.kind == "grand" ? 44 : 0) /* gamedev_v07: room for the race window line / the grand sealed note */; var p = Px(root, "EgCard", 30, 260, 1020, H); Box(p, T.panel, T.gold);
     var tf = CardTitle(p, c.title, 130, 760, T.fontSizeTitle - 2, "#C9A55A", TextAnchor.MiddleCenter, CardTitleFit(c.title, 760, T.fontSizeTitle - 2)); /* gamedev_title1: shared title (was y30 h70, rule y106) */
-    if (c.race) { var tt = p.GetComponentsInChildren<Text>(true).FirstOrDefault(t => t.text == c.title); if (tt) { float isz = RivalData.ArtF("boardIconSize", 30), tw = Mathf.Min(tt.preferredWidth, tt.rectTransform.rect.width); var ic = RaceIcon(tt.transform, 0, 0); var ir = ic.rectTransform; ir.anchorMin = ir.anchorMax = ir.pivot = new Vector2(0.5f, 0.5f); ir.anchoredPosition = new Vector2(-(tw / 2 + 6 + isz / 2), 0); ir.sizeDelta = new Vector2(isz, isz); ic.gameObject.name = "RaceIconCard"; } } /* gamedev_v07: red-sail icon 6 px left of the (centred) title */
+    if (c.race) { var tt = p.GetComponentsInChildren<Text>(true).FirstOrDefault(t => t.text == c.title); if (tt) { float isz = RaceIconSize, tw = Mathf.Min(tt.preferredWidth, tt.rectTransform.rect.width); var ic = RaceIcon(tt.transform, 0, 0); var ir = ic.rectTransform; ir.anchorMin = ir.anchorMax = ir.pivot = new Vector2(0.5f, 0.5f); ir.anchoredPosition = new Vector2(-(tw / 2 + 6 + isz / 2), 0); ir.sizeDelta = new Vector2(isz, isz); ic.gameObject.name = "RaceIconCard"; } } /* gamedev_v07: red-sail icon 6 px left of the (centred) title */
     float y = 132 + tf.extra; H += tf.extra; p.sizeDelta = new Vector2(p.sizeDelta.x, H); Label(p, $"<i>{c.giver}</i>", 130, y, 760, 56, T.fontSizeSmall, T.text, TextAnchor.MiddleCenter); y += 72;
     void Row(string head, string val, string col) { Label(p, head, 130, y, 760, 38, T.fontSizeSmall - 4, T.textMuted); Label(p, val, 130, y + 36, 760, 50, T.fontSize, col); Box(Px(p, "sep", 130, y + 98, 760, 1), T.brass); y += 108; }
     Row(ED.S("cargo", "Cargo"), GoodCount(c.good, c.qty), T.parchment); Row(ED.S("deliverTo", "Deliver to"), c.to, T.parchment); Row(ED.S("deadline", "Deadline"), EgMoonsText(c), EgMoonsColor(c));
     Label(p, ED.Reward(c.pay, c.renown), 130, y + 6, 760, 54, T.fontSize, T.parchment, TextAnchor.MiddleCenter, true); Label(p, $"<i>{(c.kind == "grand" ? "No deposit." : ED.Deposit(c.deposit))}</i>", 130, y + 60, 760, 40, T.fontSizeSmall - 4, T.textMuted, TextAnchor.MiddleCenter); y += 116;
     Box(Px(p, "sep2", 130, y, 760, 1), T.brass); Label(p, c.risk, 130, y + 10, 760, 60, T.fontSizeSmall - 2, T.text, TextAnchor.MiddleCenter); y += 86;
     bool grand = c.kind == "grand"; bool can = grand || eg.active.Count < ED.MaxActive && coins >= c.deposit; string why = grand ? "" : eg.active.Count >= ED.MaxActive ? ED.Full : coins < c.deposit ? ED.CantAfford : ""; /* gamedev_v07: grand = own slot, no deposit */
-    if (c.race) { var rt = Label(p, RivalData.S("raceTag", ""), 130, y + 28, 760, 40, T.fontSizeSmall - 4, "#D0503A", TextAnchor.MiddleCenter); rt.gameObject.name = "RaceTag"; }
+    if (c.race) { var rt = Label(p, RivalData.S("raceTag", ""), 130, y + 12, 760, 40, T.fontSizeSmall - 4, "#D0503A", TextAnchor.MiddleCenter); rt.gameObject.name = "RaceTag"; var rw = Label(p, RaceWindowLine(c), 130, y + 50, 760, 36, T.fontSizeSmall - 4, "#D0503A", TextAnchor.MiddleCenter); rw.gameObject.name = "RaceWindow"; } /* gamedev_v07: his time window */
     if (grand) { var gt = Label(p, GrandTag(c) + " · " + GStr("buyAt", "Buy at {ports}").Replace("{ports}", c.from.Replace("/", " or ")) + "\n" + GStr("slot", ""), 130, y - 6, 760, 76, T.fontSizeSmall - 6, T.textMuted, TextAnchor.MiddleCenter); gt.gameObject.name = "GrandTag"; }
     if (why != "") Label(p, why, 130, y - 6, 760, 36, T.fontSizeSmall - 4, T.down, TextAnchor.MiddleCenter);
     float by = H - 110 - 96; Btn(p, ED.S("accept", "Accept"), 110, by, 390, 96, accept, can, true); Btn(p, ED.S("notNow", "Not now"), 520, by, 390, 96, notNow);

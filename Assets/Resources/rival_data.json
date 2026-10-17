@@ -47,7 +47,9 @@
    "suspicious": 3
   },
   "note": "design/rival_art_spec.md (Chief Art Designer). Portrait rows art/rashid-portrait bac7f0a; sail + icon art/rival-sail 6e45f5a.",
-  "sailBaseColor": "#C24A38"
+  "sailBaseColor": "#C24A38",
+  "boardIconMinPx": 40,
+  "iconNote": "race icon: boardIconSize canvas units (1080-wide reference) but never under boardIconMinPx real screen px, so 40 px on a 1080-wide phone and 40 px in a 540-wide window"
  },
  "strings": {
   "name": "Captain Rashid",
@@ -66,7 +68,8 @@
   "raceWin": "The sea favours the swift. Try again, little dhow.",
   "raceLoss": "Hm. Well sailed. Enjoy it while it lasts.",
   "rumour": "They say the Red Dhow makes for {port}.",
-  "newsSeen": "The Red Dhow called at {port} ({date})."
+  "newsSeen": "The Red Dhow called at {port} ({date}).",
+  "raceWindow": "Red Dhow: {min}–{max} weeks"
  },
  "lineMoods": {
   "inPort": "suspicious",
@@ -86,6 +89,7 @@
   "raceWin": "he delivered first (he wins the race)",
   "raceLoss": "you delivered first (he loses the race)",
   "rumour": "tavern, always, names his next port",
-  "ticker": "dock ticker"
+  "ticker": "dock ticker",
+  "raceWindow": "race card: his arrival window = your shortest trip + raceSpreadMinWeeks..raceSpreadMaxWeeks, at least 1 week"
  }
 }
