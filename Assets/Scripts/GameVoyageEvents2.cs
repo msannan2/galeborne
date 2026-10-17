@@ -24,7 +24,7 @@ public partial class Game {
       WSquallLine * m * (Monsoon ? MonsoonMult : 1), (Leg(from, to, "Gwadar", "Muscat") || Leg(from, to, "Debal", "Muscat")) ? WLighthouse * m : 0 }; }
   float VeTakeAmbushHalve() { if (!ambushHalveNext) return 1f; ambushHalveNext = false; Debug.Log("GB VEVENT lighthouse warning: this voyage's ambush chance halved"); return 0.5f; }
   void LoseWeek() => NewWeek();
-  void HullHit(float d) { hullNow = Mathf.Max(1, HullCur - d); }
+  void HullHit(float d) { hullNow = Mathf.Max(1, HullCur - d); if (sailing) Refresh(); /* gamedev_encounter_fix: HUD hull at once */ }
   void ShortageRumour(int p, int g) { price[p, g] *= S.rumorSpike; news.Insert(0, $"Rumor ({DateStr}): {S.ports[p].name} is short of {S.goods[g].name.ToLower()}."); }
   void GlutRumour(int p, int g) { var ev = ((List<object>)DZ.market["events"]).Select(Design.D).FirstOrDefault(e => (string)e["id"] == "glut"); if (ev != null) StartEvent(p, ev, g); news.Insert(0, $"Rumor ({DateStr}): {S.ports[p].name} is drowning in {S.goods[g].name.ToLower()}."); }
   string Off(string label, string why) => AskOff + label + "\n" + why;

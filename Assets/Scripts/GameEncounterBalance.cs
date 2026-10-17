@@ -14,23 +14,25 @@ public partial class Game {
   public string veForceHailNext = ""; bool veHailFromFlag, veForceHorizonNext; /* gamedev_force_hail: -gbforcehail warning|trade|rumour */
 
   /// the single per-voyage roll
-  public bool VeRollEncounter() => Rnd.value < S.encounterChance;
+  public float veLastRoll = -1; /* gamedev_encounter_fix: the roll value is logged on the weight line */
+  public bool VeRollEncounter() { veLastRoll = Rnd.value; return veLastRoll < S.encounterChance; }
+  public string lastEncId = ""; /* gamedev_encounter_fix (Game Designer): saved id of the last encounter; no id comes twice in a row, weather blocks its whole family */
   /// the pool the normal voyage roll draws from: VePoolIds order (pirate first), pirate scaled by this voyage's multiplier
   public float[] VeVoyageWeights(int from, int to, float pirateMult) { var w = VePoolWeights(from, to); w[0] *= pirateMult; return w; }
   /// pool indices still drawable: weight > 0, not the family just shown, and no pirate right after a pirate encounter
-  public List<int> VeEligible(float[] w) { bool noPirate = lastFamily == "pirate" || lastEncFamily == "pirate";
-    var ok = Enumerable.Range(0, w.Length).Where(i => w[i] > 0 && VeFamily(VePoolIds[i]) != lastFamily && !(i == 0 && noPirate)).ToList();
-    if (ok.Count == 0) ok = Enumerable.Range(1, w.Length - 1).Where(i => w[i] > 0).ToList(); return ok; }
+  public List<int> VeEligible(float[] w) { bool noPirate = lastFamily == "pirate" || lastEncFamily == "pirate"; bool noWeather = lastEncFamily == "weather";
+    var ok = Enumerable.Range(0, w.Length).Where(i => w[i] > 0 && VeFamily(VePoolIds[i]) != lastFamily && !(i == 0 && noPirate) && VePoolIds[i] != lastEncId && !(noWeather && VeFamily(VePoolIds[i]) == "weather")).ToList();
+    if (ok.Count == 0) ok = Enumerable.Range(1, w.Length - 1).Where(i => w[i] > 0 && VePoolIds[i] != lastEncId).ToList(); return ok; }
   public int VePickPool(float[] w) { var ok = VeEligible(w); if (ok.Count == 0) return 4; /* rumor */ float tot = ok.Sum(i => w[i]), r = Rnd.value * tot; foreach (int i in ok) { if ((r -= w[i]) < 0) return i; } return ok[ok.Count - 1]; }
   /// chance THIS voyage meets a pirate given the current no-repeat state (encounterChance x pirate share of the eligible weight)
   public float VePirateChance(float[] w) { var ok = VeEligible(w); float tot = ok.Sum(i => w[i]); return ok.Contains(0) && tot > 0 ? S.encounterChance * w[0] / tot : 0; }
   /// one encounter shown: both no-repeat memories move to its family
-  public void VeMarkEncounter(string id) { lastEncFamily = VeFamily(id); if (id == "pirate") lastFamily = "pirate"; }
+  public void VeMarkEncounter(string id) { lastEncId = id; lastEncFamily = VeFamily(id); if (id == "pirate") lastFamily = "pirate"; }
   /// stationary pirate share of encounters for a fixed pool under the family no-repeat rule (Markov chain over the last family), for the qa rate check
   public float VeExpectedPirateShare(float[] w) { var fams = VePoolIds.Select(VeFamily).Distinct().ToList(); var pi = fams.ToDictionary(f => f, f => 1f / fams.Count);
-    string lf0 = lastFamily, le0 = lastEncFamily;
-    for (int it = 0; it < 300; it++) { var n = fams.ToDictionary(f => f, f => 0f); foreach (var s in fams) { lastFamily = s; lastEncFamily = s; var ok = VeEligible(w); float tot = ok.Sum(i => w[i]); foreach (int i in ok) n[VeFamily(VePoolIds[i])] += pi[s] * w[i] / tot; } pi = n; }
-    lastFamily = lf0; lastEncFamily = le0; return pi["pirate"]; }
+    string lf0 = lastFamily, le0 = lastEncFamily, li0 = lastEncId; var ids = Enumerable.Range(0, w.Length).Where(i => w[i] > 0).Select(i => VePoolIds[i]).ToList(); var pid = ids.ToDictionary(x => x, x => 1f / ids.Count); /* gamedev_encounter_fix: the state is the last encounter ID now */
+    for (int it = 0; it < 300; it++) { var n = ids.ToDictionary(x => x, x => 0f); foreach (var s in ids) { lastEncId = s; lastEncFamily = VeFamily(s); lastFamily = VeFamily(s); var ok = VeEligible(w); float tot = ok.Sum(i => w[i]); foreach (int i in ok) n[VePoolIds[i]] += pid[s] * w[i] / tot; } pid = n; }
+    lastFamily = lf0; lastEncFamily = le0; lastEncId = li0; return pid.TryGetValue("pirate", out var pp) ? pp : 0; }
 
   /// gamedev_force_hail: -gbforcehail warning|trade|rumour (or GB_FORCE_HAIL, or -gbforceevent hailWarning|hailTrade|hailRumour):
   /// the next voyage's first decision card is "Sail on the horizon"; tapping "Hail her" pays that kind
@@ -49,8 +51,9 @@ public partial class Game {
   public bool FogAhead(int to) => InOpening && !storyAmbushDone && to == Muscat && hold[Gp] > 0; /* the scripted story fog ambush: certain */
   /// encounterChance x pirate weight share of the leg's pool, with this voyage's modifiers: free sail 0, lighthouse warning x0.5 on the pirate weight,
   /// no pirate right after a pirate encounter (lastEncFamily). lastFamily's other families are not taken out: the voyage's decision cards replace lastFamily before the pick.
-  public float RoutePirateChance(int from, int to) { if (to < 0 || to == from) return 0; if (FogAhead(to)) return 1f; if (NextSailFree || lastEncFamily == "pirate") return 0;
-    var w = VeVoyageWeights(from, to, ambushHalveNext ? 0.5f : 1f); float tot = w.Where(x => x > 0).Sum(); return tot > 0 ? S.encounterChance * w[0] / tot : 0; }
+  public float RoutePirateChance(int from, int to) { if (to < 0 || to == from) return 0; if (FogAhead(to)) return 1f; if (NextSailFree || lastEncFamily == "pirate" || lastEncId == "pirate") return 0;
+    var w = VeVoyageWeights(from, to, ambushHalveNext ? 0.5f : 1f); string lf = lastFamily; lastFamily = ""; var ok = VeEligible(w); lastFamily = lf; /* gamedev_encounter_fix: the last encounter's id (and the weather family after a weather encounter) are out of the pool; lastFamily is replaced by the voyage's decision cards before the pick */
+    float tot = ok.Sum(i => w[i]); return tot > 0 && ok.Contains(0) ? S.encounterChance * w[0] / tot : 0; }
   public static string RouteLabelName(float c) => c < RouteQuietBelow ? "Quiet waters" : c <= RouteDeadlyAbove ? "Pirate waters" : "Deadly waters";
   public const string QuietHex = "#D9C08A", PirateHex = "#E0B85A", DeadlyHex = "#C0685A"; /* gamedev_route_art: Chief Art Designer tier colours */
   public static string RouteTierHex(float c) => c < RouteQuietBelow ? QuietHex : c <= RouteDeadlyAbove ? PirateHex : DeadlyHex;
