@@ -240,6 +240,7 @@ public partial class Game {
       tab = 8; Refresh(); yield return null; var rr = content ? content.GetComponentsInChildren<Text>(true).FirstOrDefault(t => t.gameObject.name == "RivalRumour") : null; Chk(rr && !rr.text.Contains("Muscat"), $"tavern at Muscat during the race: '{rr?.text}'");
       rdForceNext = true; RivalOnDock(); Chk(RivalHere && RivalRumourPort() != port, $"forced in port at the race port: rumour still names another port ({S.ports[RivalRumourPort()].name})"); tab = -1; eg.active.Remove(rc); rdNoRoll = false; }
     yield return V07Sealed(Chk, L, dir);
+    yield return V07MerchantTip(Chk, L, dir); /* gamedev_tip */
     yield return V07OldSaveNews(Chk, L);
 
     rdForceNext = flagN0; rdForceRace = flagR0; rdForceGrand = flagG0; rdBoardForce = flagB0; v07Fails = fails; v07Checks = checks; L($"{checks} checks, {(fails == 0 ? "ALL PASS" : fails + " FAIL")}");

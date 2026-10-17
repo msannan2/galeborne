@@ -82,7 +82,7 @@ public partial class Game {
     else if (g >= 0) { var pm = e["priceMult"]; float m = pm is Dictionary<string, object> d ? (d.ContainsKey("min") ? Rnd.Range(Design.F(d["min"]), Design.F(d["max"])) : Design.F(d["max"])) : Design.F(pm, 1);
       SetEv(p, g, m, week + dur); if (e.ContainsKey("stockMult")) stock[p, g] = Mathf.RoundToInt(stockMax[p, g] * Design.F(e["stockMult"])); }
     townHint[p] = c.ContainsKey("townHint") ? (string)c["townHint"] : null; hintEnd[p] = week + dur;
-    news.Insert(0, $"{Fill((string)(c.ContainsKey("headline") ? c["headline"] : id), p, g)} {Fill((string)(c.ContainsKey("text") ? c["text"] : ""), p, g)}"); }
+    news.Insert(0, JoinSentences(Fill((string)(c.ContainsKey("headline") ? c["headline"] : id), p, g), Fill((string)(c.ContainsKey("text") ? c["text"] : ""), p, g))); /* gamedev_tip: headline + text joined with a full stop */ }
   void SetEv(int p, int g, float m, int end) { evMult[p, g] = m; evEnd[p, g] = end; price[p, g] = basePrice[p, g] * m; lastPrice[p, g] = basePrice[p, g]; }
   /// on docking: foreign ship roll (chance per dock), blockade seizure, the forced fallback shortage
   void OnDockV06() {
@@ -92,7 +92,7 @@ public partial class Game {
     var fe = ((List<object>)DZ.market["events"]).Select(Design.D).FirstOrDefault(x => (string)x["id"] == "foreignShip");
     if (fe != null && Rnd.value < Design.F(fe["weight"]) && !InOpening) { var pool = Design.SL(fe["pool"]); int g = G(pool[Rnd.Range(0, pool.Count)]);
       foreignPort = port; foreignGood = g; stock[port, g] = (int)Design.F(fe["stockUnits"], 20); price[port, g] = lastPrice[port, g] = basePrice[port, g] * Design.F(fe["buyPriceMult"], 0.6f);
-      var c = Content("foreignShip"); townHint[port] = "foreignShipInHarbor"; hintEnd[port] = week + 1; news.Insert(0, Fill((string)c["headline"], port, g) + ". " + Fill((string)c["text"], port, g)); }
+      var c = Content("foreignShip"); townHint[port] = "foreignShipInHarbor"; hintEnd[port] = week + 1; news.Insert(0, JoinSentences(Fill((string)c["headline"], port, g), Fill((string)c["text"], port, g))); }
     if (blockGood[port] >= 0 && week > blockStart[port] && hold[blockGood[port]] > 0 && !StoryGoods().Contains(blockGood[port]) /* gamedev_t16_seizesafe */) { blockPending = port; Debug.Log($"GB DOCK blockade at {S.ports[port].name}: {hold[blockGood[port]]}x{S.goods[blockGood[port]].id} aboard, fee {BlkFee(port)}"); } /* gamedev_blockade_warning: the arrival card (pay off / let them take it) decides; see BlockadeCard */
   }
 
@@ -262,7 +262,7 @@ public partial class Game {
   void FallbackCheck() {
     if (!InOpening || fallbackFired || port != Muscat) return; var fb = Design.D(DZ.Path(DZ.settings, "opening.fallbackShortage")); int need = 1 + (int)Design.F(fb["triggerIfNoGunpowderAfterRumorRepeats"], 1);
     if (rumorHeard >= need && hold[Gp] == 0 && !wh[GwadarIdx].items.Any(b => b.good == Gp)) { fallbackFired = true; if (jackpotStartCoins < 0) jackpotStartCoins = coins + hold[G((string)fb["good"])] * Mathf.CeilToInt(AvgCost[G((string)fb["good"])]); int g = G((string)fb["good"]); SetEv(port, g, Design.F(fb["mult"], 2), week + 2);
-      var c = Content("shortage"); news.Insert(0, Fill((string)c["headline"], port, g) + " " + Fill((string)c["text"], port, g)); msg = $"Muscat is short of {S.goods[g].name.ToLower()}: it sells at twice the usual price."; storyStep = 6; }
+      var c = Content("shortage"); news.Insert(0, JoinSentences(Fill((string)c["headline"], port, g), Fill((string)c["text"], port, g))); msg = $"Muscat is short of {S.goods[g].name.ToLower()}: it sells at twice the usual price."; storyStep = 6; }
   }
 
   // ---------------- repairs ----------------

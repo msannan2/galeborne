@@ -630,6 +630,9 @@ public partial class Game : MonoBehaviour {
       int g = Rnd.Range(0, S.goods.Length); if (S.goods[g].contraband) g = 0; int unit = Mathf.Max(1, Mathf.RoundToInt(basePrice[dest, g] * 0.7f)), q = Mathf.Min(5, S.holdSize - HoldUsed);
       q = Mathf.Min(q, Mathf.FloorToInt(coins * seaMerchantMaxFrac / unit)); /* offer capped at design frac of coins */
       Debug.Log($"GB MERCHANT coins {coins} unit {unit} cap {seaMerchantMaxFrac:0.##} -> q {q} cost {unit * Mathf.Max(q,0)} " + (q >= 1 ? "OFFER SHOWN" : "OFFER HIDDEN (smallest lot unaffordable)"));
+      if (q < 1 && SealedTotal > 0 && S.holdSize - HoldUsed <= 0) { var tip = MerchantTip(); VeShown("merchant"); /* gamedev_tip (Game Designer): a sealed full hold still gets the hail, with a free price tip */
+        Debug.Log($"GB MERCHANT tip: hold full with {SealedTotal} sealed, tip {(tip.g >= 0 ? S.goods[tip.g].id : "-")} at {(tip.p >= 0 ? S.ports[tip.p].name : "-")} (destination {S.ports[dest].name})");
+        if (tip.g >= 0) yield return Ask("A merchant hails you", MerchantTipText(tip.g, tip.p), ("Continue", null)); }
       if (q >= 1) { var mv = VePick("merchant"); VeShown("merchant"); (string, string)[] mf = { ("goods", GoodCount(g, q)), ("unit", unit.ToString()), ("cost", (unit * q).ToString()) };
         yield return Ask(VeS(mv, "title", "A merchant hails you"), VeFill(VeS(mv, "body", "A fat baghlah offers {goods} at {unit} each."), mf),
         (VeFill(VeOpt(mv, 0, "Buy ({cost})"), mf), () => { if (coins >= unit * q) { coins -= unit * q; hold[g] += q; msg = VeFill(VeS(mv, "bought", "Bought {goods} at sea."), mf); } else msg = "You can't afford it."; }), (VeOpt(mv, 1, "Decline"), () => msg = VeS(mv, "declined", "You wave the merchant on."))); }
