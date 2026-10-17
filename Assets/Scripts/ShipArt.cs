@@ -2,11 +2,11 @@ using UnityEngine;
 /// Paints the 1024 ship texture atlas (albedo + height for the normal map). Run at edit time by Builder.Setup.
 public static class ShipArt {
   public const int N = 1024;
-  /* gamedev_v07 (Game Designer final pirate sail spec): red belongs only to the Red Dhow's sail. Stripe, skull ring and pennant red half bone white (were #8A2420 / #9A2A22 / #8A2420),
-     black canvas and the pennant's black half #1A1716 unchanged. One-line switches. */
+  /* gamedev_v07 (Game Designer final pirate sail spec): red belongs only to the Red Dhow's sail. Stripe and skull ring bone white (were #8A2420 / #9A2A22),
+     black canvas unchanged, the pennant keeps red #8A2420 + black #1A1716 (Jeff). One-line switches. */
   public const string PirateStripeHex = "#CFC6B0";
   public const string PirateSkullRingHex = "#CFC6B0";
-  public const string PiratePennantHex = "#CFC6B0"; /* Game Designer 6f9eb00 ruling: pennant red -> bone too (was #8A2420); black half #1A1716 kept */
+  public const string PiratePennantHex = "#8A2420"; /* Jeff: pennant stays red + black #1A1716 (bone #CFC6B0 reverted) */
   /* gamedev_v07: "red hue" test shared by the atlas repaint check and qa: hue within 20 deg of red, saturation > 0.35, value > 0.2 */
   public static bool IsRed(Color c) { Color.RGBToHSV(c, out float h, out float s, out float v); return (h < 20f / 360f || h > 340f / 360f) && s > 0.35f && v > 0.2f; }
   // atlas cells in pixels (x, y, w, h), y up

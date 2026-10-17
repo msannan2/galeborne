@@ -34,7 +34,7 @@ public partial class Game {
   RivalState Rv { get { if (eg.rival == null) eg.rival = new RivalState(); return eg.rival; } }
   bool RivalOn => Moon >= RivalData.FromMoon - 1; /* moon 3 = Moon index 2 */
   bool RivalHere => Rv.metPort == port && Rv.metWeek == week;
-  bool rdForceNext, rdForceRace, rdForceGrand, rdBoardForce; /* debug flags */
+  bool rdForceNext, rdForceRace, rdForceGrand, rdBoardForce, rdNoRoll; /* debug flags (+ qa: rdNoRoll = no 1-in-4 roll) */
   readonly Queue<(string t, string b, int mood)> rvCards = new Queue<(string, string, int)>();
   int Wk => Mathf.Max(1, S.weeksPerMoon);
 
@@ -62,14 +62,16 @@ public partial class Game {
     bool forced = rdForceNext; rdForceNext = false;
     if (!forced && (!RivalOn || !IsBoardPort(port))) return;
     if (Rv.next < 0) RivalPickNext(-1);
-    bool rumoured = Rv.next == port && week >= Rv.arriveWeek, roll = RivalRollArrival(); bool inPort = forced || rumoured || roll;
+    bool rumoured = Rv.next == port && week >= Rv.arriveWeek, roll = !rdNoRoll && RivalRollArrival(); bool inPort = forced || rumoured || roll;
     Debug.Log($"GB RIVAL arrival {S.ports[port].name} week {week}: forced={forced} rumoured={rumoured} roll={roll} -> {(inPort ? "IN PORT" : "not here")}");
     if (!inPort) return;
     var r = Rv; r.at = port; r.metPort = port; r.metWeek = week; r.sightings++;
     int g = RivalCheapestGood(port); if (g >= 0) { int s0 = stock != null ? stock[port, g] : 0; if (stock != null) stock[port, g] = Mathf.FloorToInt(stock[port, g] * RivalData.F("cheapestStockMult", 0.5f)); float p0 = price[port, g]; price[port, g] *= RivalData.F("cheapestPriceMult", 1.2f); r.boughtGood = g; r.boughtPort = port; r.boughtWeek = week;
       Debug.Log($"GB RIVAL bought the cheapest good at {S.ports[port].name}: {S.goods[g].id} stock {s0}->{(stock != null ? stock[port, g] : 0)} price {p0:0.0}->{price[port, g]:0.0}"); }
     var race = eg.active.FirstOrDefault(c => c.race); if (race != null) { r.next = PortIdx(race.to); r.arriveWeek = race.rivalWeek; } else RivalPickNext(port);
-    string tk = RivalData.Line("ticker"); news.Insert(0, tk + (g >= 0 ? " " + RivalData.S("tickerBought", "").Replace("{good}", S.goods[g].name.ToLower()) : "")); msg = (msg ?? "").TrimEnd() + " " + tk;
+    string tk = RivalData.Line("ticker"); /* the ticker line is for this arrival only: news keeps a dated history line (the dock message quotes news[0], so a copy of the ticker there repeated it on the next arrival) */
+    news.Insert(0, RivalData.S("newsSeen", "The Red Dhow called at {port} ({date}).").Replace("{port}", S.ports[port].name).Replace("{date}", DateStr) + (g >= 0 ? " " + RivalData.S("tickerBought", "").Replace("{good}", S.goods[g].name.ToLower()) : ""));
+    var m0 = (msg ?? "").Replace(tk, "").Replace("  ", " ").TrimEnd(); msg = m0 + (m0.Length > 0 ? " " : "") + tk; /* exactly once */
     string tl = RivalNextTaunt(); rvCards.Enqueue((RivalData.Name, RivalData.Line(tl), RivalData.Mood(tl))); Debug.Log("GB RIVAL meet card " + tl);
   }
   void RivalNewWeek() { /* from EgNewWeek, after week++ */
@@ -87,11 +89,16 @@ public partial class Game {
     if (rl != 0) AddRenown(rl, "race lost to Rashid"); }
   void RivalRaceWonByPlayer(EgContract c) { Rv.raceLosses++; Debug.Log($"GB RIVAL race won by the player: {c.id} delivered week {week}, Rashid due week {c.rivalAt:0.00}");
     rvCards.Enqueue((RivalData.S("raceWonTitle", "You beat the Red Dhow"), "“" + RivalData.Line("raceLoss") + "”", RivalData.Mood("raceLoss"))); }
-  /* Game Designer (6f9eb00 ruling): route time + uniform(raceSpreadMinMoons, raceSpreadMaxMoons) moons = 1 week + U(-1, +2) weeks; a straight-sailing player (1 week) wins when he is not earlier: ~2 in 3 */
-  public float RivalRaceTime() => Mathf.Max(RivalData.F("raceMinWeeks", 0), RivalData.F("raceRouteWeeks", 1) + Rnd.Range(RivalData.F("raceSpreadMinMoons", -0.25f), RivalData.F("raceSpreadMaxMoons", 0.5f)) * Wk);
+  /* Jeff (final): Rashid's time = the player's SHORTEST FULL TRIP from accept + uniform(raceSpreadMinWeeks, raceSpreadMaxWeeks) = trip + U(-1, +2) weeks.
+     Trip: carrying enough (or it is on sale where you accept) = the delivery leg; otherwise the leg to the nearest source port + the delivery leg. Every leg is one week.
+     He wins only if strictly earlier than your whole-week docking (tie to you): ~2 in 3 for a player who sails the shortest trip. */
+  public int RaceSourcePort(EgContract c) { int dp = PortIdx(c.to); if (stock != null && port != dp && stock[port, c.good] >= c.qty && !Banned(c.good, port)) return port;
+    return Enumerable.Range(0, S.ports.Length).Where(p => p != dp && p != port && (stock == null || stock[p, c.good] > 0)).Select(p => (int?)p).FirstOrDefault() ?? -1; }
+  public int RaceTripWeeks(EgContract c) { int leg = Mathf.Max(1, Mathf.RoundToInt(RivalData.F("raceRouteWeeks", 1))); if (hold[c.good] >= c.qty) return leg; int src = RaceSourcePort(c); return src == port || src < 0 ? leg : leg + leg; }
+  public float RivalRaceTime(int tripWeeks) => Mathf.Max(RivalData.F("raceMinWeeks", 0), tripWeeks + Rnd.Range(RivalData.F("raceSpreadMinWeeks", -1f), RivalData.F("raceSpreadMaxWeeks", 2f)));
   /* Game Designer: taunts cycle taunt1 -> taunt2 -> taunt3 -> taunt1 (meetings in port and taking a race share the cycle), saved in RivalState.tauntIdx */
   public string RivalNextTaunt() { string k = "taunt" + (Rv.tauntIdx % 3 + 1); Rv.tauntIdx++; return k; }
-  void RivalOnAccept(EgContract c) { if (!c.race) return; c.rivalAt = week + RivalRaceTime(); c.rivalWeek = Mathf.CeilToInt(c.rivalAt); Rv.next = PortIdx(c.to); Rv.arriveWeek = c.rivalWeek; Debug.Log($"GB RIVAL race on: {c.id} to {c.to}, Rashid arrives week {c.rivalAt:0.00} (accepted week {week})");
+  void RivalOnAccept(EgContract c) { if (!c.race) return; int trip = RaceTripWeeks(c); c.rivalAt = week + RivalRaceTime(trip); c.rivalWeek = Mathf.CeilToInt(c.rivalAt); Rv.next = PortIdx(c.to); Rv.arriveWeek = c.rivalWeek; Debug.Log($"GB RIVAL race on: {c.id} to {c.to}, your shortest trip {trip} week(s), Rashid arrives week {c.rivalAt:0.00} (accepted week {week})");
     string tl = RivalNextTaunt(); rvCards.Enqueue((RivalData.Name, "“" + RivalData.Line(tl) + "”\n\n" + RivalData.S("raceTag", ""), RivalData.Mood(tl))); }
   void RivalMarkRace(bool forced) { /* from EgRefreshBoards: occasionally one notice is a race */
     if (eg.active.Any(c => c.race) || eg.board.Any(b => b.race)) { if (forced) Debug.Log("GB RIVAL race contract already up"); return; }
@@ -109,14 +116,18 @@ public partial class Game {
   public EgContract Big => eg.big != null && !string.IsNullOrEmpty(eg.big.id) ? eg.big : null; /* JsonUtility never stores null: an empty id = no grand contract */
   EgContract GrandOffer => Big != null && Big.status == "offer" ? Big : null; EgContract GrandActive => Big != null && Big.status == "active" ? Big : null;
   IEnumerable<EgContract> EgActiveAll() { foreach (var c in eg.active) yield return c; if (GrandActive != null) yield return GrandActive; }
-  public int GrandPay(int good, int qty, int dest) => Mathf.Min(GrandCap, Mathf.RoundToInt(qty * price[dest, good]) + GrandBonus);
+  /* gamedev_v07 pay fix: was qty x the LIVE price at the destination (weekly drift up to 2x base, market events, Rashid's +20%), frozen at offer time.
+     Now qty x the destination's NORMAL price (the good's design mid price x that port's cheap/want multiplier: no per-save roll, drift, events or Rashid) x payPriceMult + bonusCoins, capped. */
+  public float GrandNormalPrice(int good, int dest) => (S.goods[good].min + S.goods[good].max) * 0.5f * PortMult(dest, good);
+  public float GrandPriceMult => GS.TryGetValue("payPriceMult", out var o) ? Design.F(o, 1f) : 1f;
+  public int GrandPay(int good, int qty, int dest) => Mathf.Min(GrandCap, Mathf.RoundToInt(qty * GrandNormalPrice(good, dest) * GrandPriceMult) + GrandBonus);
   void GrandEnsure() { /* Merchant (rank 3, 300 Renown) starts the sequence; one at a time */
     if (eg.runComplete || eg.rank < 2 || Big != null) return; if (eg.bigStage < 0) { eg.bigStage = 0; Debug.Log("GB GRAND sequence starts (Merchant reached)"); } GrandPost(); }
   void GrandPost() { var seq = GrandSeq; if (eg.bigStage >= seq.Count) return; var d = seq[eg.bigStage]; string Sd(string k, string def) => d.TryGetValue(k, out var o) && o is string s ? s : def;
     int g = G(Sd("good", "dates")), dp = PortIdx(Sd("dest", "Debal")); int qty = d.TryGetValue("qty", out var q) && q is double qd ? (int)qd : 20; if (g < 0 || dp < 0) { Debug.LogWarning("GB GRAND bad sequence entry " + eg.bigStage); return; }
     var buy = d.TryGetValue("buyAt", out var ba) && ba is List<object> bl ? bl.OfType<string>().ToList() : new List<string>();
     eg.big = new EgContract { id = "grand" + (++eg.seq), tpl = Sd("id", "eg_big" + (eg.bigStage + 1)), kind = "grand", from = string.Join("/", buy), to = S.ports[dp].name, title = Sd("title", "Grand contract"), giver = Sd("giver", ""), risk = Sd("risk", ""), good = g, qty = qty, pay = GrandPay(g, qty, dp), renown = GrandRenown, deposit = 0, failRenown = GrandFailRenown, moons = GrandMoons, status = "offer" };
-    Debug.Log($"GB GRAND offer {eg.bigStage + 1}/3 {eg.big.tpl}: {qty}x{S.goods[g].id} -> {eg.big.to} pay {eg.big.pay} (sale value {Mathf.RoundToInt(qty * price[dp, g])} + {GrandBonus}, cap {GrandCap}) renown {GrandRenown} moons {GrandMoons}"); }
+    Debug.Log($"GB GRAND offer {eg.bigStage + 1}/3 {eg.big.tpl}: {qty}x{S.goods[g].id} -> {eg.big.to} pay {eg.big.pay} (20 x normal price {GrandNormalPrice(g, dp):0.0} x {GrandPriceMult:0.##} + {GrandBonus}, cap {GrandCap}; live price {price[dp, g]:0.0}) renown {GrandRenown} moons {GrandMoons}"); }
   bool GrandAccept(EgContract c) { c.status = "active"; c.dueWeek = week + c.moons * Wk - 1; Debug.Log($"GB GRAND accept {c.tpl} dueWeek {c.dueWeek} (own slot; {eg.active.Count}/{ED.MaxActive} normal contracts)"); msg = c.title + ": " + EgMoonsText(c) + "."; Save(); return true; }
   void GrandOnDock() { var c = GrandActive; if (c == null || S.ports[port].name != c.to) return; var sg = StoryGoods();
     if (hold[c.good] < c.qty || sg.Contains(c.good)) { Debug.Log($"GB GRAND at {c.to} but hold {hold[c.good]}/{c.qty} {S.goods[c.good].id}: not delivered"); msg = ED.NeedCargo; return; }
@@ -136,7 +147,7 @@ public partial class Game {
       if (rdForceGrand) { rdForceGrand = false; storyStep = Mathf.Max(storyStep, StDone); if (eg.rank < 2) AddRenown(ED.RankRenown(2) - eg.renown, "debug -gbendgamecontract"); while (egCards.Count > 0) egCards.Dequeue(); GrandEnsure(); msg = Big != null ? $"Debug: grand contract 1 on the board ({Big.title})." : "Debug: grand contract not posted"; Debug.Log("GB GRAND force applied: rank " + RankName + ", offer " + (Big != null ? Big.tpl : "none")); Save(); Refresh(); }
       if (rdForceRace && IsBoardPort(port)) { rdForceRace = false; if (!eg.board.Any(b => b.from == S.ports[port].name)) EgRefreshBoards(true); RivalMarkRace(true); Save(); }
     }
-    if (redDhow != null && redDhow.gameObject.activeSelf) { redDhow.position += rdVel * Time.deltaTime; if (!sailing || Time.time > rdSeaHideAt) { redDhow.gameObject.SetActive(false); Debug.Log("GB RIVAL sea hide"); } }
+    if (redDhow != null && redDhow.gameObject.activeSelf) { RedDhowPlace(); if (!sailing || Time.time > rdSeaHideAt) { redDhow.gameObject.SetActive(false); Debug.Log("GB RIVAL sea hide"); } }
     if (rdSeaPending && sailing && Time.time >= rdSeaShowAt) { rdSeaPending = false; RedDhowShow(); }
     if (!sailing) rdSeaPending = false;
     if (egTestQuiet || rvCards.Count == 0 || sailing || fighting || dialog != null || CardBusy) return;
@@ -145,11 +156,11 @@ public partial class Game {
   void RivalSeaStart(int to, float dur) { if (!RivalOn || Rv.next != to && !eg.active.Any(c => c.race && PortIdx(c.to) == to)) return; rdSeaPending = true; rdSeaShowAt = Time.time + dur * RivalData.F("seaShowFrom", 0.12f); rdSeaHideAt = Time.time + dur * RivalData.F("seaShowTo", 0.55f); Debug.Log($"GB RIVAL sea: the Red Dhow is on the {S.ports[to].name} leg"); }
   public Material RedSailMaterial() { if (redSailMat) return redSailMat;
     var lit = Shader.Find("Universal Render Pipeline/Lit"); var m = lit ? new Material(lit) : new Material(Shader.Find("Sprites/Default")); m.name = "RedDhowSail"; var tex = Resources.Load<Texture2D>(RivalData.Art("sailTexture", "Art/Ships/red_sail_canvas"));
-    if (tex) { tex.wrapMode = TextureWrapMode.Repeat; if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex); if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", Color.white); if (m.HasProperty("_Color")) m.SetColor("_Color", Color.white); }
+    if (tex) { tex.wrapMode = TextureWrapMode.Repeat; var bc = UITheme.C(RivalData.Art("sailBaseColor", "#C24A38")); if (m.HasProperty("_BaseMap")) m.SetTexture("_BaseMap", tex); if (m.HasProperty("_MainTex")) m.SetTexture("_MainTex", tex); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", bc); if (m.HasProperty("_Color")) m.SetColor("_Color", bc); } /* Jeff: base colour #C24A38 multiplied over the canvas */
     else { var fc = UITheme.C(RivalData.Art("sailFallbackColor", "#8E2F25")); if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", fc); if (m.HasProperty("_Color")) m.SetColor("_Color", fc); }
     if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", RivalData.ArtF("sailSmoothness", 0.1f)); if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0f); if (m.HasProperty("_Cull")) m.SetFloat("_Cull", 0f);
     m.DisableKeyword("_EMISSION"); if (m.HasProperty("_EmissionColor")) m.SetColor("_EmissionColor", Color.black); m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack; /* art spec: NO emission (the player's cream lateen glows; this must not) */
-    Debug.Log("GB RIVAL red sail material: " + (tex ? "red_sail_canvas" : "fallback #8E2F25") + ", no emission"); return redSailMat = m; }
+    Debug.Log("GB RIVAL red sail material: " + (tex ? "red_sail_canvas x " + RivalData.Art("sailBaseColor", "#C24A38") : "fallback #8E2F25") + ", no emission, no rim"); return redSailMat = m; }
   Transform BuildRedDhow() {
     if (redDhow) return redDhow; if (!sea3D) return null;
     var holder = new GameObject("RedDhow").transform; holder.SetParent(sea3D, false); /* holder: the Kenney FBX keeps its own lay-flat rotation */ var k = FreeModels.SpawnKenneyDhow(holder, "RedDhowModel"); bool kenney = k != null; if (!kenney) k = Dhow.Build(holder, T, false, "RedDhowModel");
@@ -157,9 +168,15 @@ public partial class Game {
     foreach (var r in k.GetComponentsInChildren<Renderer>(true)) { string nm = r.gameObject.name.ToLower(); if (nm.Contains("creamlateen") || (nm.Contains("sail") && !nm.Contains("yard"))) { r.sharedMaterial = sm; r.gameObject.name = "RedLateen"; n++; } }
     Debug.Log("GB RIVAL Red Dhow parts: " + string.Join(", ", k.GetComponentsInChildren<Renderer>(true).Select(x => x.gameObject.name + (x.enabled ? "" : "(off)") + "[" + (x.sharedMaterial ? x.sharedMaterial.name : "-") + "]")));
     Debug.Log($"GB RIVAL Red Dhow built ({(kenney ? "Kenney" : "procedural")}), red sail renderers {n}"); holder.gameObject.SetActive(false); return redDhow = holder; }
-  Vector3 rdVel; /* placed in view of the sea camera: ahead and to the left, crossing slowly to the right */
-  void RedDhowShow() { var d = BuildRedDhow(); if (!d) return; var c = cam ? cam.transform : null; Vector3 f = c ? Vector3.ProjectOnPlane(c.forward, Vector3.up).normalized : Vector3.forward, r = c ? Vector3.ProjectOnPlane(c.right, Vector3.up).normalized : Vector3.right; if (f.sqrMagnitude < 0.5f) f = Vector3.forward; if (r.sqrMagnitude < 0.5f) r = Vector3.right;
-    Vector3 o = ship ? ship.position : Vector3.zero; var pos = o + f * 34f + r * 16f; pos.y = 0.2f; d.position = pos; d.rotation = Quaternion.LookRotation(r, Vector3.up); rdVel = r * 2.2f; d.gameObject.SetActive(true); Debug.Log($"GB RIVAL sea show: the Red Dhow on the horizon at {pos} (ship {o}, cam {(c ? c.position.ToString() : "-")} fwd {(c ? c.forward.ToString() : "-")}, scale {d.lossyScale})"); }
+  /* gamedev_v07 sea fix: he was placed once in world space (camera-relative at show time) and drifted off; Game Tester saw no Red Dhow.
+     Now he is re-placed every frame on the sea plane under a point of the gameplay camera's viewport (left of the player's sail, just under the horizon),
+     sliding slowly across, so he stays in the frame the player sees for the whole show window. */
+  float rdShowT;
+  bool RedDhowPlace() { if (!redDhow || !cam) return false; float a = Mathf.Clamp01((Time.time - rdShowT) / Mathf.Max(1f, rdSeaHideAt - rdShowT));
+    var vp = new Vector3(Mathf.Lerp(RivalData.F("seaViewX0", 0.16f), RivalData.F("seaViewX1", 0.34f), a), RivalData.F("seaViewY", 0.6f), 0); var ray = cam.ViewportPointToRay(vp);
+    if (ray.direction.y > -0.002f) return false; float d = Mathf.Min(RivalData.F("seaMaxDist", 70f), -ray.origin.y / ray.direction.y); var pos = ray.origin + ray.direction * d; pos.y = 0.2f; redDhow.position = pos;
+    var rr = Vector3.ProjectOnPlane(cam.transform.right, Vector3.up); if (rr.sqrMagnitude > 0.01f) redDhow.rotation = Quaternion.LookRotation(rr.normalized, Vector3.up); return true; }
+  void RedDhowShow() { var d = BuildRedDhow(); if (!d) return; rdShowT = Time.time; d.gameObject.SetActive(true); RedDhowPlace(); Debug.Log($"GB RIVAL sea show: the Red Dhow on the horizon at {d.position} (gameplay camera {(cam ? cam.name : "none")}, until +{rdSeaHideAt - Time.time:0.0}s)"); }
   IEnumerator RivalCard(string title, string body, int mood) { /* Ask-style card with Rashid's portrait on the left */
     while (CardBusy) yield return null;
     float bodyH = Mathf.Max(220f, CardBodyH(body, 400f)); var tf = CardTitleFit(title, 640, T.fontSizeTitle); float panelH = 132 + tf.extra + bodyH + 20 + 84 + 110; float top = Mathf.Max(180f, (1920f - panelH) * 0.38f);

@@ -15,17 +15,23 @@
   "staysWeeks": 2,
   "seaShowFrom": 0.12,
   "seaShowTo": 0.55,
-  "raceSpreadMinMoons": -0.25,
-  "raceSpreadMaxMoons": 0.5
+  "raceSpreadMinWeeks": -1,
+  "raceSpreadMaxWeeks": 2,
+  "seaViewX0": 0.16,
+  "seaViewX1": 0.34,
+  "seaViewY": 0.6,
+  "seaMaxDist": 70,
+  "qaSeaRedPixels": 60
  },
  "notes": {
   "fromMoon": "spec: appears from moon 3 (1-based, Moon index 2)",
   "portChance": "spec: ~1 arrival in 4, rolled per arrival",
   "cheapest": "spec: buys the port's cheapest good for the visit: stock halved, price +20% (price restored at the next week tick)",
   "raceRouteWeeks": "every leg is one week at sea in this build",
-  "raceSpreadMoons": "Game Designer ruling on 6f9eb00: his time = route time + uniform(raceSpreadMinMoons, raceSpreadMaxMoons) moons, continuous (1 week + U(-1, +2) weeks); you dock on whole weeks, so he wins only if strictly earlier: a straight-sailing player wins ~2 in 3",
+  "raceSpreadMoons": "Jeff (final): his time = the player's shortest full trip from accept (delivery leg if carrying enough or on sale where you accept, else nearest source leg + delivery leg; 1 week per leg) + uniform(raceSpreadMinWeeks, raceSpreadMaxWeeks) weeks, continuous; he wins only if strictly earlier (tie to the player): ~2 in 3 for a player who sails the shortest trip",
   "OPEN_needs_Game_Designer_ruling": "none open: race chance 0.34, clock on accept, tie to player, deposit back on loss, 2-week stay approved (Game Designer, 6f9eb00 ruling)",
-  "taunts": "taunt1 -> taunt2 -> taunt3 -> taunt1 cycle shared by meetings in port and taking a race; position saved (RivalState.tauntIdx)"
+  "taunts": "taunt1 -> taunt2 -> taunt3 -> taunt1 cycle shared by meetings in port and taking a race; position saved (RivalState.tauntIdx)",
+  "seaView": "at sea he is re-placed every frame under the gameplay camera's viewport point (x seaViewX0->seaViewX1 across the show window, y seaViewY just under the horizon, at most seaMaxDist away), so he stays in the player's frame; qaSeaRedPixels = red pixels (every 2nd px each way) the qa needs in the frame"
  },
  "art": {
   "portraitPrefix": "Keepers/k7_",
@@ -33,14 +39,15 @@
   "sailFallbackColor": "#8E2F25",
   "sailSmoothness": 0.1,
   "boardIcon": "Art/UI/rival_sail_icon",
-  "boardIconSize": 30,
+  "boardIconSize": 40,
   "moods": {
    "neutral": 0,
    "delighted": 1,
    "offended": 2,
    "suspicious": 3
   },
-  "note": "design/rival_art_spec.md (Chief Art Designer). Portrait rows art/rashid-portrait bac7f0a; sail + icon art/rival-sail 6e45f5a."
+  "note": "design/rival_art_spec.md (Chief Art Designer). Portrait rows art/rashid-portrait bac7f0a; sail + icon art/rival-sail 6e45f5a.",
+  "sailBaseColor": "#C24A38"
  },
  "strings": {
   "name": "Captain Rashid",
@@ -58,7 +65,8 @@
   "taunt3": "Following me? Wise. Late, but wise.",
   "raceWin": "The sea favours the swift. Try again, little dhow.",
   "raceLoss": "Hm. Well sailed. Enjoy it while it lasts.",
-  "rumour": "They say the Red Dhow makes for {port}."
+  "rumour": "They say the Red Dhow makes for {port}.",
+  "newsSeen": "The Red Dhow called at {port} ({date})."
  },
  "lineMoods": {
   "inPort": "suspicious",
