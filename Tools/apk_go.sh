@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # apk_go.sh [--dry-run] [--out FILE] <commit> <ver> <code>
+# apk_go.sh --verify FILE [<ver> <code>]
 # Builds a debug-signed Galeborne APK from <commit> in a fresh git worktree and verifies it.
 #   - worktree /workspace/gr_wt_apk2 from /workspace/galeborne-repo2, git lfs pull, refuses on LFS pointers
 #   - refuses if the output (default /workspace/Galeborne_v<ver>_mq.apk) already exists
@@ -8,8 +9,10 @@
 #   - prints aapt2 versionCode/versionName, apksigner verify, size, sha256, watermark checks A and B
 #   - fails if the APK is under 35 MB (no-art guard); a failed APK is renamed to <out>.rejected
 #   - removes the worktree afterwards (Library is kept in /workspace/gr_apk_library_cache for speed)
-# --verify FILE <ver> <code> only runs the checks on an existing APK (never renames it); watermark A
-#   then looks at the 30 minutes before the file's mtime.
+# --verify FILE [<ver> <code>] only runs the checks on an existing APK (never renames it).
+#   With just FILE, versionName and versionCode are read from the APK with aapt2.
+#   With <ver> <code>, those values are compared and a mismatch fails.
+#   Watermark A then looks at the 30 minutes before the file's mtime.
 # --dry-run does everything up to the Unity build (worktree, LFS check, tools, lock check) and stops.
 set -euo pipefail
 TOOLS=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
@@ -28,19 +31,41 @@ while [ $# -gt 0 ]; do case "$1" in
   --dry-run) dry=1; shift;;
   --out) out="$2"; shift 2;;
   --verify) verify="$2"; shift 2;;
-  -h|--help) sed -n '2,13p' "$0"; exit 0;;
+  -h|--help) sed -n '2,16p' "$0"; exit 0;;
   --) shift; break;;
   -*) echo "unknown option $1"; exit 2;;
   *) break;; esac; done
-if [ -n "$verify" ]; then [ $# -eq 2 ] && set -- verify "$1" "$2"; fi
-[ $# -eq 3 ] || { sed -n '2,3p' "$0"; exit 2; }
-commit=$1; ver=$2; code=$3
-[[ $code =~ ^[0-9]+$ ]] || { echo "versionCode must be a number: $code"; exit 2; }
-out=${out:-/workspace/Galeborne_v${ver}_mq.apk}
-log=/workspace/build_apk_gr_${ver}.log
+usage() { sed -n '2,3p' "$0"; }
 export JAVA_HOME=$AP/OpenJDK
 export PATH=$BT:$AP/OpenJDK/bin:$PATH
 ts() { date '+%F %T %Z'; }
+
+if [ -n "$verify" ]; then
+  out=$verify
+  [ -f "$out" ] || { echo "no file $out"; exit 1; }
+  if [ $# -eq 2 ]; then
+    ver=$1; code=$2
+    [[ $code =~ ^[0-9]+$ ]] || { echo "versionCode must be a number: $code"; exit 2; }
+  elif [ $# -eq 0 ]; then
+    ver=""; code=""
+  else
+    usage; exit 2
+  fi
+  for t in "$BT/aapt2" "$BT/apksigner"; do [ -x "$t" ] || { echo "missing tool: $t"; exit 1; }; done
+  if [ -z "$ver" ] || [ -z "$code" ]; then
+    badge=$("$BT/aapt2" dump badging "$out" 2>/dev/null | sed -n 1p || true)
+    [ -n "$badge" ] || { echo "FAIL: aapt2 could not read $out"; exit 1; }
+    code=$(grep -o "versionCode='[0-9]*'" <<<"$badge" | tr -dc 0-9)
+    ver=$(grep -o "versionName='[^']*'" <<<"$badge" | cut -d"'" -f2)
+    if [ -z "$code" ] || [ -z "$ver" ]; then echo "FAIL: could not read versionName/versionCode from $out"; exit 1; fi
+  fi
+else
+  [ $# -eq 3 ] || { usage; exit 2; }
+  commit=$1; ver=$2; code=$3
+  [[ $code =~ ^[0-9]+$ ]] || { echo "versionCode must be a number: $code"; exit 2; }
+  out=${out:-/workspace/Galeborne_v${ver}_mq.apk}
+fi
+log=/workspace/build_apk_gr_${ver}.log
 
 if [ -z "$verify" ]; then
 [ -e "$out" ] && { echo "refusing: $out exists"; exit 1; }
@@ -62,9 +87,8 @@ trap cleanup EXIT
 
 fi
 if [ -n "$verify" ]; then
-  out=$verify; [ -f "$out" ] || { echo "no file $out"; exit 1; }
   m=$(stat -c %Y "$out"); T0=$(date -u -d "@$((m-1800))" '+%F %T'); T1=$(date -u -d "@$((m+60))" '+%F %T')
-  echo "verify-only $out (audit window $T0 .. $T1 UTC)"
+  echo "verify-only $out versionName=$ver versionCode=$code (audit window $T0 .. $T1 UTC)"
 else
 # --- worktree at the commit ---
 if [ -e "$WT" ]; then
